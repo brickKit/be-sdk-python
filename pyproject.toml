@@ -1,0 +1,36 @@
+[project]
+name = "besdk"
+version = "0.1.0"
+description = "be-sdk-python：Python 横切基础库（总纲 §4 SOP-L 十四项能力），非 brickKit 组件，非公共 model 包"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "fastapi==0.118.0",
+    "uvicorn[standard]==0.38.0",
+    "asyncpg==0.30.0",
+    "nats-py==2.11.0",
+    "grpcio==1.76.0",
+    "grpcio-tools==1.76.0",
+    "opentelemetry-api==1.38.0",
+    "opentelemetry-sdk==1.38.0",
+    "opentelemetry-exporter-otlp-proto-http==1.38.0",
+    "prometheus-client==0.23.1",
+    "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.1",
+    "pytest-asyncio==1.2.0",
+    "httpx==0.28.1",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["besdk*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
