@@ -6,7 +6,7 @@
 的公开 API 要同名、同参数顺序、同语义（总纲 §3.5.1）。
 """
 
-from besdk.authz import PUBLIC, PermKey, delete, get, patch, post, put, require_permission
+from besdk.authz import AUTHENTICATED, PUBLIC, PermKey, delete, get, patch, post, put, require_permission
 from besdk.client import system_client, user_client
 from besdk.endpoint import endpoint, must_endpoint, storage_endpoint
 from besdk.events import Event, consume
@@ -20,6 +20,7 @@ from besdk.standalone import bootstrap, run_standalone
 from besdk.tx import with_tx
 
 __all__ = [
+    "AUTHENTICATED",
     "PUBLIC",
     "Config",
     "Event",

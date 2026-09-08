@@ -152,6 +152,16 @@ async def _run_standalone_async(new_module: Callable[["Runtime"], Awaitable[Modu
         extra_ports=ports.extra_ports,
     )
 
+    # ⚠️ 权限判定的进程级状态在这里装配一次，同 Tracer/Meter 那一类
+    # "只能有一份、模块不许自己碰"的东西（§12.5.2）。iam_jwks_url/
+    # authz_bundle_url 任一没配都保持阶段一的 fail-closed stub 行为。
+    from besdk.authz import _set_authz_runtime, setup_authz_runtime  # noqa: PLC0415 - 避免顶层循环 import
+
+    iam_jwks_url, _ = rt.config.string("iamJwksUrl")
+    authz_bundle_url, _ = rt.config.string("authzBundleUrl")
+    verifier, bundle = setup_authz_runtime(iam_jwks_url, authz_bundle_url, rt.logger)
+    _set_authz_runtime(verifier, bundle)
+
     mod = await new_module(rt)
 
     # ⚠️ 全拆态迁移不在这里跑：平台为每个组件单独生成一次性迁移容器，

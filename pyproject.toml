@@ -16,13 +16,14 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http==1.38.0",
     "prometheus-client==0.23.1",
     "PyYAML==6.0.3",
+    "PyJWT[crypto]==2.13.0",
+    "httpx==0.28.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest==8.4.1",
     "pytest-asyncio==1.2.0",
-    "httpx==0.28.1",
 ]
 
 [build-system]
@@ -34,3 +35,6 @@ include = ["besdk*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "slow: 真的等待真实时间（如 15 秒轮询间隔），默认跑；CI 赶时间可用 -m 'not slow' 跳过",
+]
