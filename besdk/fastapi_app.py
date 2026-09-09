@@ -9,13 +9,18 @@
 ⚠️ ``/healthz`` 只检查本进程存活，不查依赖、不查数据库（设计书 §12.3.6：
 一个下游抖动会让所有上游同时被判不健康并重启，合并态下更狠）。
 
-⚠️ **与 Gin 的一处真实差异，别照 be-sdk-go 的注释照抄**：Gin 的路由
-**不会**让 GET 处理器顺带接住 HEAD 请求（这是 be-sdk-go 自己 v0.1.4→v0.1.5
-真实踩过的坑，见 `docs/dev/实测踩坑记录.md` A4h——平台的健康检查用
-`wget --spider` 发的是 HEAD）。**Starlette（FastAPI 的底层）默认会**为
-GET 路由自动应答 HEAD，所以这里不需要像 Gin 版那样显式再注册一次 HEAD。
-这一条差异要写进 `AGENTS.md`：Python 组件不会踩这个坑，不代表 Go 组件也
-不会。
+⚠️ **与 Gin 同一个坑，Python 也会踩——这条曾经在这里写反过**：Gin 的
+路由不会让 GET 处理器顺带接住 HEAD 请求（be-sdk-go 自己 v0.1.4→v0.1.5
+真实踩过，见 `docs/dev/实测踩坑记录.md` A4h——平台的健康检查用
+`wget --spider` 发的是 HEAD）。这里曾经写着"Starlette 默认会自动应答
+HEAD，所以不需要再注册"——**那是错的**，`infra-print` 第一次真机
+`brickkit up` 时容器直接 unhealthy，实测确认：纯 Starlette 的
+`Route.__init__` 确实有 `if "GET" in methods: methods.add("HEAD")`，
+但 **FastAPI 的 `APIRoute.__init__` 整个不调用 `super().__init__()`，
+自己重新赋值 `self.methods`，那一步"GET 自动带上 HEAD"的逻辑没有被
+带过来**——`@app.get(...)` 在 FastAPI 下对 HEAD 请求会直接 405，这是
+FastAPI 本身的行为，不是这个 SDK 装配错了什么。同 Gin 版一样，必须
+显式再注册一次 HEAD。
 """
 
 from __future__ import annotations
@@ -96,6 +101,7 @@ def new_fastapi_app(rt: "Runtime") -> FastAPI:
         return response
 
     @app.get("/healthz")
+    @app.head("/healthz")  # 平台健康检查用 wget --spider 发 HEAD，见上方模块文档
     async def healthz() -> Response:
         return Response(status_code=200)
 
