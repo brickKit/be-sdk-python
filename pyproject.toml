@@ -1,6 +1,6 @@
 [project]
 name = "besdk"
-version = "0.1.0"
+version = "0.2.1"
 description = "be-sdk-python：Python 横切基础库（总纲 §4 SOP-L 十四项能力），非 brickKit 组件，非公共 model 包"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }

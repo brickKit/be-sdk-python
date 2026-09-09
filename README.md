@@ -15,7 +15,7 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 
 ## 现状（阶段三 Task 5，权限判定真正上线）
 
-`require_permission`/`scope_of` 从 Task 1 的 fail-closed stub 换成真实判定——与 `be-sdk-go`/`be-sdk-ts` 同一批上线，形状逐字对应。
+`require_permission`/`scope_of` 从 Task 1 的 fail-closed stub 换成真实判定——与 `be-sdk-go`/`be-sdk-ts` 同一批上线，形状逐字对应。⚠️ **这套机制本身的协议描述（JWT claims 约定、bundle 的 wire format、判定链、ScopeFilter 语义）见 [`docs/authz-protocol.md`](docs/authz-protocol.md)**——独立写的，不假设读者知道 brickKit 是什么，换一个签发方/策略服务实现也能对着它接。
 
 - **JWT 本地验签**：`iam_jwks_url` 指向的 JWKS 端点，用 `PyJWT` 的 `PyJWKClient`（自带 JWK Set 缓存与刷新）。⚠️ `PyJWKClient` 是同步实现，`JWTVerifier.verify()` 整体包一层 `asyncio.to_thread`，避免缓存过期那次网络请求把事件循环卡住。`infra-iam-casdoor` 要到阶段三 Task 7 才建仓库，测试自己起一对 RSA 密钥 + 一个真实绑定端口的 `http.server` 当 JWKS 端点，加密运算是真的，只是身份是测试夹具。
 - **bundle 轮询**：15 秒条件 GET `authz_bundle_url`（`If-None-Match`，未变化 304 不重新解析），一个 `asyncio.create_task` 后台协程，模块代码看不见。⚠️ `BundleCache` 不用 `asyncio.Lock`——单线程协作式调度下，整体替换内部状态是一条没有 `await` 的语句，天然原子，加锁是没有必要的间接。有一条测试真等 15 秒验证"改角色分配不重启组件也能生效"。
