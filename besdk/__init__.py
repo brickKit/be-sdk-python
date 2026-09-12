@@ -16,6 +16,15 @@ from besdk.outbox import publish_outbox, start_outbox_pump
 from besdk.query import Query, list_window
 from besdk.runtime import Config, Runtime
 from besdk.scope import ScopeFilter, scope_of
+from besdk.shell import (
+    ShellModuleConfig,
+    build_nats_url,
+    build_pg_dsn,
+    init_shell_authz,
+    new_shell_runtime,
+    serve_extra_port,
+    serve_http,
+)
 from besdk.standalone import bootstrap, run_standalone
 from besdk.tx import with_tx
 
@@ -29,14 +38,19 @@ __all__ = [
     "Query",
     "Runtime",
     "ScopeFilter",
+    "ShellModuleConfig",
     "bootstrap",
+    "build_nats_url",
+    "build_pg_dsn",
     "consume",
     "delete",
     "endpoint",
     "get",
+    "init_shell_authz",
     "list_window",
     "must_endpoint",
     "new_fastapi_app",
+    "new_shell_runtime",
     "patch",
     "post",
     "publish_outbox",
@@ -44,6 +58,8 @@ __all__ = [
     "require_permission",
     "run_standalone",
     "scope_of",
+    "serve_extra_port",
+    "serve_http",
     "start_outbox_pump",
     "storage_endpoint",
     "system_client",
