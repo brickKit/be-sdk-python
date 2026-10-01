@@ -241,3 +241,55 @@ def test_health_port_missing_or_invalid_is_error(tmp_path, body):
 def test_health_port_missing_file_is_error(tmp_path):
     with pytest.raises(RuntimeError, match="component.yaml"):
         build_shell_config("py", {}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": "[]"}, str(tmp_path / "nope.yaml"))
+
+
+# ---- 额外端口无 register_grpc（与 Go R19 同一判据）----
+
+async def test_member_extra_port_without_register_grpc_fails_startup_naming_member_and_port(fakes):
+    stopped = []
+
+    async def no_grpc(rt):
+        async def stop():
+            stopped.append("a/b")
+        return SimpleNamespace(asgi_app=None, register_grpc=None, start=None, stop=stop)
+
+    spec = shell_runner.ModuleSpec(
+        member=shell_runner.ServedMember("a/b", "1", 8001, {"grpc": 9400}, {}), new_module=no_grpc)
+    with pytest.raises(RuntimeError) as ei:
+        await asyncio.wait_for(shell_runner.run(_cfg(spec), asyncio.Event()), 3)
+    msg = str(ei.value)
+    assert "a/b" in msg and "grpc" in msg and "9400" in msg and "register_grpc" in msg
+    assert fakes.started == [], "启动期校验失败时不应开始监听任何端口"
+    assert fakes.db.closed and fakes.nc.closed
+    assert stopped == ["a/b"], "已构造的成员也要被收尾"
+
+
+# ---- 真实 uvicorn 绑定失败（SystemExit）也必须归到成员名下 ----
+
+async def test_real_uvicorn_bind_conflict_is_attributed_to_member(fakes, monkeypatch, caplog):
+    import socket
+
+    from besdk.standalone import _serve_http
+
+    # 真实的 serve_http：uvicorn 端口被占时在 startup 里 sys.exit(1)，绕过 except Exception。
+    monkeypatch.setattr(besdk, "serve_http", _serve_http)
+    blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    blocker.bind(("0.0.0.0", 0))
+    blocker.listen(1)
+    port = blocker.getsockname()[1]
+
+    async def mod_new(rt):
+        async def app(scope, receive, send):
+            return None
+        return SimpleNamespace(asgi_app=app, register_grpc=None, start=None, stop=None)
+
+    try:
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(shell_runner.ShellMemberServeError, match="a/b"):
+                await asyncio.wait_for(shell_runner.run(_cfg(_spec("a/b", mod_new, port)), asyncio.Event()), 10)
+    finally:
+        blocker.close()
+    assert fakes.db.closed and fakes.nc.closed
+    assert any(getattr(r, "module_component_id", "") == "a/b" for r in caplog.records), \
+        "绑定失败的 ERROR 日志必须带 module_component_id"

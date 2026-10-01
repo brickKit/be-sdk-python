@@ -9,8 +9,10 @@ brickKit v1 起，平台在外壳启动前用每个成员自己的镜像跑完�
 ``serve_http`` / ``serve_extra_port``），不重新实现一遍。
 
 ⚠️ 外壳失败契约（与 Go 外壳一致）：
-- 成员的 HTTP/gRPC 监听或服务任务以异常结束（如端口绑定失败）-> 收尾后外壳非零退出
-  （``ShellMemberServeError``）；健康检查绿着而成员端口已死是静默故障，必须响亮。
+- 成员的 HTTP/gRPC 监听或服务任务以异常结束（如端口绑定失败，含 uvicorn 绑定失败时的
+  ``SystemExit``）-> 收尾后外壳非零退出（``ShellMemberServeError``，日志带成员 component_id）；
+  健康检查绿着而成员端口已死是静默故障，必须响亮。
+- 成员声明了额外端口而 ``new_module`` 没有返回 ``register_grpc`` -> 启动即失败，点名成员与端口。
 - 成员 ``start()``/后台任务启动后抛异常 -> 只记日志（带 component_id），其余成员继续服务。
 - 启动期成员 ``new_module`` 失败 -> 先收掉共享池与 NATS 再中止。
 - 外壳 /healthz 监听自己 ``./component.yaml`` 的 ``deployment.port``（缺失/非法/0 直接报错，不读环境变量、无默认端口）。
@@ -142,6 +144,11 @@ async def run(cfg: ShellConfig, stop_event: asyncio.Event | None = None) -> None
             )
             mod = await spec.new_module(rt)
             built.append(_Built(spec=spec, rt=rt, mod=mod))
+            # 声明了额外端口却没有 register_grpc：serve_extra_port 对 None 直接返回，那个端口
+            # 没人监听，外壳 /healthz 却是绿的——与 Go 外壳同一判据，启动即失败并点名成员与端口。
+            if m.extra_ports and getattr(mod, "register_grpc", None) is None:
+                ports = ", ".join(f"{n}(:{p})" for n, p in sorted(m.extra_ports.items()))
+                raise RuntimeError(f"成员 {m.component_id} 声明了额外端口 {ports}，但 new_module 没有返回 register_grpc")
     except BaseException:
         # 启动期某成员构造失败：允许整体中止，但必须先收掉共享池与 NATS（及已构造成员）。
         await _shutdown(built, db, nc, shutdown_otel, logger)
@@ -183,12 +190,17 @@ class ShellMemberServeError(RuntimeError):
 async def _serve_guard(
     component_id: str, what: str, coro, stop_event: asyncio.Event, failures: list[str], logger: logging.Logger
 ) -> None:
-    """成员的监听/服务任务：异常 = 致命。记日志、登记失败并触发整体优雅关停，由 supervise 收尾后抛出。"""
+    """成员的监听/服务任务：异常 = 致命。记日志、登记失败并触发整体优雅关停，由 supervise 收尾后抛出。
+
+    ⚠️ 也要接住 ``SystemExit``：uvicorn 端口绑定失败时在 startup 里 ``sys.exit(1)``，它不是
+    ``Exception``，不接住就会从 Task 里直接冲出事件循环——退出码虽非零，但日志不带成员归属，
+    收尾也被跳过。"""
     try:
         await coro
-    except Exception as exc:  # noqa: BLE001
+    except (Exception, SystemExit) as exc:  # noqa: BLE001
         logger.exception("成员监听/服务失败：%s", what, extra={"module_component_id": component_id})
-        failures.append(f"{component_id} {what}: {exc}")
+        detail = f"SystemExit({exc.code})（uvicorn 启动失败，多为端口被占）" if isinstance(exc, SystemExit) else str(exc)
+        failures.append(f"{component_id} {what}: {detail}")
         stop_event.set()
 
 
