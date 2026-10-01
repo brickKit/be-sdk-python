@@ -202,3 +202,21 @@ async def test_external_cancel_of_run_cleans_up_everything(fakes):
     assert fakes.db.closed and fakes.nc.closed
     leftover = {x for x in asyncio.all_tasks() if x not in before and x is not t and not x.done()}
     assert leftover == set()
+
+
+async def test_member_serve_failure_exits_loudly_after_cleanup(fakes, monkeypatch):
+    async def bad_serve(port, app, ev):
+        raise OSError("address already in use")
+
+    monkeypatch.setattr(besdk, "serve_http", bad_serve)
+    started = asyncio.Event()
+
+    async def mod_new(rt):
+        async def start():
+            started.set()
+            await asyncio.Event().wait()
+        return SimpleNamespace(asgi_app=None, register_grpc=None, start=start, stop=None)
+
+    with pytest.raises(shell_runner.ShellMemberServeError, match="a/b"):
+        await asyncio.wait_for(shell_runner.run(_cfg(_spec("a/b", mod_new)), asyncio.Event()), 3)
+    assert fakes.db.closed and fakes.nc.closed

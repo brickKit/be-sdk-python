@@ -8,9 +8,12 @@ brickKit v1 起，平台在外壳启动前用每个成员自己的镜像跑完�
 装配复用 run_standalone 已验证过的构件（``new_shell_runtime`` / ``init_shell_authz`` /
 ``serve_http`` / ``serve_extra_port``），不重新实现一遍。
 
-⚠️ 成员级故障隔离：启动完成后，某成员的 HTTP/gRPC/``start()`` 任务抛异常只记日志（带
-component_id），其余成员继续服务；外壳只在 ``stop_event`` 被 set（信号）或外壳自己的
-/healthz 服务退出时才退出。启动期某成员 ``new_module`` 失败仍整体中止，但会先收掉共享池与 NATS。
+⚠️ 外壳失败契约（与 Go 外壳一致）：
+- 成员的 HTTP/gRPC 监听或服务任务以异常结束（如端口绑定失败）-> 收尾后外壳非零退出
+  （``ShellMemberServeError``）；健康检查绿着而成员端口已死是静默故障，必须响亮。
+- 成员 ``start()``/后台任务启动后抛异常 -> 只记日志（带 component_id），其余成员继续服务。
+- 启动期成员 ``new_module`` 失败 -> 先收掉共享池与 NATS 再中止。
+- 其余退出：``stop_event`` 被 set（信号）或外壳自己的 /healthz 服务退出。
 编排不用 ``asyncio.TaskGroup``：``serve_*`` 靠 ``stop_event`` 优雅退出，``start()`` 靠 ``.cancel()``。
 """
 
@@ -171,21 +174,42 @@ async def _guard(component_id: str, what: str, coro, logger: logging.Logger) -> 
         logger.exception("成员任务异常退出，其余成员继续运行：%s", what, extra={"module_component_id": component_id})
 
 
+class ShellMemberServeError(RuntimeError):
+    """某成员的 HTTP/gRPC 监听或服务任务以异常结束（如端口绑定失败）。外壳收尾后以非零退出：
+    健康检查绿着而成员端口已死是静默故障，必须响亮。"""
+
+
+async def _serve_guard(
+    component_id: str, what: str, coro, stop_event: asyncio.Event, failures: list[str], logger: logging.Logger
+) -> None:
+    """成员的监听/服务任务：异常 = 致命。记日志、登记失败并触发整体优雅关停，由 supervise 收尾后抛出。"""
+    try:
+        await coro
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("成员监听/服务失败：%s", what, extra={"module_component_id": component_id})
+        failures.append(f"{component_id} {what}: {exc}")
+        stop_event.set()
+
+
 async def supervise(
     built: "list[_Built]", health_port: int, stop_event: asyncio.Event, logger: logging.Logger
 ) -> None:
-    """起全部成员任务并监督。外壳只在两种情况下退出：``stop_event`` 被 set（信号/取消），
-    或外壳自己的 /healthz 服务退出。成员任务（HTTP/gRPC/start）失败只记日志，不影响其余成员。
+    """起全部成员任务并监督。失败契约：成员的 HTTP/gRPC 监听或服务任务以异常结束 -> 优雅关停
+    全部并抛 ``ShellMemberServeError``（外壳非零退出）；成员 ``start()`` 后台异常 -> 只记日志，
+    其余成员继续；外壳自己的 /healthz 服务退出或 stop_event 被 set -> 正常收尾。
     """
     member_tasks: list[asyncio.Task] = []
+    serve_failures: list[str] = []
     for b in built:
         m = b.spec.member
         cid = m.component_id
         member_tasks.append(asyncio.create_task(
-            _guard(cid, "http", besdk.serve_http(m.http_port, b.mod.asgi_app, stop_event), logger)))
+            _serve_guard(cid, "http", besdk.serve_http(m.http_port, b.mod.asgi_app, stop_event),
+                         stop_event, serve_failures, logger)))
         for name, port in m.extra_ports.items():
             member_tasks.append(asyncio.create_task(
-                _guard(cid, f"grpc:{name}", besdk.serve_extra_port(name, port, b.mod.register_grpc, stop_event), logger)))
+                _serve_guard(cid, f"grpc:{name}", besdk.serve_extra_port(name, port, b.mod.register_grpc, stop_event),
+                             stop_event, serve_failures, logger)))
         if b.mod.start is not None:
             member_tasks.append(asyncio.create_task(_guard(cid, "start", _watch_and_run_start(b, stop_event), logger)))
 
@@ -208,6 +232,8 @@ async def supervise(
             if not t.done():
                 t.cancel()
         await asyncio.gather(*everything, return_exceptions=True)
+    if serve_failures:
+        raise ShellMemberServeError("成员监听/服务失败，外壳退出：" + "; ".join(serve_failures))
 
 
 async def _watch_and_run_start(b: _Built, stop_event: asyncio.Event) -> None:
