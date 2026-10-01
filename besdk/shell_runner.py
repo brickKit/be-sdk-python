@@ -8,10 +8,10 @@ brickKit v1 起，平台在外壳启动前用每个成员自己的镜像跑完�
 装配复用 run_standalone 已验证过的构件（``new_shell_runtime`` / ``init_shell_authz`` /
 ``serve_http`` / ``serve_extra_port``），不重新实现一遍。
 
-⚠️ 编排故意不用 ``asyncio.TaskGroup``，与 ``_run_standalone_async`` 同一套习惯：
-``serve_http`` / ``serve_extra_port`` 靠 ``stop_event`` 优雅退出，``Module.start`` 约定
-靠 ``.cancel()`` 退出；两种停止方式用 ``asyncio.wait(FIRST_COMPLETED)`` + 手动
-``stop_event.set()`` + 对 pending 任务 ``.cancel()`` 统一处理。
+⚠️ 成员级故障隔离：启动完成后，某成员的 HTTP/gRPC/``start()`` 任务抛异常只记日志（带
+component_id），其余成员继续服务；外壳只在 ``stop_event`` 被 set（信号）或外壳自己的
+/healthz 服务退出时才退出。启动期某成员 ``new_module`` 失败仍整体中止，但会先收掉共享池与 NATS。
+编排不用 ``asyncio.TaskGroup``：``serve_*`` 靠 ``stop_event`` 优雅退出，``start()`` 靠 ``.cancel()``。
 """
 
 from __future__ import annotations
@@ -122,80 +122,106 @@ async def run(cfg: ShellConfig, stop_event: asyncio.Event | None = None) -> None
     besdk.init_shell_authz(cfg.iam_jwks_url, cfg.authz_bundle_url, logger)
 
     built: list[_Built] = []
-    for spec in cfg.modules:
-        m = spec.member
-        rt = besdk.new_shell_runtime(
-            ShellModuleConfig(
-                component_id=m.component_id,
-                component_version=m.version,
-                env=m.config,
-                http_port=m.http_port,
-                extra_ports=m.extra_ports,
-            ),
-            db,
-            nc,
-        )
-        mod = await spec.new_module(rt)
-        built.append(_Built(spec=spec, rt=rt, mod=mod))
+    try:
+        for spec in cfg.modules:
+            m = spec.member
+            rt = besdk.new_shell_runtime(
+                ShellModuleConfig(
+                    component_id=m.component_id,
+                    component_version=m.version,
+                    env=m.config,
+                    http_port=m.http_port,
+                    extra_ports=m.extra_ports,
+                ),
+                db,
+                nc,
+            )
+            mod = await spec.new_module(rt)
+            built.append(_Built(spec=spec, rt=rt, mod=mod))
+    except BaseException:
+        # 启动期某成员构造失败：允许整体中止，但必须先收掉共享池与 NATS（及已构造成员）。
+        await _shutdown(built, db, nc, shutdown_otel, logger)
+        raise
 
-    tasks: list[asyncio.Task] = []
-    if cfg.health_port:
-        tasks.append(asyncio.create_task(_serve_health(cfg.health_port, stop_event)))
-    for b in built:
-        m = b.spec.member
-        tasks.append(asyncio.create_task(besdk.serve_http(m.http_port, b.mod.asgi_app, stop_event)))
-        for name, port in m.extra_ports.items():
-            tasks.append(asyncio.create_task(besdk.serve_extra_port(name, port, b.mod.register_grpc, stop_event)))
-        if b.mod.start is not None:
-            tasks.append(asyncio.create_task(_watch_and_run_start(b, stop_event, logger)))
+    await supervise(built, cfg.health_port, stop_event, logger)
+    await _shutdown(built, db, nc, shutdown_otel, logger)
 
-    if not tasks:
-        # 零成员且没有健康端口：没有任何东西可跑，等停止信号即可。
-        tasks.append(asyncio.create_task(stop_event.wait()))
 
-    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    for task in done:
-        exc = task.exception()
-        if exc is not None:
-            logger.error("服务异常退出：%s", exc)
-
-    stop_event.set()
-    for task in pending:
-        task.cancel()
-    if pending:
-        await asyncio.wait(pending)
-
+async def _shutdown(built: "list[_Built]", db, nc, shutdown_otel, logger: logging.Logger) -> None:
     for b in built:
         if b.mod.stop is not None:
-            await asyncio.wait_for(b.mod.stop(), timeout=_SHUTDOWN_TIMEOUT_SECONDS)
-
+            try:
+                await asyncio.wait_for(b.mod.stop(), timeout=_SHUTDOWN_TIMEOUT_SECONDS)
+            except Exception:  # noqa: BLE001 - 单成员停止失败不影响其余成员收尾
+                logger.exception("模块停止失败", extra={"module_component_id": b.spec.member.component_id})
     await db.close()
     await nc.close()
     await shutdown_otel()
 
 
-async def _watch_and_run_start(b: _Built, stop_event: asyncio.Event, logger: logging.Logger) -> None:
+async def _guard(component_id: str, what: str, coro, logger: logging.Logger) -> None:
+    """成员级 panic 隔离：成员任务里的异常只记日志（带 component_id），不外抛，其余成员继续服务。
+    取消（CancelledError）照常向上传播。"""
+    try:
+        await coro
+    except Exception:  # noqa: BLE001 - 隔离边界：任何成员异常都不得拖垮外壳
+        logger.exception("成员任务异常退出，其余成员继续运行：%s", what, extra={"module_component_id": component_id})
+
+
+async def supervise(
+    built: "list[_Built]", health_port: int, stop_event: asyncio.Event, logger: logging.Logger
+) -> None:
+    """起全部成员任务并监督。外壳只在两种情况下退出：``stop_event`` 被 set（信号/取消），
+    或外壳自己的 /healthz 服务退出。成员任务（HTTP/gRPC/start）失败只记日志，不影响其余成员。
+    """
+    member_tasks: list[asyncio.Task] = []
+    for b in built:
+        m = b.spec.member
+        cid = m.component_id
+        member_tasks.append(asyncio.create_task(
+            _guard(cid, "http", besdk.serve_http(m.http_port, b.mod.asgi_app, stop_event), logger)))
+        for name, port in m.extra_ports.items():
+            member_tasks.append(asyncio.create_task(
+                _guard(cid, f"grpc:{name}", besdk.serve_extra_port(name, port, b.mod.register_grpc, stop_event), logger)))
+        if b.mod.start is not None:
+            member_tasks.append(asyncio.create_task(_guard(cid, "start", _watch_and_run_start(b, stop_event), logger)))
+
+    stop_waiter = asyncio.create_task(stop_event.wait())
+    waiters = [stop_waiter]
+    health_task: asyncio.Task | None = None
+    if health_port:
+        health_task = asyncio.create_task(_serve_health(health_port, stop_event))
+        waiters.append(health_task)
+
+    await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
+    if health_task is not None and health_task.done() and not health_task.cancelled() and health_task.exception():
+        logger.error("外壳健康检查服务异常退出：%s", health_task.exception())
+
+    stop_event.set()
+    everything = [*member_tasks, *waiters]
+    for t in everything:
+        if not t.done():
+            t.cancel()
+    await asyncio.wait(everything)
+
+
+async def _watch_and_run_start(b: _Built, stop_event: asyncio.Event) -> None:
     """``Module.start`` 约定"取消时必须返回"（靠 ``Task.cancel()``）——额外起一个 watcher，
     ``stop_event`` 被 set 时取消 ``start()``，对齐 HTTP/gRPC 走 ``stop_event`` 的路径。
-
-    单模块 ``start()`` 里一次未捕获的异常在这里被接住并带上 ``module_component_id`` 记日志，
-    排障时才知道是哪个模块的后台循环坏的。
+    start() 抛出的异常原样外抛，由外层 ``_guard`` 记日志并隔离。
     """
     watcher = asyncio.create_task(stop_event.wait())
     task = asyncio.create_task(b.mod.start())
     try:
         done, _ = await asyncio.wait({watcher, task}, return_when=asyncio.FIRST_COMPLETED)
         if task in done:
-            exc = task.exception()
-            if exc is not None:
-                logger.error(
-                    "模块后台循环退出", extra={"module_component_id": b.spec.member.component_id}, exc_info=exc
-                )
-                raise exc
+            task.result()
         else:
             task.cancel()
     finally:
         watcher.cancel()
+        if not task.done():
+            task.cancel()
 
 
 async def _serve_health(port: int, stop_event: asyncio.Event) -> None:
@@ -215,14 +241,6 @@ async def _serve_health(port: int, stop_event: asyncio.Event) -> None:
         return {"ok": True}
 
     await besdk.serve_http(port, app, stop_event)
-
-
-def _first_member_value(members: list[ServedMember], key: str) -> str:
-    for m in members:
-        v = m.config.get(key, "")
-        if v:
-            return v
-    return ""
 
 
 def build_shell_config(
@@ -248,19 +266,16 @@ def build_shell_config(
             )
         specs.append(ModuleSpec(member=m, new_module=new_module))
 
+    # 外壳自己的配置只来自外壳进程环境（它自己的 configSchema 声明了这些键），
+    # 绝不从成员 config 里兜底。缺必需键直接报错并点名；OTEL_BASE_URL 缺省 = 不导出。
     shell_cfg = Config(env)
-    # 权限判定是进程级状态，只装一份：外壳自己的环境优先，没有则取第一个配了它的成员的值
-    # （业务组件的 IAM_JWKS_URL / AUTHZ_BUNDLE_URL 都指向同一对 iam/authz 实例）。
-    iam_jwks_url = shell_cfg.string_or("IAM_JWKS_URL", "") or _first_member_value(members, "IAM_JWKS_URL")
-    authz_bundle_url = shell_cfg.string_or("AUTHZ_BUNDLE_URL", "") or _first_member_value(members, "AUTHZ_BUNDLE_URL")
-
     return ShellConfig(
         shell_name=shell_name,
-        otel_base_url=shell_cfg.string_or("OTEL_BASE_URL", "") or _first_member_value(members, "OTEL_BASE_URL"),
+        otel_base_url=shell_cfg.string_or("OTEL_BASE_URL", ""),
         pg_dsn=pg_dsn(shell_cfg),
         nats_url=nats_url(shell_cfg),
-        iam_jwks_url=iam_jwks_url,
-        authz_bundle_url=authz_bundle_url,
+        iam_jwks_url=shell_cfg.must_string("IAM_JWKS_URL"),
+        authz_bundle_url=shell_cfg.must_string("AUTHZ_BUNDLE_URL"),
         health_port=shell_cfg.int_or("SHELL_HEALTH_PORT", 0) or _DEFAULT_HEALTH_PORT,
         modules=specs,
     )
@@ -279,6 +294,6 @@ def main(shell_name: str, registry: "dict[str, Callable[[Runtime], Awaitable[Mod
     装配失败（成员数据缺失、连接键缺失）整体退出。"""
     try:
         asyncio.run(_main(shell_name, registry))
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         print(f"[{shell_name}] {exc}", file=sys.stderr)
         sys.exit(1)

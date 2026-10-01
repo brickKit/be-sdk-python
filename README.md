@@ -45,7 +45,7 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 
 ## 外壳启动器（`besdk.shell_runner`）
 
-Python 外壳进程入口只有一行：`besdk.shell_runner.main("py-render", {"infra/print": create_module})`。成员清单来自平台注入的 `BRICKKIT_SERVED_MEMBERS_CONFIG`（JSON 数组，每项含 `componentId` / `version` / `httpPort` / `extraPorts` / 已求值的 `config`；零成员为 `[]`，未设置或空串直接报错）。外壳**不跑迁移**——平台在外壳启动前用每个成员自己的镜像跑完。共享一个 asyncpg 池与 NATS 连接，逐成员监听，单成员后台循环异常不拖垮其余成员。
+Python 外壳进程入口只有一行：`besdk.shell_runner.main("py-render", {"infra/print": create_module})`。成员清单来自平台注入的 `BRICKKIT_SERVED_MEMBERS_CONFIG`（JSON 数组，每项含 `componentId` / `version` / `httpPort` / `extraPorts` / 已求值的 `config`；零成员为 `[]`，未设置或空串直接报错）。外壳**不跑迁移**——平台在外壳启动前用每个成员自己的镜像跑完。共享一个 asyncpg 池与 NATS 连接，逐成员监听。启动完成后，单个成员的 HTTP/gRPC/`start()` 任务抛异常只记日志（带 component_id），其余成员继续服务；外壳仅在收到信号或自身 `/healthz` 服务失败时退出。启动期某成员构造（`new_module`）失败会整体中止，但先关闭共享连接池与 NATS。外壳自己的 `IAM_JWKS_URL` / `AUTHZ_BUNDLE_URL` / `PG_*` / `NATS_URL` 只读外壳进程环境，缺失即报错并点名，不从成员 config 兜底；`OTEL_BASE_URL` 缺省表示不导出。
 
 ## 用法
 
