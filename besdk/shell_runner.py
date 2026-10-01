@@ -13,6 +13,7 @@ brickKit v1 起，平台在外壳启动前用每个成员自己的镜像跑完�
   （``ShellMemberServeError``）；健康检查绿着而成员端口已死是静默故障，必须响亮。
 - 成员 ``start()``/后台任务启动后抛异常 -> 只记日志（带 component_id），其余成员继续服务。
 - 启动期成员 ``new_module`` 失败 -> 先收掉共享池与 NATS 再中止。
+- 外壳 /healthz 监听自己 ``./component.yaml`` 的 ``deployment.port``（缺失/非法/0 直接报错，不读环境变量、无默认端口）。
 - 其余退出：``stop_event`` 被 set（信号）或外壳自己的 /healthz 服务退出。
 编排不用 ``asyncio.TaskGroup``：``serve_*`` 靠 ``stop_event`` 优雅退出，``start()`` 靠 ``.cancel()``。
 """
@@ -33,6 +34,7 @@ import nats
 
 import besdk
 from besdk.connection import nats_url, pg_dsn
+from besdk.manifest import load_own_http_port
 from besdk.runtime import Config
 from besdk.shell import ShellModuleConfig
 
@@ -42,7 +44,6 @@ if TYPE_CHECKING:
     from besdk import Module, Runtime
 
 _SHUTDOWN_TIMEOUT_SECONDS = 30
-_DEFAULT_HEALTH_PORT = 18889
 
 
 @dataclass
@@ -279,6 +280,7 @@ def build_shell_config(
     shell_name: str,
     registry: "dict[str, Callable[[Runtime], Awaitable[Module]]]",
     environ: "dict[str, str] | None" = None,
+    component_yaml: str = "component.yaml",
 ) -> ShellConfig:
     """从进程环境 + ``BRICKKIT_SERVED_MEMBERS_CONFIG`` 构造 ``ShellConfig``。
 
@@ -308,7 +310,7 @@ def build_shell_config(
         nats_url=nats_url(shell_cfg),
         iam_jwks_url=shell_cfg.must_string("IAM_JWKS_URL"),
         authz_bundle_url=shell_cfg.must_string("AUTHZ_BUNDLE_URL"),
-        health_port=shell_cfg.int_or("SHELL_HEALTH_PORT", 0) or _DEFAULT_HEALTH_PORT,
+        health_port=load_own_http_port(component_yaml),
         modules=specs,
     )
 

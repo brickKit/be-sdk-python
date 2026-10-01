@@ -47,8 +47,14 @@ from besdk.shell_runner import build_shell_config
 SHELL_ENV = {
     "PG_HOST": "db", "PG_PORT": "5432", "PG_DATABASE": "d", "PG_USER": "u", "PG_PASSWORD": "p",
     "NATS_URL": "nats://n:4222", "IAM_JWKS_URL": "http://iam/jwks", "AUTHZ_BUNDLE_URL": "http://authz/bundle",
-    "SHELL_HEALTH_PORT": "0",
 }
+
+
+@pytest.fixture
+def own_yaml(tmp_path):
+    f = tmp_path / "component.yaml"
+    f.write_text("deployment:\n  port: 18123\n")
+    return str(f)
 
 
 def _members(*ids):
@@ -62,30 +68,31 @@ async def _noop_module(rt):
     return SimpleNamespace(asgi_app=None, register_grpc=None, start=None, stop=None, migrations_dir=None)
 
 
-def test_build_shell_config_ok():
-    cfg = build_shell_config("py", {"a/b": _noop_module}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": _members("a/b")})
+def test_build_shell_config_ok(own_yaml):
+    cfg = build_shell_config("py", {"a/b": _noop_module}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": _members("a/b")}, own_yaml)
+    assert cfg.health_port == 18123
     assert [m.member.component_id for m in cfg.modules] == ["a/b"]
     assert cfg.authz_bundle_url == "http://authz/bundle"
     assert cfg.otel_base_url == ""
 
 
 @pytest.mark.parametrize("key", ["IAM_JWKS_URL", "AUTHZ_BUNDLE_URL"])
-def test_build_shell_config_missing_shell_key_names_it_no_member_fallback(key):
+def test_build_shell_config_missing_shell_key_names_it_no_member_fallback(key, own_yaml):
     env = {k: v for k, v in SHELL_ENV.items() if k != key}
     raw = json.dumps([{"componentId": "a/b", "version": "1", "httpPort": 1, "config": {key: "http://from-member"}}])
     with pytest.raises(RuntimeError, match=key):
-        build_shell_config("py", {"a/b": _noop_module}, {**env, "BRICKKIT_SERVED_MEMBERS_CONFIG": raw})
+        build_shell_config("py", {"a/b": _noop_module}, {**env, "BRICKKIT_SERVED_MEMBERS_CONFIG": raw}, own_yaml)
 
 
-def test_build_shell_config_missing_pg_key_names_it():
+def test_build_shell_config_missing_pg_key_names_it(own_yaml):
     env = {k: v for k, v in SHELL_ENV.items() if k != "PG_HOST"}
     with pytest.raises(ValueError, match="PG_HOST"):
-        build_shell_config("py", {}, {**env, "BRICKKIT_SERVED_MEMBERS_CONFIG": "[]"})
+        build_shell_config("py", {}, {**env, "BRICKKIT_SERVED_MEMBERS_CONFIG": "[]"}, own_yaml)
 
 
-def test_unregistered_component_id_names_it():
+def test_unregistered_component_id_names_it(own_yaml):
     with pytest.raises(RuntimeError, match="x/unknown"):
-        build_shell_config("py", {"a/b": _noop_module}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": _members("x/unknown")})
+        build_shell_config("py", {"a/b": _noop_module}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": _members("x/unknown")}, own_yaml)
 
 
 class _FakeClosable:
@@ -220,3 +227,17 @@ async def test_member_serve_failure_exits_loudly_after_cleanup(fakes, monkeypatc
     with pytest.raises(shell_runner.ShellMemberServeError, match="a/b"):
         await asyncio.wait_for(shell_runner.run(_cfg(_spec("a/b", mod_new)), asyncio.Event()), 3)
     assert fakes.db.closed and fakes.nc.closed
+
+
+@pytest.mark.parametrize("body", ["deployment: {}\n", "name: x\n", "deployment:\n  port: 0\n",
+                                  "deployment:\n  port: abc\n", "deployment:\n  port: 70000\n"])
+def test_health_port_missing_or_invalid_is_error(tmp_path, body):
+    f = tmp_path / "component.yaml"
+    f.write_text(body)
+    with pytest.raises(RuntimeError, match="deployment.port"):
+        build_shell_config("py", {}, {**SHELL_ENV, "SHELL_HEALTH_PORT": "9999", "BRICKKIT_SERVED_MEMBERS_CONFIG": "[]"}, str(f))
+
+
+def test_health_port_missing_file_is_error(tmp_path):
+    with pytest.raises(RuntimeError, match="component.yaml"):
+        build_shell_config("py", {}, {**SHELL_ENV, "BRICKKIT_SERVED_MEMBERS_CONFIG": "[]"}, str(tmp_path / "nope.yaml"))
