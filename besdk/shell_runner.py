@@ -143,8 +143,11 @@ async def run(cfg: ShellConfig, stop_event: asyncio.Event | None = None) -> None
         await _shutdown(built, db, nc, shutdown_otel, logger)
         raise
 
-    await supervise(built, cfg.health_port, stop_event, logger)
-    await _shutdown(built, db, nc, shutdown_otel, logger)
+    try:
+        await supervise(built, cfg.health_port, stop_event, logger)
+    finally:
+        # 任何退出路径（信号、自身 healthz 失败、外部取消、意外异常）都恰好收尾一次。
+        await _shutdown(built, db, nc, shutdown_otel, logger)
 
 
 async def _shutdown(built: "list[_Built]", db, nc, shutdown_otel, logger: logging.Logger) -> None:
@@ -189,20 +192,22 @@ async def supervise(
     stop_waiter = asyncio.create_task(stop_event.wait())
     waiters = [stop_waiter]
     health_task: asyncio.Task | None = None
-    if health_port:
-        health_task = asyncio.create_task(_serve_health(health_port, stop_event))
-        waiters.append(health_task)
+    try:
+        if health_port:
+            health_task = asyncio.create_task(_serve_health(health_port, stop_event))
+            waiters.append(health_task)
 
-    await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
-    if health_task is not None and health_task.done() and not health_task.cancelled() and health_task.exception():
-        logger.error("外壳健康检查服务异常退出：%s", health_task.exception())
-
-    stop_event.set()
-    everything = [*member_tasks, *waiters]
-    for t in everything:
-        if not t.done():
-            t.cancel()
-    await asyncio.wait(everything)
+        await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
+        if health_task is not None and health_task.done() and not health_task.cancelled() and health_task.exception():
+            logger.error("外壳健康检查服务异常退出：%s", health_task.exception())
+    finally:
+        # 无论正常退出、外部取消还是异常：取消并等待全部任务，不留孤儿任务。
+        stop_event.set()
+        everything = [*member_tasks, *waiters]
+        for t in everything:
+            if not t.done():
+                t.cancel()
+        await asyncio.gather(*everything, return_exceptions=True)
 
 
 async def _watch_and_run_start(b: _Built, stop_event: asyncio.Event) -> None:
@@ -222,6 +227,7 @@ async def _watch_and_run_start(b: _Built, stop_event: asyncio.Event) -> None:
         watcher.cancel()
         if not task.done():
             task.cancel()
+        await asyncio.gather(watcher, task, return_exceptions=True)
 
 
 async def _serve_health(port: int, stop_event: asyncio.Event) -> None:

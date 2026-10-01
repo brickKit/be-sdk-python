@@ -184,3 +184,21 @@ async def test_new_module_failure_closes_pool_and_nats(fakes):
     with pytest.raises(RuntimeError, match="ctor failed"):
         await shell_runner.run(_cfg(_spec("a/b", broken)), asyncio.Event())
     assert fakes.db.closed and fakes.nc.closed
+
+
+async def test_external_cancel_of_run_cleans_up_everything(fakes):
+    async def mod_new(rt):
+        async def start():
+            await asyncio.Event().wait()
+        return SimpleNamespace(asgi_app=None, register_grpc=None, start=start, stop=None)
+
+    before = set(asyncio.all_tasks())
+    t = asyncio.create_task(shell_runner.run(_cfg(_spec("a/b", mod_new, 8001), _spec("c/d", mod_new, 8002)), asyncio.Event()))
+    await asyncio.sleep(0.1)
+    assert not t.done()
+    t.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await t
+    assert fakes.db.closed and fakes.nc.closed
+    leftover = {x for x in asyncio.all_tasks() if x not in before and x is not t and not x.done()}
+    assert leftover == set()
