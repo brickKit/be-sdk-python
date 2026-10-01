@@ -18,7 +18,7 @@ from besdk.logging import new_logger
 from besdk.metrics import new_registry
 from besdk.otel import get_meter, get_tracer
 from besdk.runtime import Config, Runtime
-from besdk.standalone import _build_nats_url, _build_pg_dsn, _serve_extra_port, _serve_http
+from besdk.standalone import _serve_extra_port, _serve_http
 
 if TYPE_CHECKING:
     import asyncpg
@@ -93,11 +93,6 @@ def init_shell_authz(iam_jwks_url: str, authz_bundle_url: str, logger: logging.L
 
 
 # serve_http/serve_extra_port 是 _serve_http/_serve_extra_port 的公开
-# 别名，供外壳按模块循环调用——不是重新实现一遍。build_pg_dsn/
-# build_nats_url 同理：外壳级共享连接串只需要拼一次（一个外壳一个共享
-# 登录角色，设计书 §13.3），不属于"每模块各一份 env 会互相顶掉"的风险
-# 范围，导出纯粹是避免外壳重新拼一遍同样的格式化逻辑。
+# 别名，供外壳按模块循环调用——不是重新实现一遍。
 serve_http = _serve_http
 serve_extra_port = _serve_extra_port
-build_pg_dsn = _build_pg_dsn
-build_nats_url = _build_nats_url

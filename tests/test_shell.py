@@ -57,8 +57,8 @@ def test_new_shell_runtime_多模块共享DB与NATS但各自持有独立字段()
     assert rt1.extra_ports == {"grpc": 9090}
     assert rt2.extra_ports == {"grpc": 9094}
 
-    assert rt1.config.string("fooBar") == ("customer-value", True)
-    assert rt2.config.string("fooBar") == ("sales-value", True)
+    assert rt1.config.string("FOO_BAR") == ("customer-value", True)
+    assert rt2.config.string("FOO_BAR") == ("sales-value", True)
 
     assert rt1.registry is not rt2.registry
 
@@ -110,8 +110,3 @@ def test_serve_http_导出别名与私有实现一致() -> None:
 
 def test_serve_extra_port_导出别名与私有实现一致() -> None:
     assert besdk.serve_extra_port is besdk.shell._serve_extra_port  # type: ignore[attr-defined]  # noqa: SLF001
-
-
-def test_build_pg_dsn与build_nats_url_导出别名与私有实现一致() -> None:
-    assert besdk.build_pg_dsn is besdk.shell._build_pg_dsn  # type: ignore[attr-defined]  # noqa: SLF001
-    assert besdk.build_nats_url is besdk.shell._build_nats_url  # type: ignore[attr-defined]  # noqa: SLF001

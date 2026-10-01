@@ -4,7 +4,7 @@ Config 是模块读配置的唯一入口（设计书 §12.5.3）。模块代码�
 
 数据来源不由 Config 自己决定：
     单跑：``run_standalone`` 从进程环境变量读一份快照灌进来
-    合并：外壳启动器给每个模块一份只属于它自己的 env map（§13.8.2）
+    合并：外壳启动器给每个模块一份只属于它自己的成员 config（BRICKKIT_SERVED_MEMBERS_CONFIG）
 """
 
 from __future__ import annotations
@@ -22,33 +22,6 @@ if TYPE_CHECKING:
     import prometheus_client
 
 
-def _config_env_var_name(key: str) -> str:
-    """把 configSchema 属性名（camelCase，如 ``pgSchema``）转成平台注入
-    环境变量时真正用的名字（SCREAMING_SNAKE_CASE，如 ``PG_SCHEMA``）。
-
-    ⚠️ 这是移植自 be-sdk-go 的一个真实存在过的 bug 的修复：Go 版 Config 的
-    全部 getter 曾经直接拿调用方传的 camelCase 字符串去查，而查询用的
-    map 的 key 是平台装配阶段（``internal/inject.Build``）转换后的真实
-    进程环境变量名（"pgSchema" -> "PG_SCHEMA"），两边从来没对上过。四个
-    已发布组件因默认值恰好等于真实值而未暴露五个版本——**本仓库从第一个
-    提交起就实现对，不重犯**（阶段三计划 Task 1 明确要求）。
-
-    转换算法与 Go 版逐字对应，且对已经是 SCREAMING_SNAKE_CASE 的输入是
-    幂等的（下划线本身既非大写也非小写也非数字，不会被误判成词边界）。
-    """
-    out: list[str] = []
-    for i, ch in enumerate(key):
-        if ch in ("-", ".", " "):
-            out.append("_")
-        elif ch.isupper():
-            if i > 0 and (key[i - 1].islower() or key[i - 1].isdigit()):
-                out.append("_")
-            out.append(ch)
-        else:
-            out.append(ch.upper())
-    return "".join(out)
-
-
 class Config:
     """模块读配置的唯一入口。所有值都是字符串（平台把 configSchema 的
     每一项都渲染成环境变量），类型转换在这里做一次，业务代码不重复解析。
@@ -58,10 +31,36 @@ class Config:
         self._values = dict(values)
 
     def string(self, key: str) -> tuple[str, bool]:
-        v = self._values.get(_config_env_var_name(key))
+        """按键名精确取值。v1 起键名即环境变量名，原样注入，不做任何转换。"""
+        v = self._values.get(key)
         if v is None:
             return "", False
         return v, True
+
+    def endpoint(self, dep: str, extra: str = "") -> tuple[str, bool]:
+        """从 Config 读 <ID>[_<PORT>]_ENDPOINT 并剥掉 scheme。外壳成员的依赖地址只在它
+        自己的成员 config 里，绝不回落到进程环境。键不存在或值为空都视为缺失。"""
+        from besdk.endpoint import env_name
+
+        v, ok = self.string(env_name(dep, extra))
+        if not ok or v == "":
+            return "", False
+        for p in ("http://", "https://"):
+            if v.startswith(p):
+                v = v[len(p):]
+        return v.rstrip("/"), True
+
+    def must_endpoint(self, dep: str, extra: str = "") -> str:
+        from besdk.endpoint import env_name
+
+        v, ok = self.endpoint(dep, extra)
+        if not ok:
+            raise RuntimeError(f"强依赖 {dep} 的 {env_name(dep, extra)} 未注入")
+        return v
+
+    def s3_url(self) -> tuple[str, bool]:
+        v, ok = self.string("S3_URL")
+        return (v, True) if ok and v else ("", False)
 
     def string_or(self, key: str, default: str) -> str:
         v, ok = self.string(key)

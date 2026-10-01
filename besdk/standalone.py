@@ -23,6 +23,7 @@ import asyncpg
 import uvicorn
 from grpc import aio as grpc_aio
 
+from besdk.connection import nats_url, pg_dsn
 from besdk.manifest import load_own_ports
 from besdk.module import Module
 from besdk.runtime import Config, Runtime
@@ -54,36 +55,6 @@ def _env_snapshot() -> dict[str, str]:
     "N 个模块的 PG_SCHEMA 互相顶掉"那条雷（§12.5.3）。
     """
     return dict(os.environ)
-
-
-def _build_pg_dsn(component_id: str) -> str:
-    """从平台注入的 ``DATABASE_*`` 前缀变量拼出 asyncpg 认得的 DSN。
-
-    ⚠️ 没有单个 ``PG_DSN`` 这种东西——资源注入是分开的五个变量
-    （HOST/PORT/USER/PASSWORD/NAME）。sslmode 走 asyncpg 的默认（禁用），
-    TLS 需求留给未来客户按需求提。
-    """
-    host = _must_getenv("DATABASE_HOST", component_id)
-    port = _must_getenv("DATABASE_PORT", component_id)
-    user = _must_getenv("DATABASE_USER", component_id)
-    password = _must_getenv("DATABASE_PASSWORD", component_id)
-    name = _must_getenv("DATABASE_NAME", component_id)
-    return f"postgres://{user}:{password}@{host}:{port}/{name}"
-
-
-def _build_nats_url() -> str:
-    """从 ``MQ_*`` 前缀变量拼出 nats-py 认得的 URL。
-
-    ⚠️ 同样没有单个 ``NATS_URL``。``MQ_USER``/``MQ_PASSWORD`` 是否存在
-    取决于这个部署的 nats 资源有没有配认证，不能假设一定有。
-    """
-    host = os.environ.get("MQ_HOST", "")
-    port = os.environ.get("MQ_PORT", "")
-    user = os.environ.get("MQ_USER")
-    password = os.environ.get("MQ_PASSWORD", "")
-    if user:
-        return f"nats://{user}:{password}@{host}:{port}"
-    return f"nats://{host}:{port}"
 
 
 async def bootstrap(component_id: str, otel_base_url: str) -> Callable[[], Awaitable[None]]:
@@ -119,20 +90,24 @@ async def _run_standalone_async(new_module: Callable[["Runtime"], Awaitable[Modu
         _exitf(component_id, f"读自己的 component.yaml 失败：{exc}")
         return
 
-    shutdown_otel = await bootstrap(component_id, os.environ.get("OTEL_BASE_URL", ""))
+    cfg = Config(_env_snapshot())
+
+    shutdown_otel = await bootstrap(component_id, cfg.string_or("OTEL_BASE_URL", ""))
 
     try:
-        pg_dsn = _build_pg_dsn(component_id)
-    except SystemExit:
-        raise
-    db_pool = await asyncpg.create_pool(pg_dsn)
+        dsn = pg_dsn(cfg)
+        nurl = nats_url(cfg)
+    except ValueError as exc:
+        _exitf(component_id, str(exc))
+        return
+    db_pool = await asyncpg.create_pool(dsn)
 
     # ⚠️ NATS 连接同样等 events.py/otel.py 补上真实实现后才真正被消费；
     # 这里先把 Runtime 的形状钉死。nats-py 的 connect 目前用占位 URL，
     # 阶段三 Task 1 的 TDD 任务里补真实错误处理。
     import nats  # noqa: PLC0415 - 避免顶层强依赖 nats-py 的连接副作用
 
-    nc = await nats.connect(_build_nats_url())
+    nc = await nats.connect(nurl)
 
     from besdk.logging import new_logger  # noqa: PLC0415 - logging.py 现在只是 stub
     from besdk.metrics import new_registry  # noqa: PLC0415 - 同上
@@ -141,7 +116,7 @@ async def _run_standalone_async(new_module: Callable[["Runtime"], Awaitable[Modu
     rt = Runtime(
         component_id=component_id,
         component_version=component_version,
-        config=Config(_env_snapshot()),
+        config=cfg,
         db=db_pool,
         nats=nc,
         logger=new_logger(component_id),
@@ -157,8 +132,8 @@ async def _run_standalone_async(new_module: Callable[["Runtime"], Awaitable[Modu
     # authz_bundle_url 任一没配都保持阶段一的 fail-closed stub 行为。
     from besdk.authz import _set_authz_runtime, setup_authz_runtime  # noqa: PLC0415 - 避免顶层循环 import
 
-    iam_jwks_url, _ = rt.config.string("iamJwksUrl")
-    authz_bundle_url, _ = rt.config.string("authzBundleUrl")
+    iam_jwks_url, _ = rt.config.string("IAM_JWKS_URL")
+    authz_bundle_url, _ = rt.config.string("AUTHZ_BUNDLE_URL")
     verifier, bundle = setup_authz_runtime(iam_jwks_url, authz_bundle_url, rt.logger)
     _set_authz_runtime(verifier, bundle)
 

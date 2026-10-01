@@ -2,16 +2,16 @@
 
 Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit 组件**，也**不是公共 model 包**——零业务逻辑、零组件 model、零组件间引用。它是 `be-acceptance` 铁律六 import 扫描的唯一白名单之一（另一个是 `be-sdk-go`、`be-sdk-ts`）。
 
-⚠️ **与 `be-sdk-go` 的关系不是"照着抄一遍"，是"逐个能力对应着搬"**（总纲 §3.5.1、决策 100）：两份 SDK 的公开 API 要同名、同参数顺序、同语义。`besdk.Endpoint()` 对应 `besdk.endpoint()`，`besdk.WithTx()` 对应 `besdk.with_tx()`，`besdk.RunStandalone()` 对应 `besdk.run_standalone()`——每一处对应关系都是刻意的，不是巧合。
+⚠️ **与 `be-sdk-go` 的关系不是"照着抄一遍"，是"逐个能力对应着搬"**（总纲 §3.5.1、决策 100）：两份 SDK 的公开 API 要同名、同参数顺序、同语义。`cfg.Endpoint()` 对应 `cfg.endpoint()`，`besdk.WithTx()` 对应 `besdk.with_tx()`，`besdk.RunStandalone()` 对应 `besdk.run_standalone()`——每一处对应关系都是刻意的，不是巧合。
 
 ## 它替所有 Python 组件挡住的坑
 
 | 能力 | 文件 | 挡住的坑 |
 |---|---|---|
-| 组件地址剥 scheme | `endpoint.py` | `grpc.aio.insecure_channel("http://host:9094")` 连不上，报错指向名称解析（导读第 1 条） |
+| 组件地址剥 scheme | `Config.endpoint`（`runtime.py`；变量名推导在 `endpoint.py`） | `grpc.aio.insecure_channel("http://host:9094")` 连不上，报错指向名称解析（导读第 1 条） |
 | `SET LOCAL` 事务 | `tx.py` | 不带 `LOCAL` 的 `SET` 之后连接还回池，下一个借用者原样继承，悄悄读写别人的数据（导读第 2 条） |
 | 单跑统一入口 | `standalone.py`、`module.py`、`runtime.py`、`fastapi_app.py` | 每个组件各发明一个入口，合并那天全部重写（导读第 18 条） |
-| `Config` 的 camelCase 查询 | `runtime.py` | `be-sdk-go` v0.1.0–v0.1.8 真实存在过的 bug：查询用的 camelCase key 从来没转成平台真实注入的 SCREAMING_SNAKE_CASE，四个已发布组件因默认值恰好等于真实值而未暴露五个版本。**本仓库从第一个提交起就是对的**，不重犯 |
+| `Config` 精确匹配取值 | `runtime.py` | v1 起配置键就是环境变量名（`PG_SCHEMA`），原样注入，不做大小写/驼峰转换；查不到就是没配 |
 
 ## 现状（阶段三 Task 5，权限判定真正上线）
 
@@ -23,7 +23,7 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 - **`scope_of()` 是纯函数**（§14.2.4）：`prefix`/`exact`/`owner` 永远从同一份 Claims 的 `dept_path`/`sub` 填。⚠️ **一处容易反方向的细节**：`ContextVar` 里取不到值时不能返回默认的 `ScopeFilter()`——§14.2.4 的 SQL 约定"空字符串表示不限"，零值会被下游解读成放行一切，是 fail-open 不是 fail-closed。改成抛 `RuntimeError`，让编程错误在联调阶段就现形。
 - 真机验证：起了本地 `infra-authz` 容器，轮询客户端直接打它真实的 `GET /authz/bundle`，确认认得出自举种子数据 `authz_admin`/`infra.authz.admin`。
 
-`Runtime` / `Module` / `run_standalone` / `new_fastapi_app` / `bootstrap` / `endpoint` / `with_tx` / `Config`（含 camelCase 转换）/ `authz.py` / `scope.py` 已经是**真实实现**。
+`Runtime` / `Module` / `run_standalone` / `new_fastapi_app` / `bootstrap` / `endpoint` / `with_tx` / `Config`（精确匹配）/ `authz.py` / `scope.py` 已经是**真实实现**。
 
 `otel.py` / `logging.py` / `metrics.py` / `query.py` / `archive.py` / `outbox.py` / `events.py` / `client.py` 现在只有签名 + 文档注释 + `raise NotImplementedError`。**调用它们会抛异常，这是预期行为**，不是 bug——随后用 TDD 逐个补上。
 
@@ -36,6 +36,16 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 | gunicorn 多 worker | 多 worker = 多进程，Outbox 推送线程会跑 N 遍；外壳形态只有一个进程（§13.3 铁律七） |
 
 **所以**：`uvicorn` 单进程单事件循环、`grpc.aio` 而不是同步 `grpc`、`asyncpg` 而不是 `psycopg2`。
+
+## v1 配置契约（v0.4.0）
+
+- 配置键即环境变量名：`PG_HOST` / `PG_PORT` / `PG_DATABASE` / `PG_USER` / `PG_PASSWORD` / `PG_SCHEMA` / `NATS_URL` / `S3_URL` / `OTEL_BASE_URL` / `AUTHZ_BUNDLE_URL` / `IAM_JWKS_URL`。
+- `besdk.pg_dsn(cfg)` / `besdk.nats_url(cfg)` 从 `Config` 拼连接串，缺键时抛 `ValueError` 并点名全部缺失的键（`PG_PASSWORD` 允许为空串但键必须存在）。
+- 依赖地址走 `cfg.endpoint(dep, extra)` / `cfg.must_endpoint(...)`，对象存储走 `cfg.s3_url()`；只读 `Config`，绝不回落到进程环境。`user_client` / `system_client` 因此第一个参数是 `cfg`。
+
+## 外壳启动器（`besdk.shell_runner`）
+
+Python 外壳进程入口只有一行：`besdk.shell_runner.main("py-render", {"infra/print": create_module})`。成员清单来自平台注入的 `BRICKKIT_SERVED_MEMBERS_CONFIG`（JSON 数组，每项含 `componentId` / `version` / `httpPort` / `extraPorts` / 已求值的 `config`；零成员为 `[]`，未设置或空串直接报错）。外壳**不跑迁移**——平台在外壳启动前用每个成员自己的镜像跑完。共享一个 asyncpg 池与 NATS 连接，逐成员监听，单成员后台循环异常不拖垮其余成员。
 
 ## 用法
 

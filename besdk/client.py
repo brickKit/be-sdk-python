@@ -15,7 +15,7 @@ from __future__ import annotations
 import grpc
 from grpc.aio import Channel, ClientCallDetails, UnaryUnaryClientInterceptor
 
-from besdk.endpoint import endpoint
+from besdk.runtime import Config
 
 _AUTH_HEADER_KEY = "authorization"
 
@@ -40,7 +40,7 @@ class _ForwardAuthInterceptor(UnaryUnaryClientInterceptor):
         return await continuation(client_call_details, request)
 
 
-def user_client(auth: str, dep: str, extra: str = "") -> Channel:
+def user_client(cfg: Config, auth: str, dep: str, extra: str = "") -> Channel:
     """拨一条到 ``dep`` 的 gRPC 连接，把 ``auth``（调用方请求里的
     Authorization）透传给下游——下游按调用者身份做数据权限过滤
     （设计书 §14.2.3）。
@@ -50,7 +50,7 @@ def user_client(auth: str, dep: str, extra: str = "") -> Channel:
     第 21 条：这是"悄悄读到别人数据"的第三条路径，用错了不报错，返回的
     数据只是"多了一些"）。
     """
-    target, ok = endpoint(dep, extra)
+    target, ok = cfg.endpoint(dep, extra)
     if not ok:
         raise RuntimeError(f"besdk.user_client: 依赖 {dep} 的地址未注入")
     return grpc.aio.insecure_channel(
@@ -58,13 +58,13 @@ def user_client(auth: str, dep: str, extra: str = "") -> Channel:
     )
 
 
-def system_client(dep: str, extra: str = "") -> Channel:
+def system_client(cfg: Config, dep: str, extra: str = "") -> Channel:
     """拨一条到 ``dep`` 的 gRPC 连接，不透传任何调用者身份——下游会把它
     当成组件自身发起的调用，数据权限被绕过（设计书 §14.2.6）。只许出现
     在 ``Module.start`` 与事件 handler 里，``make gates`` 扫用户请求路径
     上的误用。
     """
-    target, ok = endpoint(dep, extra)
+    target, ok = cfg.endpoint(dep, extra)
     if not ok:
         raise RuntimeError(f"besdk.system_client: 依赖 {dep} 的地址未注入")
     return grpc.aio.insecure_channel(target)
