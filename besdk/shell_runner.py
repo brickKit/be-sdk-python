@@ -28,6 +28,7 @@ import logging
 import os
 import signal
 import sys
+import traceback
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -337,10 +338,12 @@ async def _main(shell_name: str, registry: "dict[str, Callable[[Runtime], Awaita
 
 def main(shell_name: str, registry: "dict[str, Callable[[Runtime], Awaitable[Module]]]") -> None:
     """外壳进程入口：``besdk.shell_runner.main("py-render", {"infra/print": create_module})``。
-    任何装配或服务失败（含 new_module 抛出的任意异常类型）都打印 ``[shell] 消息`` 并以 1 退出。"""
+    任何装配或服务失败（含 new_module 抛出的任意异常类型）都打印 ``[shell] 消息`` 并以 1 退出；RuntimeError / ValueError 只打这一行，其它类型在这一行之后再打 traceback。"""
     try:
         asyncio.run(_main(shell_name, registry))
     except Exception as exc:  # noqa: BLE001 - 入口兜底：任何装配/服务失败都同一格式、退出码 1
         detail = str(exc) if isinstance(exc, (RuntimeError, ValueError)) else f"{type(exc).__name__}: {exc}"
         print(f"[{shell_name}] {detail}", file=sys.stderr)
+        if not isinstance(exc, (RuntimeError, ValueError)):
+            traceback.print_exc(file=sys.stderr)  # 意料之外的异常类型保留堆栈，便于排查
         sys.exit(1)

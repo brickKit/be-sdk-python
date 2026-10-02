@@ -344,4 +344,17 @@ def test_main_prints_unexpected_exception_in_shell_format_and_exits_1(monkeypatc
     with pytest.raises(SystemExit) as ei:
         shell_runner.main("py-x", {})
     assert ei.value.code == 1
-    assert capsys.readouterr().err.startswith("[py-x] KeyError: ")
+    err = capsys.readouterr().err
+    assert err.startswith("[py-x] KeyError: ")
+    assert "Traceback (most recent call last)" in err and err.index("[py-x]") < err.index("Traceback")
+
+
+def test_main_runtime_error_prints_bare_message_without_traceback(monkeypatch, capsys):
+    async def boom(shell_name, registry):
+        raise RuntimeError("bad member")
+
+    monkeypatch.setattr(shell_runner, "_main", boom)
+    with pytest.raises(SystemExit) as ei:
+        shell_runner.main("py-x", {})
+    assert ei.value.code == 1
+    assert capsys.readouterr().err == "[py-x] bad member\n"
