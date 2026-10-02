@@ -47,6 +47,39 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 
 Python 外壳进程入口只有一行：`besdk.shell_runner.main("py-render", {"infra/print": create_module})`。成员清单来自平台注入的 `BRICKKIT_SERVED_MEMBERS_CONFIG`（JSON 数组，每项含 `componentId` / `version` / `httpPort` / `extraPorts` / 已求值的 `config`；零成员为 `[]`，未设置或空串直接报错）。外壳**不跑迁移**——平台在外壳启动前用每个成员自己的镜像跑完。共享一个 asyncpg 池与 NATS 连接，逐成员监听。失败契约：成员的 HTTP/gRPC 监听或服务任务以异常结束（如端口绑定失败，包括 uvicorn 绑定失败时抛出的 `SystemExit`）时，外壳优雅收尾后**非零退出**（`ShellMemberServeError`，ERROR 日志带成员的 `module_component_id`），不允许健康检查绿着而成员端口已死；成员声明了额外端口而 `new_module` 没有返回 `register_grpc` 时启动即失败，错误点名成员与端口（与 Go 外壳一致）；成员 `start()` 启动后的后台异常只记日志（带 component_id），其余成员继续服务；外壳 `/healthz` 监听自己 `./component.yaml` 的 `deployment.port`（缺失、非法或 0 直接报错，无环境变量、无默认端口）；外壳另在收到信号或自身 `/healthz` 服务失败时退出。启动期某成员构造（`new_module`）失败会整体中止，但先关闭共享连接池与 NATS。外壳自己的 `IAM_JWKS_URL` / `AUTHZ_BUNDLE_URL` / `PG_*` / `NATS_URL` 只读外壳进程环境，缺失即报错并点名，不从成员 config 兜底；`OTEL_BASE_URL` 缺省表示不导出。
 
+## 外壳失败契约
+
+下面三类失败，原文就是 SDK 打出的字符串（`<…>` 为占位）；`besdk.shell_runner.main` 把 `RuntimeError` / `ValueError` 打到 stderr 并 `sys.exit(1)`，格式 `[<shell_name>] <消息>`。
+
+**1. 启动阶段失败：外壳退出（退出码 1），容器反复重启，`RestartCount` 增长。**
+
+- 成员的 `new_module` 抛异常：先关共享连接池与 NATS（已构造的成员也先 `stop`），再把原异常抛出。
+- 成员声明了额外端口而 `new_module` 没有返回 `register_grpc`：
+
+  ```
+  [<shell_name>] 成员 <component_id> 声明了额外端口 <name>(:<port>), ..., 但 new_module 没有返回 register_grpc
+  ```
+
+- 平台下发的成员没有编进外壳（registry 没有登记它的 `new_module`）：
+
+  ```
+  [<shell_name>] 组件 <component_id> 在 BRICKKIT_SERVED_MEMBERS_CONFIG 里，但 registry 没有登记它的 new_module——是不是漏了给它加 import
+  ```
+
+- `BRICKKIT_SERVED_MEMBERS_CONFIG` 未设置、为空串、不是合法 JSON，或外壳自己的 `component.yaml` 的 `deployment.port` 缺失 / 非法，也是启动即退出。
+
+**2. 端口失败：收尾后非零退出。** 任一成员的 HTTP / 额外端口监听或服务任务以异常结束（含 uvicorn 绑定失败时的 `SystemExit`）。先记一条 ERROR（`logger.exception`，字段 `module_component_id` 为该成员），消息是 `成员监听/服务失败：<http 或 grpc:<name>>`；外壳优雅关停全部成员并收掉连接池与 NATS，最后抛 `ShellMemberServeError`，`main` 打到 stderr 后退出码 1，其余成员一起下线：
+
+```
+[<shell_name>] 成员监听/服务失败，外壳退出：<component_id> <http 或 grpc:<name>>: <原因>; ...
+```
+
+uvicorn 绑定失败时 `<原因>` 是 `SystemExit(1)（uvicorn 启动失败，多为端口被占）`。
+
+**3. 成员 `start()` / 后台任务失败：只隔离。** 记一条 ERROR（字段 `module_component_id` 为该成员），消息 `成员任务异常退出，其余成员继续运行：start`，外壳继续运行、`/healthz` 仍是 200，其余成员不受影响。这是降级，不是通过。
+
+外壳因 `stop_event` 被 set（SIGTERM / SIGINT）或自身 `/healthz` 服务退出而结束，是正常收尾：每个成员的 `stop` 恰好调用一次，不抛异常，退出码 0。
+
 ## 用法
 
 ```python

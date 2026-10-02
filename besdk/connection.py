@@ -1,5 +1,5 @@
 """统一连接键 → 驱动连接串。v1 起平台不再注入 DATABASE_*/MQ_*，连接信息是组件
-configSchema 里的普通配置项（docs/conventions/configuration.md）。"""
+configSchema 里的普通配置项（docs/en/01-conventions/04-configuration.md）。"""
 from __future__ import annotations
 
 import urllib.parse

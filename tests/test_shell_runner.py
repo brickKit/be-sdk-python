@@ -293,3 +293,44 @@ async def test_real_uvicorn_bind_conflict_is_attributed_to_member(fakes, monkeyp
     assert fakes.db.closed and fakes.nc.closed
     assert any(getattr(r, "module_component_id", "") == "a/b" for r in caplog.records), \
         "绑定失败的 ERROR 日志必须带 module_component_id"
+
+
+# ---- 取消路径与 clean stop_event 路径下，成员 stop 都恰好被调用一次，且不抛异常 ----
+
+def _stoppable_module(calls, cid):
+    async def mod_new(rt):
+        async def start():
+            await asyncio.Event().wait()
+
+        async def stop():
+            calls.append(cid)
+        return SimpleNamespace(asgi_app=None, register_grpc=None, start=start, stop=stop)
+    return mod_new
+
+
+async def test_external_cancel_calls_every_member_stop_once(fakes):
+    calls: list[str] = []
+    t = asyncio.create_task(shell_runner.run(
+        _cfg(_spec("a/b", _stoppable_module(calls, "a/b"), 8001), _spec("c/d", _stoppable_module(calls, "c/d"), 8002)),
+        asyncio.Event()))
+    await asyncio.sleep(0.1)
+    t.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await t
+    assert sorted(calls) == ["a/b", "c/d"]
+    assert fakes.db.closed and fakes.nc.closed
+
+
+async def test_clean_stop_event_with_members_does_not_raise_and_stops_each_once(fakes):
+    calls: list[str] = []
+    stop = asyncio.Event()
+    t = asyncio.create_task(shell_runner.run(
+        _cfg(_spec("a/b", _stoppable_module(calls, "a/b"), 8001), _spec("c/d", _stoppable_module(calls, "c/d"), 8002)),
+        stop))
+    await asyncio.sleep(0.1)
+    assert sorted(fakes.started) == [8001, 8002]
+    stop.set()
+    await asyncio.wait_for(t, 3)  # 不抛 ShellMemberServeError 等任何异常
+    assert t.exception() is None
+    assert sorted(calls) == ["a/b", "c/d"]
+    assert fakes.db.closed and fakes.nc.closed
