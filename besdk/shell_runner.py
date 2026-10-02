@@ -337,9 +337,10 @@ async def _main(shell_name: str, registry: "dict[str, Callable[[Runtime], Awaita
 
 def main(shell_name: str, registry: "dict[str, Callable[[Runtime], Awaitable[Module]]]") -> None:
     """外壳进程入口：``besdk.shell_runner.main("py-render", {"infra/print": create_module})``。
-    装配失败（成员数据缺失、连接键缺失）整体退出。"""
+    任何装配或服务失败（含 new_module 抛出的任意异常类型）都打印 ``[shell] 消息`` 并以 1 退出。"""
     try:
         asyncio.run(_main(shell_name, registry))
-    except (RuntimeError, ValueError) as exc:
-        print(f"[{shell_name}] {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 - 入口兜底：任何装配/服务失败都同一格式、退出码 1
+        detail = str(exc) if isinstance(exc, (RuntimeError, ValueError)) else f"{type(exc).__name__}: {exc}"
+        print(f"[{shell_name}] {detail}", file=sys.stderr)
         sys.exit(1)

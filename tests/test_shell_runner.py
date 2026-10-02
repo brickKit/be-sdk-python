@@ -334,3 +334,14 @@ async def test_clean_stop_event_with_members_does_not_raise_and_stops_each_once(
     assert t.exception() is None
     assert sorted(calls) == ["a/b", "c/d"]
     assert fakes.db.closed and fakes.nc.closed
+
+
+def test_main_prints_unexpected_exception_in_shell_format_and_exits_1(monkeypatch, capsys):
+    async def boom(shell_name, registry):
+        raise KeyError("componentId")
+
+    monkeypatch.setattr(shell_runner, "_main", boom)
+    with pytest.raises(SystemExit) as ei:
+        shell_runner.main("py-x", {})
+    assert ei.value.code == 1
+    assert capsys.readouterr().err.startswith("[py-x] KeyError: ")

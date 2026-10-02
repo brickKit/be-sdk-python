@@ -36,7 +36,7 @@ def test_load_own_ports_missing_port_is_a_clear_error(tmp_path):
         load_own_ports(f)
 
 
-def test_both_loaders_parse_the_file_once_each(tmp_path, monkeypatch):
+def test_load_own_ports_parses_the_file_once(tmp_path, monkeypatch):
     import yaml
 
     f = _write(tmp_path, "deployment:\n  port: 8001\n")
@@ -45,3 +45,23 @@ def test_both_loaders_parse_the_file_once_each(tmp_path, monkeypatch):
     monkeypatch.setattr(yaml, "safe_load", lambda s: calls.append(1) or real(s))
     load_own_ports(f)
     assert len(calls) == 1
+
+
+def test_load_own_http_port_parses_the_file_once(tmp_path, monkeypatch):
+    import yaml
+
+    f = _write(tmp_path, "deployment:\n  port: 8001\n")
+    calls = []
+    real = yaml.safe_load
+    monkeypatch.setattr(yaml, "safe_load", lambda s: calls.append(1) or real(s))
+    assert load_own_http_port(f) == 8001
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("extra", [
+    "extraPorts: [grpc]", "extraPorts: [{port: 9400}]", "extraPorts: [{name: grpc}]",
+    "extraPorts: [{name: grpc, port: 0}]", "extraPorts: {name: grpc, port: 9400}"])
+def test_malformed_extra_ports_is_a_clear_error(tmp_path, extra):
+    f = _write(tmp_path, f"deployment:\n  port: 8001\n  {extra}\n")
+    with pytest.raises(RuntimeError, match="extraPorts"):
+        load_own_ports(f)

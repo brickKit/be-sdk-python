@@ -38,16 +38,23 @@ def _load_deployment(path: str | Path) -> dict:
     return deployment
 
 
-def _check_port(path: str | Path, port: object) -> int:
+def _check_port(path: str | Path, port: object, what: str = "deployment.port") -> int:
     if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
-        raise RuntimeError(f"{path} 的 deployment.port 缺失或非法（{port!r}）")
+        raise RuntimeError(f"{path} 的 {what} 缺失或非法（{port!r}）")
     return port
 
 
 def load_own_ports(path: str | Path = "component.yaml") -> OwnPorts:
     deployment = _load_deployment(path)
     port = _check_port(path, deployment.get("port"))
-    extra_ports = {p["name"]: p["port"] for p in deployment.get("extraPorts") or []}
+    raw_extra = deployment.get("extraPorts") or []
+    if not isinstance(raw_extra, list):
+        raise RuntimeError(f"{path} 的 deployment.extraPorts 必须是列表，实际是 {type(raw_extra).__name__}")
+    extra_ports: dict[str, int] = {}
+    for entry in raw_extra:
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str) or not entry["name"]:
+            raise RuntimeError(f"{path} 的 deployment.extraPorts 条目缺少 name 或不是映射：{entry!r}")
+        extra_ports[entry["name"]] = _check_port(path, entry.get("port"), f"deployment.extraPorts[{entry['name']}].port")
     return OwnPorts(http_port=port, extra_ports=extra_ports)
 
 

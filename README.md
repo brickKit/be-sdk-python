@@ -49,7 +49,7 @@ Python 外壳进程入口只有一行：`besdk.shell_runner.main("py-render", {"
 
 ## 外壳失败契约
 
-下面三类失败，原文就是 SDK 打出的字符串（`<…>` 为占位）；`besdk.shell_runner.main` 把 `RuntimeError` / `ValueError` 打到 stderr 并 `sys.exit(1)`，格式 `[<shell_name>] <消息>`。
+下面三类失败，原文就是 SDK 打出的字符串（`<…>` 为占位）；`besdk.shell_runner.main` 捕获 `Exception`（任意类型，含 `new_module` 抛出的），打到 stderr 并 `sys.exit(1)`，格式 `[<shell_name>] <消息>`；`RuntimeError` / `ValueError` 直接打消息，其它类型打 `<类型名>: <消息>`，不会带 traceback 退出。
 
 **1. 启动阶段失败：外壳退出（退出码 1），容器反复重启，`RestartCount` 增长。**
 
