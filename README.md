@@ -20,7 +20,7 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 - **JWT 本地验签**：`iam_jwks_url` 指向的 JWKS 端点，用 `PyJWT` 的 `PyJWKClient`（自带 JWK Set 缓存与刷新）。⚠️ `PyJWKClient` 是同步实现，`JWTVerifier.verify()` 整体包一层 `asyncio.to_thread`，避免缓存过期那次网络请求把事件循环卡住。`infra-iam-casdoor` 要到阶段三 Task 7 才建仓库，测试自己起一对 RSA 密钥 + 一个真实绑定端口的 `http.server` 当 JWKS 端点，加密运算是真的，只是身份是测试夹具。
 - **bundle 轮询**：15 秒条件 GET `authz_bundle_url`（`If-None-Match`，未变化 304 不重新解析），一个 `asyncio.create_task` 后台协程，模块代码看不见。⚠️ `BundleCache` 不用 `asyncio.Lock`——单线程协作式调度下，整体替换内部状态是一条没有 `await` 的语句，天然原子，加锁是没有必要的间接。有一条测试真等 15 秒验证"改角色分配不重启组件也能生效"。
 - **`AUTHENTICATED` 新哨兵值**：阶段三 Task 4 写 `infra-authz` 时发现的真实缺口——`PUBLIC`/具体权限键两档之间缺"已登录即可，不需要权限键"这一档。
-- **`scope_of()` 是纯函数**（§14.2.4）：`prefix`/`exact`/`owner` 永远从同一份 Claims 的 `dept_path`/`sub` 填。⚠️ **一处容易反方向的细节**：`ContextVar` 里取不到值时不能返回默认的 `ScopeFilter()`——§14.2.4 的 SQL 约定"空字符串表示不限"，零值会被下游解读成放行一切，是 fail-open 不是 fail-closed。改成抛 `RuntimeError`，让编程错误在联调阶段就现形。
+- **`scope_of()` 取的是纯函数 `scope_from_claims(claims)` 的输出**（§14.2.4）：`prefix`/`exact`/`owner` 永远从同一份 Claims 的 `dept_path`/`sub` 填，求解规则见下面"数据范围（v0.5.0）"。⚠️ **一处容易反方向的细节**：`ContextVar` 里取不到值时不能返回默认的 `ScopeFilter()`，那等于替调用方猜一个范围。改成抛 `RuntimeError`，让编程错误在联调阶段就现形。
 - 真机验证：起了本地 `infra-authz` 容器，轮询客户端直接打它真实的 `GET /authz/bundle`，确认认得出自举种子数据 `authz_admin`/`infra.authz.admin`。
 
 `Runtime` / `Module` / `run_standalone` / `new_fastapi_app` / `bootstrap` / `endpoint` / `with_tx` / `Config`（精确匹配）/ `authz.py` / `scope.py` 已经是**真实实现**。
@@ -42,6 +42,22 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 - 配置键即环境变量名：`PG_HOST` / `PG_PORT` / `PG_DATABASE` / `PG_USER` / `PG_PASSWORD` / `PG_SCHEMA` / `NATS_URL` / `S3_URL` / `OTEL_BASE_URL` / `AUTHZ_BUNDLE_URL` / `IAM_JWKS_URL`。
 - `besdk.pg_dsn(cfg)` / `besdk.nats_url(cfg)` 从 `Config` 拼连接串，缺键时抛 `ValueError` 并点名全部缺失的键（`PG_PASSWORD` 允许为空串但键必须存在）。
 - 依赖地址走 `cfg.endpoint(dep, extra)` / `cfg.must_endpoint(...)`，对象存储走 `cfg.s3_url()`；只读 `Config`，绝不回落到进程环境。`user_client` / `system_client` 因此第一个参数是 `cfg`。
+
+## 数据范围（v0.5.0）
+
+`scope_from_claims(claims)` 按 `dept_path` 求 `ScopeFilter`，`require_permission` 验签后用它算出放进请求上下文的那一份：
+
+| token 里的 `dept_path` | `has_dept` | `all` | `prefix` / `exact` |
+|---|---|---|---|
+| `""` 或不以 `/` 开头（没分部门、格式异常） | `False` | `False` | `besdk.NO_DEPT_PATH`（`"!no-dept"`） |
+| `"/"`（整棵树的显式根标记） | `True` | `True` | `"/"` |
+| 真实路径，如 `/1/12/` | `True` | `False` | 原值 |
+
+- **空 `dept_path` 不是"不限"。** 签发方给的真实路径恒以 `/` 开头（根部门也是 `/<根id>/`），空串只表示这个人没分部门。v0.5.0 之前把它原样当前缀，`LIKE '' || '%'` 匹配所有行，是 fail-open。
+- **哨兵是值层面的 fail-closed。** `NO_DEPT_PATH` 不以 `/` 开头、不含 `%` `_`，绑进 `LIKE $n || '%'` 或 `startswith` 什么都不命中，`owner OR org` 退化成只剩本人；没改代码的下游也自动收紧。
+- **SDK 保证 `prefix`/`exact` 永不为空串**（`ScopeFilter()` 的默认值也是 `NO_DEPT_PATH`）。仓储层收到空串前缀只可能是编程错误，要报错，不能当成"全部"。
+- **哨兵只能用来查，不能写进行里。** 建单时要快照调用方部门的，`has_dept` 为假时写空串。
+- **空 `sub` 验签失败**（`MissingRequiredClaimError`，经 `require_permission` 是 401），与 `be-sdk-go` 一致。
 
 ## 外壳启动器（`besdk.shell_runner`）
 
