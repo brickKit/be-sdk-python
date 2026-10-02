@@ -63,3 +63,15 @@ async def test_缺少sub报错(jwks: FakeJWKSServer) -> None:
 
     with pytest.raises(jwt.exceptions.MissingRequiredClaimError, match="sub"):
         await v.verify(token)
+
+
+async def test_空sub报错(jwks: FakeJWKSServer) -> None:
+    """``require`` 只查 claim 在不在，``"sub": ""`` 能过——空 sub 会让
+    owner 维变成 ``owner_id = ''``，并且和"没登录"无法区分。与 be-sdk-go
+    对齐：空 sub 同样当成缺 sub。
+    """
+    v = JWTVerifier(jwks.url)
+    token = jwks.sign("")
+
+    with pytest.raises(jwt.exceptions.MissingRequiredClaimError, match="sub"):
+        await v.verify(token)

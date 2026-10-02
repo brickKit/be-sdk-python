@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from besdk.bundle import BundleCache, start_bundle_poller
 from besdk.jwt_verify import Claims, JWTVerifier
-from besdk.scope import ScopeFilter, _set_current_scope
+from besdk.scope import _set_current_scope, scope_from_claims
 
 # PermKey 是权限键——assembly.yaml 的 permissions 段声明的那些
 # （设计书 §14.1.1）。Python 没有 Go 那种"漏传参数编译不过"的机制，
@@ -147,14 +147,9 @@ def require_permission(perm: PermKey) -> Callable[[Request], Awaitable[None]]:
         # ⚠️ 塞进 ScopeFilter 的 ContextVar，不是 request.state——scope_of()
         # 收的是零参数（同一份 ContextVar），跟 UserClient/SystemClient
         # 一样显式区分参数风格是 client.py 那边的事，这里延续既有约定。
-        _set_current_scope(
-            ScopeFilter(
-                all=claims.dept_path == "",
-                prefix=claims.dept_path,
-                exact=claims.dept_path,
-                owner=claims.sub,
-            )
-        )
+        # 求解本身是 scope.py 里的纯函数：没分部门（dept_path 为空）的人
+        # 拿到的是 NO_DEPT_PATH，不是空串前缀（v0.5.0 之前那是 fail-open）。
+        _set_current_scope(scope_from_claims(claims))
 
         if perm == AUTHENTICATED:
             return

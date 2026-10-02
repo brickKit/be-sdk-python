@@ -15,7 +15,7 @@ from besdk.module import Module
 from besdk.outbox import publish_outbox, start_outbox_pump
 from besdk.query import Query, list_window
 from besdk.runtime import Config, Runtime
-from besdk.scope import ScopeFilter, scope_of
+from besdk.scope import NO_DEPT_PATH, ScopeFilter, scope_from_claims, scope_of
 from besdk.shell import (
     ShellModuleConfig,
     init_shell_authz,
@@ -28,6 +28,7 @@ from besdk.tx import with_tx
 
 __all__ = [
     "AUTHENTICATED",
+    "NO_DEPT_PATH",
     "PUBLIC",
     "Config",
     "Event",
@@ -53,6 +54,7 @@ __all__ = [
     "put",
     "require_permission",
     "run_standalone",
+    "scope_from_claims",
     "scope_of",
     "serve_extra_port",
     "serve_http",

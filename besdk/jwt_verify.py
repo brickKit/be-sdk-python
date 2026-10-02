@@ -47,16 +47,19 @@ class JWTVerifier:
         # 实现）与绝大多数 JWKS 发布方的默认算法，显式白名单防
         # "alg: none" 之类的算法混淆攻击（同 be-sdk-go 的判据）。
         signing_key = self._client.get_signing_key_from_jwt(token)
-        # ⚠️ options={"require": [...]} 已经会在 sub/iat 缺失时抛
-        # jwt.exceptions.MissingRequiredClaimError——不需要 decode 之后
-        # 自己再手写一遍"if not sub: raise"，那是死代码（真机测试跑出来
-        # 才发现：手写的 ValueError 分支永远走不到，PyJWT 自己先抛了）。
+        # ⚠️ options={"require": [...]} 会在 sub/iat 缺失时抛
+        # jwt.exceptions.MissingRequiredClaimError，但它只查 claim 在不在：
+        # "sub": "" 能通过。空 sub 让 owner 维变成 owner_id = ''，也和
+        # "没登录"无法区分，所以 decode 之后再拒一次空串，抛同一种异常
+        # （与 be-sdk-go 的 jwt.go 对齐：空 sub 等同缺 sub）。
         payload = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256"],
             options={"require": ["sub", "iat"]},
         )
+        if not isinstance(payload["sub"], str) or payload["sub"] == "":
+            raise jwt.exceptions.MissingRequiredClaimError("sub")
         iat = payload["iat"]
         return Claims(
             sub=payload["sub"],

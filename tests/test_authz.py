@@ -210,3 +210,51 @@ async def test_token晚于stale_since不受影响(jwks: FakeJWKSServer, _restore
     resp = client.get("/x", headers={"Authorization": f"Bearer {token}"})
 
     assert resp.status_code == 200, resp.text
+
+
+# ── R60：判定链算出的 ScopeFilter 走 scope_from_claims ─────────────
+
+
+def _scope_echo_app() -> FastAPI:
+    app = FastAPI()
+
+    async def handler() -> dict[str, object]:
+        f = besdk.scope_of()
+        return {"all": f.all, "has_dept": getattr(f, "has_dept", None), "prefix": f.prefix, "exact": f.exact, "owner": f.owner}
+
+    besdk.get(app.router, "/scope", besdk.AUTHENTICATED, handler)
+    return app
+
+
+@pytest.mark.parametrize(
+    ("dept_path", "expected"),
+    [
+        ("", {"all": False, "has_dept": False, "prefix": "!no-dept", "exact": "!no-dept"}),
+        ("/", {"all": True, "has_dept": True, "prefix": "/", "exact": "/"}),
+        ("/1/12/", {"all": False, "has_dept": True, "prefix": "/1/12/", "exact": "/1/12/"}),
+    ],
+)
+async def test_验签后塞进请求的范围按dept_path求解(
+    jwks: FakeJWKSServer, _restore_authz_runtime: None, dept_path: str, expected: dict[str, object]
+) -> None:
+    """端到端核对 require_permission 用的是同一个纯函数：没分部门的人
+    （dept_path 为空）在请求里拿到的 prefix 是哨兵，不是空串。
+    """
+    authz_module._verifier = JWTVerifier(jwks.url)  # noqa: SLF001
+    token = jwks.sign("u_x", dept_path=dept_path)
+    client = TestClient(_scope_echo_app())
+
+    resp = client.get("/scope", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == {**expected, "owner": "u_x"}
+
+
+async def test_空sub的token返回401(jwks: FakeJWKSServer, _restore_authz_runtime: None) -> None:
+    authz_module._verifier = JWTVerifier(jwks.url)  # noqa: SLF001
+    token = jwks.sign("")
+    client = TestClient(_app_with(besdk.AUTHENTICATED))
+
+    resp = client.get("/x", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 401, resp.text
