@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from besdk.scope import ScopeFilter, _current_scope, _set_current_scope, scope_of
+from besdk.jwt_verify import Claims
+from besdk.scope import ScopeFilter, _current_scope, _set_current_scope, scope_from_claims, scope_of
 
 
 @pytest.fixture(autouse=True)
@@ -29,15 +30,17 @@ def test_按JWT字段填三个可选字段() -> None:
     assert f.owner == "u_zhangsan"
 
 
-def test_部门树根节点自然得到All() -> None:
-    """"五档退化成纯函数"这条设计的直接验证：坐在根部门（dept_path 为
-    空）的人，前缀匹配天然覆盖全部，不需要任何特判分支。
+def test_斜杠是整棵树的显式根标记() -> None:
+    """看整棵部门树的显式标记是 ``"/"``，不是空串：authz 签发的真实路径
+    恒以 ``/`` 开头（根部门也是 ``/<根id>/``），``"/"`` 作为普通前缀天然
+    覆盖所有真实路径。空 dept_path 只表示"没分部门"，不再是根节点。
     """
-    _set_current_scope(ScopeFilter(all=True, prefix="", exact="", owner="u_ceo"))
-
-    f = scope_of()
+    f = scope_from_claims(Claims(sub="u_ceo", dept_path="/"))
 
     assert f.all is True
+    assert f.has_dept is True
+    assert f.prefix == "/"
+    assert "/1/12/".startswith(f.prefix)
 
 
 def test_没有设置过ScopeFilter时抛异常() -> None:
