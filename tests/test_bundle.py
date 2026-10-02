@@ -6,7 +6,12 @@ import time
 
 import pytest
 
-from besdk.bundle import BUNDLE_POLL_INTERVAL_SECONDS, start_bundle_poller
+from besdk.bundle import (
+    BUNDLE_FIRST_RETRY_DELAY_SECONDS,
+    BUNDLE_POLL_INTERVAL_SECONDS,
+    _next_bundle_retry_delay,
+    start_bundle_poller,
+)
 from tests.helpers import FakeBundleServer
 
 _LOGGER = logging.getLogger("test_bundle")
@@ -64,6 +69,35 @@ async def test_单次拉取失败不清空旧内容(fake_server: FakeBundleServe
         await cache._fetch_once(client, "http://127.0.0.1:1/nope", _LOGGER)  # noqa: SLF001
 
     assert cache.has_permission(["r1"], "perm.a"), "fail-static：单次拉取失败不该清空内存里已有的 bundle"
+
+
+async def test_首次拉取失败后短退避重试不等满15秒(fake_server: FakeBundleServer) -> None:
+    """06b 联调压出来的：组件和 authz 同时启动，第一次拉 bundle 时 authz
+    还没起来，旧实现要等满一个轮询周期（15 秒）才重试，这期间每个受保护
+    的路由都答 503，启动后大约 20 秒不可用。首次成功之前应该短退避重试
+    （0.5 秒起翻倍、封顶轮询间隔）；成功之后回到 15 秒的条件轮询。
+    """
+    fake_server.set_bundle({"r1": ["perm.a"]}, {}, '"v1"')
+    fake_server.fail_left = 2  # 前两次 503，第三次才成功
+
+    cache = start_bundle_poller(fake_server.url, _LOGGER)
+    await _wait_until(cache.has_ever_fetched, timeout=3.0)
+    assert cache.has_permission(["r1"], "perm.a"), "重试成功之后应该能查到权限"
+
+    hits = fake_server.hit_count
+    await asyncio.sleep(2.0)
+    assert fake_server.hit_count == hits, "首次成功之后应该回到轮询间隔，不该继续短退避"
+
+
+def test_退避间隔翻倍并封顶轮询间隔() -> None:
+    d = BUNDLE_FIRST_RETRY_DELAY_SECONDS
+    assert d == 0.5
+    want = [1.0, 2.0, 4.0, 8.0, BUNDLE_POLL_INTERVAL_SECONDS, BUNDLE_POLL_INTERVAL_SECONDS]
+    got = []
+    for _ in want:
+        d = _next_bundle_retry_delay(d)
+        got.append(d)
+    assert got == want
 
 
 @pytest.mark.slow

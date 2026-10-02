@@ -18,7 +18,7 @@ Python 横切基础库（总纲 §4 SOP-L 十四项能力）。**不是 brickKit
 `require_permission`/`scope_of` 从 Task 1 的 fail-closed stub 换成真实判定——与 `be-sdk-go`/`be-sdk-ts` 同一批上线，形状逐字对应。⚠️ **这套机制本身的协议描述（JWT claims 约定、bundle 的 wire format、判定链、ScopeFilter 语义）见 [`docs/authz-protocol.md`](docs/authz-protocol.md)**——独立写的，不假设读者知道 brickKit 是什么，换一个签发方/策略服务实现也能对着它接。
 
 - **JWT 本地验签**：`iam_jwks_url` 指向的 JWKS 端点，用 `PyJWT` 的 `PyJWKClient`（自带 JWK Set 缓存与刷新）。⚠️ `PyJWKClient` 是同步实现，`JWTVerifier.verify()` 整体包一层 `asyncio.to_thread`，避免缓存过期那次网络请求把事件循环卡住。`infra-iam-casdoor` 要到阶段三 Task 7 才建仓库，测试自己起一对 RSA 密钥 + 一个真实绑定端口的 `http.server` 当 JWKS 端点，加密运算是真的，只是身份是测试夹具。
-- **bundle 轮询**：15 秒条件 GET `authz_bundle_url`（`If-None-Match`，未变化 304 不重新解析），一个 `asyncio.create_task` 后台协程，模块代码看不见。⚠️ `BundleCache` 不用 `asyncio.Lock`——单线程协作式调度下，整体替换内部状态是一条没有 `await` 的语句，天然原子，加锁是没有必要的间接。有一条测试真等 15 秒验证"改角色分配不重启组件也能生效"。
+- **bundle 轮询**：15 秒条件 GET `authz_bundle_url`（`If-None-Match`，未变化 304 不重新解析），一个 `asyncio.create_task` 后台协程，模块代码看不见。v0.5.0 起，首次成功之前不等满 15 秒：按 0.5 秒起翻倍、封顶 15 秒的退避重试，成功后才进入 15 秒轮询——组件和 authz 同时启动时，受保护的路由不再在启动后约 20 秒里一直答 503。⚠️ `BundleCache` 不用 `asyncio.Lock`——单线程协作式调度下，整体替换内部状态是一条没有 `await` 的语句，天然原子，加锁是没有必要的间接。有一条测试真等 15 秒验证"改角色分配不重启组件也能生效"。
 - **`AUTHENTICATED` 新哨兵值**：阶段三 Task 4 写 `infra-authz` 时发现的真实缺口——`PUBLIC`/具体权限键两档之间缺"已登录即可，不需要权限键"这一档。
 - **`scope_of()` 取的是纯函数 `scope_from_claims(claims)` 的输出**（§14.2.4）：`prefix`/`exact`/`owner` 永远从同一份 Claims 的 `dept_path`/`sub` 填，求解规则见下面"数据范围（v0.5.0）"。⚠️ **一处容易反方向的细节**：`ContextVar` 里取不到值时不能返回默认的 `ScopeFilter()`，那等于替调用方猜一个范围。改成抛 `RuntimeError`，让编程错误在联调阶段就现形。
 - 真机验证：起了本地 `infra-authz` 容器，轮询客户端直接打它真实的 `GET /authz/bundle`，确认认得出自举种子数据 `authz_admin`/`infra.authz.admin`。

@@ -81,10 +81,18 @@ class FakeBundleServer:
         self._body: dict[str, Any] = {"roles": {}, "stale_since": {}}
         self._etag = '"v1"'
         self.not_match_count = 0
+        self.hit_count = 0
+        self.fail_left = 0  # 还要回几次 503（模拟 authz 还在启动）
         outer = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
+                outer.hit_count += 1
+                if outer.fail_left > 0:
+                    outer.fail_left -= 1
+                    self.send_response(503)
+                    self.end_headers()
+                    return
                 if self.headers.get("If-None-Match") == outer._etag:  # noqa: SLF001
                     outer.not_match_count += 1
                     self.send_response(304)
