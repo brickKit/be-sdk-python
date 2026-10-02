@@ -106,7 +106,8 @@ def test_真实部门路径原样进prefix和exact() -> None:
 
 def test_NO_DEPT_PATH不以斜杠开头且不含LIKE通配符() -> None:
     """哨兵会被下游直接绑进 ``LIKE $n || '%'``：以 ``/`` 开头就会命中
-    真实路径，含 ``%`` / ``_`` 就会被 LIKE 当成通配符。值本身也是三份
+    真实路径，含 ``%`` / ``_`` 就会被 LIKE 当成通配符，含 ``\\`` 会被当成
+    转义符。值本身也是三份
     SDK 共用的协议常量。
     """
     assert NO_DEPT_PATH == "!no-dept"
@@ -114,5 +115,6 @@ def test_NO_DEPT_PATH不以斜杠开头且不含LIKE通配符() -> None:
     assert not NO_DEPT_PATH.startswith("/")
     assert "%" not in NO_DEPT_PATH
     assert "_" not in NO_DEPT_PATH
+    assert "\\" not in NO_DEPT_PATH  # LIKE 的默认转义符
     assert besdk.NO_DEPT_PATH == NO_DEPT_PATH
     assert besdk.scope_from_claims is scope_from_claims

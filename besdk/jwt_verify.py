@@ -61,10 +61,13 @@ class JWTVerifier:
         if not isinstance(payload["sub"], str) or payload["sub"] == "":
             raise jwt.exceptions.MissingRequiredClaimError("sub")
         iat = payload["iat"]
+        # claim 缺失或不是字符串都落成空串：scope_from_claims 把空串当成
+        # "没有部门"（fail-closed），不让畸形 claim 在求解范围时抛错。
+        dept_path = payload.get("dept_path")
         return Claims(
             sub=payload["sub"],
             roles=list(payload.get("roles") or []),
-            dept_path=payload.get("dept_path") or "",
+            dept_path=dept_path if isinstance(dept_path, str) else "",
             org_id=payload.get("org_id") or "",
             issued_at=datetime.fromtimestamp(iat, tz=UTC),
         )

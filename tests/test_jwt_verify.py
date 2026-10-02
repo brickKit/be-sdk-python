@@ -75,3 +75,18 @@ async def test_空sub报错(jwks: FakeJWKSServer) -> None:
 
     with pytest.raises(jwt.exceptions.MissingRequiredClaimError, match="sub"):
         await v.verify(token)
+
+
+async def test_dept_path不是字符串时按没有部门处理(jwks: FakeJWKSServer) -> None:
+    """非字符串的 dept_path 落成空串（再由 scope_from_claims 按没有部门
+    处理），不让一个畸形 claim 在求解范围时变成 500。
+    """
+    v = JWTVerifier(jwks.url)
+    priv = jwks._priv  # noqa: SLF001
+    token = jwt.encode(
+        {"sub": "u_x", "iat": int(time.time()), "dept_path": 12}, priv, algorithm="RS256", headers={"kid": jwks.kid}
+    )
+
+    claims = await v.verify(token)
+
+    assert claims.dept_path == ""
