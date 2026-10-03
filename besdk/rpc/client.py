@@ -60,6 +60,9 @@ def channel_options(methods: list[dict[str, str]], member: str) -> list[tuple[st
             ("grpc.primary_user_agent", f"besdk-python {member}")]
 
 
+_BUDGET_END_SLACK = 0.01  # seconds: an error this close to the end of the budget is the budget's end
+
+
 class _UnaryCall:
     """One unary method of a dependency, called through the runtime's chain (P7.12): transaction guard,
     default deadline, bulkhead, metadata, client RED metrics; gRPC errors come back as ``besdk.Error``."""
@@ -83,6 +86,11 @@ class _UnaryCall:
                     return await self.inner(request, timeout=t, metadata=md, **kw)
                 except grpc.aio.AioRpcError as e:
                     err = S.from_rpc_error(e)
+                    # At the end of the budget gRPC does not always report DEADLINE_EXCEEDED: a stream
+                    # reset at that moment comes back as CANCELLED, INTERNAL or UNAVAILABLE. The budget
+                    # ran out either way (P7.7), so the answer is 504 and not 499, 500 or 503.
+                    if time.perf_counter() - start >= t - _BUDGET_END_SLACK:
+                        err = errors.be_error("DEADLINE_BUDGET_EXHAUSTED", message=err.message)
                     code = err.code
                     raise err from None
         finally:
