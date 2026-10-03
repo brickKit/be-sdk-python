@@ -33,7 +33,10 @@ ACK_WAIT = 30.0
 HANDLER_MARGIN = 5.0  # a handler's deadline is ack_wait − 5 s (P12.9)
 MAX_ACK_PENDING = 256
 INACTIVE = 30 * 86400.0
-FETCH_WAIT = 5.0
+# How long one pull request waits at the server. A request outlives a consumer that stops by up to
+# this long, and a message published meanwhile is handed to it and redelivered only after the ack
+# wait; so it is short, and a stopping consumer lets the running request end (see ``Consumer.stop``).
+FETCH_WAIT = 1.0
 CURSOR_UPSERT = (
     "INSERT INTO besdk_event_cursor (consumer, aggregate_type, aggregate_id, version, event_id) "
     "VALUES ($1, $2, $3, $4, $5) ON CONFLICT (consumer, aggregate_type, aggregate_id) DO UPDATE "
@@ -60,6 +63,10 @@ class Consumer:
         self.durable = E.durable_name(member, sub.subject)
         self.stream = E.stream_of(sub.subject)
         self._tasks: set[asyncio.Task] = set()
+        self._stopping = asyncio.Event()  # no new pull request is sent
+        self._freed = asyncio.Event()  # a handler slot became free, or the consumer is stopping
+        self._left = asyncio.Event()  # the loop has left its last fetch
+        self._running = False
 
     async def ensure(self) -> None:
         """Stream and durable exist afterwards; an existing durable is left as it is (P12.5)."""
@@ -82,25 +89,66 @@ class Consumer:
         await self.ensure()
         psub = await self.bus.js.pull_subscribe_bind(durable=self.durable, stream=self.stream)
         conc = max(1, self.sub.concurrency)
-        freed = asyncio.Event()
+        self._running = True
         try:
-            while True:
-                while len(self._tasks) >= conc:
-                    freed.clear()
-                    await freed.wait()
+            while not self._stopping.is_set():
+                while len(self._tasks) >= conc and not self._stopping.is_set():
+                    self._freed.clear()
+                    await self._freed.wait()
+                if self._stopping.is_set():
+                    break
+                fetch = asyncio.ensure_future(psub.fetch(batch=conc - len(self._tasks), timeout=FETCH_WAIT))
+                fetch.add_done_callback(lambda f: f.cancelled() or f.exception())  # never left unretrieved
                 try:
-                    msgs = await psub.fetch(batch=conc - len(self._tasks), timeout=FETCH_WAIT)
+                    msgs = await asyncio.shield(fetch)
                 except (TimeoutError, asyncio.TimeoutError):
                     continue
+                except asyncio.CancelledError:
+                    await self._hand_back(fetch)
+                    raise
+                if self._stopping.is_set():
+                    await self._nak_all(msgs)
+                    break
                 for m in msgs:
                     t = asyncio.create_task(self._one(m))
                     self._tasks.add(t)
-                    t.add_done_callback(lambda t: (self._tasks.discard(t), freed.set()))
+                    t.add_done_callback(lambda t: (self._tasks.discard(t), self._freed.set()))
         finally:
+            self._running = False
+            self._left.set()
             await self.drain()
             try:
                 await psub.unsubscribe()
             except Exception:  # noqa: BLE001
+                pass
+
+    async def stop(self, timeout: float = FETCH_WAIT + 1.0) -> None:
+        """No new pull request is sent; returns once the running one has ended, or after ``timeout``.
+
+        A pull request stays registered at the server until it expires. If the consumer just went away,
+        a message published meanwhile would be handed to that request and wait out the ack wait."""
+        self._stopping.set()
+        self._freed.set()
+        if self._running:
+            try:
+                await asyncio.wait_for(self._left.wait(), timeout)
+            except (TimeoutError, asyncio.TimeoutError):
+                pass
+
+    async def _hand_back(self, fetch: "asyncio.Future[Any]") -> None:
+        """The task was cancelled during a fetch: let the fetch end and hand back what it brings."""
+        try:
+            msgs = await asyncio.wait_for(asyncio.shield(fetch), FETCH_WAIT + 1.0)
+        except Exception:  # noqa: BLE001 - it timed out or failed: nothing was delivered
+            return
+        await self._nak_all(msgs)
+
+    async def _nak_all(self, msgs: Any) -> None:
+        """Negative acknowledgements without a delay: another instance takes the messages at once."""
+        for m in msgs:
+            try:
+                await m.nak()
+            except Exception:  # noqa: BLE001 - redelivered after the ack wait instead
                 pass
 
     async def drain(self, timeout: float = 5.0) -> None:

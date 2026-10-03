@@ -107,6 +107,11 @@ class EventsRuntime:
         self.started.set()
 
     async def stop(self) -> None:
-        """Consumers stop fetching and finish in-flight deliveries; the pump finishes its batch (P1.6)."""
+        """Consumers stop fetching and finish in-flight deliveries; the pump finishes its batch (P1.6).
+
+        ``stop`` comes first: it sends no new pull request and waits for the running one to end, so
+        that no request is left at the server for a message to be handed to."""
+        if self.consumers:
+            await asyncio.gather(*(c.stop() for c in self.consumers))
         for c in self.consumers:
             await c.drain()
