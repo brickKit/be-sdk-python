@@ -161,8 +161,8 @@
       "expected": {
         "action": "fail",
         "code": "CANCELLED",
-        "reason": null,
-        "domain": null,
+        "reason": "REQUEST_CANCELLED",
+        "domain": "be",
         "http": 499
       }
     },
@@ -218,6 +218,132 @@
         "reason": "DB_TOO_MANY_CONNECTIONS",
         "domain": "be",
         "http": 503
+      }
+    },
+    {
+      "id": "errors.sqlstate.connection-failure",
+      "description": "the connection was lost: DEPENDENCY_UNAVAILABLE, dependency db",
+      "op": "classify",
+      "input": {
+        "sqlstate": "08006"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
+      }
+    },
+    {
+      "id": "errors.sqlstate.cannot-connect",
+      "description": "the client could not establish a connection",
+      "op": "classify",
+      "input": {
+        "sqlstate": "08001"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
+      }
+    },
+    {
+      "id": "errors.sqlstate.connection-exception",
+      "description": "any other connection exception",
+      "op": "classify",
+      "input": {
+        "sqlstate": "08000"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
+      }
+    },
+    {
+      "id": "errors.sqlstate.admin-shutdown",
+      "description": "the server is shutting down (a restart or failover)",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57P01"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
+      }
+    },
+    {
+      "id": "errors.sqlstate.crash-shutdown",
+      "description": "the server crashed",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57P02"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
+      }
+    },
+    {
+      "id": "errors.sqlstate.cannot-connect-now",
+      "description": "the server is starting up or in recovery",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57P03"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DEPENDENCY_UNAVAILABLE",
+        "domain": "be",
+        "http": 503,
+        "metadata": {
+          "dependency": "db"
+        }
       }
     },
     {

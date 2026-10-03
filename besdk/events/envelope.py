@@ -52,6 +52,9 @@ def dlq_subject(durable: str, subject: str) -> str:
     return f"dlq.{durable}.{subject}"
 
 
+PAYLOAD_LIMIT = 64 * 1024  # P12.2
+
+
 # --- publishing ----------------------------------------------------------------------------------
 
 
@@ -67,6 +70,7 @@ class OutboxRow:
     causation_id: str = ""
     hop_count: int = 0
     payload_json: str = "{}"
+    tracestate: str = ""
 
 
 def _as_dt(t: str | datetime) -> datetime:
@@ -98,6 +102,8 @@ def headers_of(row: OutboxRow, *, component_id: str, version: str, events_file: 
     eid = str(ids.parse_id(row.id))
     if row.aggregate_version < 1 or row.hop_count < 0:
         raise ProtocolError("ENVELOPE_INVALID", "aggregate version ≥ 1, hop count ≥ 0")
+    if len(row.payload_json.encode()) > PAYLOAD_LIMIT:
+        raise ProtocolError("PAYLOAD_TOO_LARGE", f"{row.subject}: above 64 KiB; use a claim check (P12.2)")
     le = legal_entity_of(json.loads(row.payload_json))
     if transaction_document and not le:
         raise ProtocolError("LEGAL_ENTITY_MISSING", row.subject)
@@ -113,6 +119,8 @@ def headers_of(row: OutboxRow, *, component_id: str, version: str, events_file: 
         h["ce-causationid"] = row.causation_id
     if row.traceparent:
         h["traceparent"] = row.traceparent
+    if row.tracestate:
+        h["tracestate"] = row.tracestate
     if le:
         h["ce-legalentity"] = le
     return dict(sorted(h.items()))

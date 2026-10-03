@@ -26,9 +26,9 @@ BATCH = 256
 BUSY, IDLE = 0.2, 2.0
 
 _INSERT = ("INSERT INTO besdk_outbox (id, created_at, subject, aggregate_type, aggregate_id, aggregate_version, "
-           "occurred_at, traceparent, causation_id, hop_count, headers, payload) "
-           "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb)")
-_COLS = ("id, created_at, subject, aggregate_type, aggregate_id, aggregate_version, occurred_at, traceparent, "
+           "occurred_at, traceparent, tracestate, causation_id, hop_count, headers, payload) "
+           "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb)")
+_COLS = ("id, created_at, subject, aggregate_type, aggregate_id, aggregate_version, occurred_at, traceparent, tracestate, "
          "causation_id, hop_count, payload::text AS payload, attempts")
 _CLAIM = (f"UPDATE besdk_outbox SET status = 'SENDING', claimed_until = now() + interval '30 seconds', "
           f"attempts = attempts + 1 WHERE (id, created_at) IN (SELECT id, created_at FROM besdk_outbox "
@@ -97,7 +97,8 @@ async def write(tx: "Tx", ev: Event) -> None:
     causation, hop = causation_now()
     le = legal_entity_of(ev.payload)
     await tx.execute(_INSERT, eid, ids.id_time(eid), ev.subject, decl.aggregate_type, ev.aggregate_id, ev.version,
-                     datetime.now(timezone.utc), carrier.get("traceparent", ""), causation, hop,
+                     datetime.now(timezone.utc), carrier.get("traceparent", ""), carrier.get("tracestate", ""),
+                     causation, hop,
                      json.dumps({"ce-legalentity": le} if le else {}), data)
     ev.id, ev.aggregate_type, ev.source = str(eid), decl.aggregate_type, pub.member
 
@@ -153,7 +154,7 @@ class OutboxPump:
         row = OutboxRow(id=str(r["id"]), subject=r["subject"], aggregate_type=r["aggregate_type"],
                         aggregate_id=r["aggregate_id"], aggregate_version=r["aggregate_version"],
                         occurred_at=r["occurred_at"], traceparent=r["traceparent"], causation_id=r["causation_id"],
-                        hop_count=r["hop_count"], payload_json=r["payload"])
+                        hop_count=r["hop_count"], payload_json=r["payload"], tracestate=r["tracestate"])
         h = headers_of(row, component_id=self.pub.member, version=self.pub.version,
                        events_file=decl.file if decl else "", transaction_document=False)
         await self.bus.ensure_stream_for(r["subject"])

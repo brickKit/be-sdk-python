@@ -835,6 +835,54 @@
       }
     },
     {
+      "id": "errors.codes.be-request-invalid",
+      "description": "platform reason REQUEST_INVALID",
+      "op": "be_reason",
+      "input": {
+        "reason": "REQUEST_INVALID"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-dependency-unavailable",
+      "description": "platform reason DEPENDENCY_UNAVAILABLE",
+      "op": "be_reason",
+      "input": {
+        "reason": "DEPENDENCY_UNAVAILABLE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.be-request-cancelled",
+      "description": "platform reason REQUEST_CANCELLED",
+      "op": "be_reason",
+      "input": {
+        "reason": "REQUEST_CANCELLED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "CANCELLED",
+        "domain": "be",
+        "http": 499
+      }
+    },
+    {
       "id": "errors.codes.restore-problem-kept",
       "description": "a dependency's problem+json is kept as it is",
       "op": "restore_http",

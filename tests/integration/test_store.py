@@ -30,7 +30,7 @@ def runtime(root, ident, **env) -> Runtime:
 async def rt(tmp_path, ident):
     root = component_dir(tmp_path)
     migrator(root, ident).up()
-    r = runtime(root, ident, PG_POOL_MAX="2", PG_POOL_MIN_IDLE="0")
+    r = runtime(root, ident, PG_POOL_MAX="2")
     await r.store().open()
     yield r
     await r.store().close()
@@ -44,7 +44,7 @@ async def test_every_transaction_sets_identity_and_timeouts(rt, ident):
             "current_setting('idle_in_transaction_session_timeout') AS it, current_setting('TimeZone') AS tz")
 
     row = await rt.store().tx(body)
-    assert (row["u"], row["s"], row["app"]) == (ident.user, ident.schema, "conformance/widget-py")
+    assert (row["u"], row["s"], row["app"]) == (ident.user, ident.schema, "conformance/widget-py@1.0.0")  # rc.2: <id>@<version>
     assert (row["st"], row["lt"], row["it"], row["tz"]) == ("5s", "2s", "30s", "UTC")
     async with rt.store().pool.raw() as conn:  # the pooled connection is clean afterwards
         assert await conn.fetchval("SHOW search_path") == '"$user", public'
@@ -110,7 +110,7 @@ async def test_lock_timeout(rt, ident):
 async def test_pool_budget_exhausted(tmp_path, ident):
     root = component_dir(tmp_path)
     migrator(root, ident).up()
-    r = runtime(root, ident, PG_POOL_MAX="1", PG_POOL_MIN_IDLE="0", PG_POOL_ACQUIRE_TIMEOUT="200ms")
+    r = runtime(root, ident, PG_POOL_MAX="1", PG_POOL_ACQUIRE_TIMEOUT="200ms")
     await r.store().open()
     hold = asyncio.create_task(r.store().tx(lambda tx: tx.execute("SELECT pg_sleep(1)")))
     await asyncio.sleep(0.2)
@@ -191,7 +191,7 @@ async def test_pg14_floor(tmp_path, pg14):
     ident = Identity(pg14, tmp_path)
     root = component_dir(tmp_path)
     migrator(root, ident).up()
-    r = runtime(root, ident, PG_POOL_MIN_IDLE="0")
+    r = runtime(root, ident)
     await r.store().open()
     assert await r.store().probe() == []
     assert await r.store().tx(lambda tx: tx.fetchval("SELECT current_schema()")) == ident.schema

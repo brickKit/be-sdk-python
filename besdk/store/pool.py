@@ -6,7 +6,8 @@ limited by its own budget (``besdk.store.store.Store``). The password is read fr
 new connection, so a rotated password applies to the connections opened after the change. The session
 time zone is UTC (a start-up parameter, never a ``SET``). The prepared-statement cache stays on: every
 statement carries its member's ``/* be:<schema> */`` prefix (repro r1-04), and the cache grows with the
-number of members.
+number of members. The pool keeps no idle minimum (``PG_POOL_MIN_IDLE`` is retired in be-protocol rc.2):
+connections open on demand and close after ``PG_CONN_MAX_IDLE_TIME``.
 """
 
 from __future__ import annotations

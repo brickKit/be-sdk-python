@@ -87,6 +87,12 @@ def log_level(code: Code) -> str:
     return "info"
 
 
+def access_log_level(code: Code) -> str:
+    """The level of an access-log line by its outcome (P3.10, P4.6): every request is logged, so OK and
+    CANCELLED are info; otherwise as ``log_level``."""
+    return "info" if code in (Code.OK, Code.CANCELLED) else log_level(code)
+
+
 @dataclass(frozen=True)
 class Violation:
     field: str
@@ -156,25 +162,9 @@ class Catalog:
         return self._by.get((domain or "", reason or ""))
 
 
-# Reasons ruled into domain `be` after rc.1 (stage-B review: 33 → 35). They are added only while the
-# synced catalogue lacks them, so syncing rc.2 makes this list a no-op; delete it after that sync.
-_PENDING_BE = [
-    {"reason": "REQUEST_INVALID", "code": "INVALID_ARGUMENT", "http": 400, "params": [],
-     "title": {"en": "Invalid request", "zh": "请求不合法"},
-     "message": {"en": "The request does not match the contract.", "zh": "请求和接口约定不符。"}},
-    {"reason": "DEPENDENCY_UNAVAILABLE", "code": "UNAVAILABLE", "http": 503, "params": ["dependency"],
-     "title": {"en": "Dependency unavailable", "zh": "依赖暂不可用"},
-     "message": {"en": "{dependency} cannot be reached right now. Try again shortly.",
-                 "zh": "暂时连不上 {dependency}，请稍后再试。"}},
-]
-
-
 @cache
 def _be_doc() -> dict:
-    doc = yaml.safe_load(resources.files("besdk").joinpath("_protocol/errors-be.yaml").read_text())
-    have = {r["reason"] for r in doc["reasons"]}
-    doc["reasons"] += [r for r in _PENDING_BE if r["reason"] not in have]
-    return doc
+    return yaml.safe_load(resources.files("besdk").joinpath("_protocol/errors-be.yaml").read_text())
 
 
 @cache
@@ -221,7 +211,7 @@ def to_error(exc: BaseException) -> Error:
     if isinstance(exc, Error):
         return exc
     if isinstance(exc, asyncio.CancelledError):
-        return Error(Code.CANCELLED, None, domain=None)
+        return be_error("REQUEST_CANCELLED")
     if isinstance(exc, (TimeoutError, asyncio.TimeoutError)):
         return be_error("DEADLINE_BUDGET_EXHAUSTED")
     return internal(exc)
@@ -305,7 +295,9 @@ def classify_sqlstate(sqlstate: str, *, attempt: int = 1, context: str = "none",
     if sqlstate == "55P03":
         return SqlOutcome(False, error=be_error("LOCK_TIMEOUT"))
     if sqlstate == "57014" and context == "cancelled":
-        return SqlOutcome(False, error=Error(Code.CANCELLED, None))
+        return SqlOutcome(False, error=be_error("REQUEST_CANCELLED"))
+    if sqlstate.startswith("08") or sqlstate in ("57P01", "57P02", "57P03"):
+        return SqlOutcome(False, error=be_error("DEPENDENCY_UNAVAILABLE", {"dependency": "db"}))
     if sqlstate in ("57014", "25P04"):
         return SqlOutcome(False, error=be_error("STATEMENT_TIMEOUT"))
     if sqlstate == "53300":

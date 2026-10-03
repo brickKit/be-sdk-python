@@ -48,7 +48,7 @@ def _invalid(spec: KeySpec, why: str) -> ProtocolError:
 
 def parse_value(spec: KeySpec, raw: str | None) -> Parsed:
     """Presence, default and strict typing of one value (P2.3); a bad value never falls back."""
-    if raw is not None and raw == "" and (spec.format != "string" or spec.secret):
+    if raw == "":  # rc.2: an empty value is absent for every type (P2.3)
         raw = None
     if raw is None:
         if spec.default is not None and spec.default != "":

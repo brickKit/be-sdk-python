@@ -374,12 +374,176 @@
       }
     },
     {
+      "id": "errors.problem.request-invalid",
+      "description": "the request does not match the operation's schema",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "INVALID_ARGUMENT",
+          "reason": "REQUEST_INVALID",
+          "domain": "be",
+          "violations": [
+            {
+              "field": "lines[0].quantity",
+              "reason": "DECIMAL_INVALID",
+              "description": "not a decimal string"
+            }
+          ]
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:REQUEST_INVALID",
+          "status": 400,
+          "code": "INVALID_ARGUMENT",
+          "reason": "REQUEST_INVALID",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "violations": [
+            {
+              "field": "lines[0].quantity",
+              "reason": "DECIMAL_INVALID",
+              "description": "not a decimal string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "errors.problem.dependency-unavailable",
+      "description": "PostgreSQL could not be reached",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "UNAVAILABLE",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "domain": "be",
+          "metadata": {
+            "dependency": "db"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:DEPENDENCY_UNAVAILABLE",
+          "status": 503,
+          "code": "UNAVAILABLE",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "domain": "be",
+          "metadata": {
+            "dependency": "db"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.dependency-unavailable-peer",
+      "description": "a dependency refused the connection",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "UNAVAILABLE",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "domain": "be",
+          "metadata": {
+            "dependency": "conformance/peer"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:DEPENDENCY_UNAVAILABLE",
+          "status": 503,
+          "code": "UNAVAILABLE",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "domain": "be",
+          "metadata": {
+            "dependency": "conformance/peer"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.request-cancelled",
+      "description": "the caller went away: 499",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "CANCELLED",
+          "reason": "REQUEST_CANCELLED",
+          "domain": "be"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:REQUEST_CANCELLED",
+          "status": 499,
+          "code": "CANCELLED",
+          "reason": "REQUEST_CANCELLED",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
       "id": "errors.problem.unclassified",
       "description": "an error with no code and no reason becomes INTERNAL",
       "op": "problem",
       "input": {
         "error": {
-          "internal_message": "dial tcp 10.0.0.7:5432: connect: connection refused"
+          "internal_message": "unexpected end of input"
         },
         "request": {
           "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
@@ -405,7 +569,7 @@
           "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
         },
         "detail_must_not_contain": [
-          "dial tcp 10.0.0.7:5432: connect: connection refused"
+          "unexpected end of input"
         ]
       }
     },

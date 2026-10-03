@@ -102,3 +102,23 @@ def test_outbox_partition_name_is_isoyear_w_week():
 
     assert outbox_partition_name(date(2026, 10, 3)) == "besdk_outbox_2026w40"
     assert outbox_partition_name(date(2027, 1, 1)) == "besdk_outbox_2026w53"
+
+
+def test_access_log_line_for_ok_is_info():
+    """rc.2 errors access_log_level: every access-log line is at least info; OK and CANCELLED are info."""
+    assert errors.access_log_level(errors.Code.OK) == "info"
+    assert errors.access_log_level(errors.Code.CANCELLED) == "info"
+    assert errors.access_log_level(errors.Code.INTERNAL) == "error"
+
+
+def test_cancellation_is_request_cancelled():
+    e = errors.to_error(asyncio.CancelledError())
+    assert (e.reason, e.domain, e.http) == ("REQUEST_CANCELLED", "be", 499)
+
+
+async def test_outbox_row_carries_tracestate(tmp_path):
+    from besdk.events.outbox import write
+
+    tx = _Tx(_publisher(tmp_path))
+    await write(tx, Event("conformance.widget.created.v1", "w1", 1, {"d": 1}))
+    assert len(tx.rows[0]) == 13  # … traceparent, tracestate, causation, hop, headers, payload

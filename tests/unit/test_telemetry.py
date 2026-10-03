@@ -60,3 +60,16 @@ def test_otel_meter_lands_in_the_member_registry():
     m = plat.member("erp/sales", "3.0.0", reg)
     m.meter.create_counter("erp_sales_things").add(2)
     assert 'erp_sales_things_total{component="erp/sales"} 2.0' in generate_latest(reg).decode()
+
+
+def test_member_resource_attributes():
+    """P18.1 (rc.2): service.namespace = the domain, deployment.environment.name = DEPLOY_ENV."""
+    exp = InMemorySpanExporter()
+    plat = telemetry.Platform("conformance/widget", exporter=exp)
+    m = plat.member("erp/sales", "3.0.0", metrics.ComponentRegistry("erp/sales"), environment="prod")
+    with m.tracer.start_as_current_span("x"):
+        pass
+    m.shutdown()
+    a = exp.get_finished_spans()[0].resource.attributes
+    assert (a["service.name"], a["service.version"], a["service.namespace"], a["deployment.environment.name"]) == (
+        "erp/sales", "3.0.0", "erp", "prod")

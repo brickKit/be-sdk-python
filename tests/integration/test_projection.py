@@ -66,7 +66,7 @@ async def setup(tmp_path, ident):
     fake = FakeAuthz()
     spec = Spec(id="conformance/widget-py", migrations=root / "migrations", contracts=root / "contracts", create=_empty)
     shared = Shared.standalone(spec_id=spec.id, http_transport=httpx.MockTransport(fake.handle))
-    rt = Runtime(spec, ident.env(AUTHZ_URL="http://authz:8223", PG_POOL_MIN_IDLE="0"), shared,
+    rt = Runtime(spec, ident.env(AUTHZ_URL="http://authz:8223"), shared,
                  log_stream=io.StringIO())
     yield rt, fake, Projection(rt, page=2)
     await rt.store().close()

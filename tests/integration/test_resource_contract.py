@@ -86,8 +86,8 @@ async def env(tmp_path, ident):
     spec = Spec(id="conformance/widget-py", migrations=root / "migrations", contracts=root / "contracts", create=create)
     shared = Shared.standalone(spec_id=spec.id, http_transport=httpx.MockTransport(handle))
     rt = Runtime(spec, ident.env(AUTHZ_URL="http://authz:8223", AUTHZ_GRPC_URL=f"http://127.0.0.1:{port}",
-                                 IAM_URL="http://iam:8200", IAM_ISSUER=ISSUER, TENANT_ID=TENANT,
-                                 PG_POOL_MIN_IDLE="0"), shared, log_stream=io.StringIO())
+                                 IAM_URL="http://iam:8200", IAM_ISSUER=ISSUER, TENANT_ID=TENANT), shared,
+                 log_stream=io.StringIO())
     app = rt.http_app(await spec.create(rt))
     await shared.bundle_source.fetch()
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://w")

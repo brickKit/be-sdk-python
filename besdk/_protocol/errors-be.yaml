@@ -1,5 +1,5 @@
 # The reserved reasons of domain `be` (be-protocol P4). Complete set: identical to the table in
-# spec/04-errors.md and to the platform reason table of BrickEnterprise foundations 15 (33 reasons).
+# spec/04-errors.md and to the platform reason table of BrickEnterprise foundations 15 (36 reasons).
 # Format: schemas/errors-yaml.schema.json. Append-only: a reason is never renamed, removed or reused.
 domain: be
 reasons:
@@ -266,5 +266,29 @@ reasons:
     params: []
     title:   { en: "Internal error", zh: "内部错误" }
     message: { en: "A transaction was opened inside another one in the same unit of work (a programming error). Never shown to a caller: the answer is the generic INTERNAL body; the reason appears only in the log.", zh: "在同一个工作单元里，在一个事务内又打开了另一个事务（编程错误）。永远不给调用方看：回答是通用的 INTERNAL 错误体，这个 reason 只出现在日志里。" }
+    since: "1.0"
+    deprecated: false
+  - reason: REQUEST_INVALID
+    code: INVALID_ARGUMENT
+    http: 400
+    params: []
+    title:   { en: "Invalid request", zh: "请求无效" }
+    message: { en: "The request could not be read or does not match what this operation accepts.", zh: "请求无法解析，或者不符合这个操作接受的格式。" }
+    since: "1.0"
+    deprecated: false
+  - reason: DEPENDENCY_UNAVAILABLE
+    code: UNAVAILABLE
+    http: 503
+    params: [dependency]
+    title:   { en: "Temporarily unavailable", zh: "暂时不可用" }
+    message: { en: "A service this request needs ({dependency}) cannot be reached right now. Try again shortly.", zh: "这个请求依赖的服务（{dependency}）暂时连不上，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: REQUEST_CANCELLED
+    code: CANCELLED
+    http: 499
+    params: []
+    title:   { en: "Request cancelled", zh: "请求已取消" }
+    message: { en: "The request was cancelled by the caller before it finished.", zh: "请求在完成之前被调用方取消了。" }
     since: "1.0"
     deprecated: false

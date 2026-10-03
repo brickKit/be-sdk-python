@@ -90,7 +90,7 @@ class BeMiddleware:
                 fields[k] = req[k]
         level = "info"
         if isinstance(err, errors.Error):
-            level = errors.log_level(err.code)
+            level = errors.access_log_level(err.code)
             fields["error.code"], fields["error.reason"] = err.code.name, err.reason or ""
             fields["error"] = err.internal_message or str(err)
         if path in _OPS and status < 500:

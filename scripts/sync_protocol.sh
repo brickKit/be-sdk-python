@@ -15,8 +15,8 @@
 #   tests/protocol/authz-vectors/         contract-infra-authz vectors/decision (core checks, P6.2)
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-PROTO_TAG=${BE_PROTOCOL_TAG:-v1.0.0-rc.1}
-AUTHZ_TAG=${AUTHZ_TAG:-v2.0.0-rc.1}
+PROTO_TAG=${BE_PROTOCOL_TAG:-v1.0.0-rc.2}
+AUTHZ_TAG=${AUTHZ_TAG:-v2.0.0-rc.2}
 PROTO_REPO=${BE_PROTOCOL_REPO:-https://github.com/brickKit/be-protocol}
 AUTHZ_REPO=${AUTHZ_REPO:-https://github.com/brickKit/contract-infra-authz}
 TMP=$(mktemp -d)

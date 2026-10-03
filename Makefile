@@ -11,7 +11,7 @@ PREFIX   ?= sdkb-py
 PG16     := $(PREFIX)-pg16
 PG14     := $(PREFIX)-pg14
 NATS     := $(PREFIX)-nats
-PROTO_TAG ?= v1.0.0-rc.1
+PROTO_TAG ?= v1.0.0-rc.2
 
 venv: ## create .venv with Python 3.14 and the exact pins
 	uv venv --clear -p python3.14 .venv

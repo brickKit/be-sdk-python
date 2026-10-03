@@ -23,7 +23,8 @@ def test_envelope_headers(case):
     row = env.OutboxRow(id=r["id"], subject=r["subject"], aggregate_type=r["aggregate_type"],
                         aggregate_id=r["aggregate_id"], aggregate_version=r["aggregate_version"],
                         occurred_at=r["occurred_at"], traceparent=r["traceparent"], causation_id=r["causation_id"],
-                        hop_count=r["hop_count"], payload_json=r["payload_json"])
+                        hop_count=r["hop_count"], payload_json=r["payload_json"],
+                        tracestate=r.get("tracestate", ""))
     td = bool((i.get("contract") or {}).get("transaction_document"))
     expect(case, lambda: {"headers": env.headers_of(row, component_id=p["component_id"], version=p["version"],
                                                     events_file=p["events_file"], transaction_document=td)})

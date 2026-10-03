@@ -25,7 +25,7 @@ def replica(root, ident, module, **env) -> tuple[Runtime, JobsRuntime]:
         return module
 
     spec = Spec(id="conformance/widget-py", migrations=root / "migrations", contracts=root / "contracts", create=create)
-    rt = Runtime(spec, ident.env(PG_POOL_MAX="4", PG_POOL_MIN_IDLE="0", **env), Shared.standalone(spec_id=spec.id),
+    rt = Runtime(spec, ident.env(PG_POOL_MAX="4", **env), Shared.standalone(spec_id=spec.id),
                  log_stream=io.StringIO())
     return rt, JobsRuntime(rt, module, lease_ttl=1.5)
 

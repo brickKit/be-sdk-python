@@ -66,17 +66,21 @@ class Platform:
             trace.set_tracer_provider(self.fallback)
             _global_set = True
 
-    def _provider(self, service: str, version: str) -> TracerProvider:
-        attrs = {"service.name": service, "service.instance.id": os.environ.get("HOSTNAME") or socket.gethostname()}
+    def _provider(self, service: str, version: str, environment: str = "") -> TracerProvider:
+        attrs = {"service.name": service, "service.instance.id": os.environ.get("HOSTNAME") or socket.gethostname(),
+                 "service.namespace": service.split("/", 1)[0]}
         if version:
             attrs["service.version"] = version
+        if environment:
+            attrs["deployment.environment.name"] = environment  # DEPLOY_ENV (P18.1)
         tp = TracerProvider(resource=Resource.create(attrs))
         if self.exporter is not None:
             tp.add_span_processor(BatchSpanProcessor(_SharedExporter(self.exporter)))
         return tp
 
-    def member(self, component_id: str, version: str, registry: CollectorRegistry) -> "MemberTelemetry":
-        return MemberTelemetry(self, component_id, version, registry)
+    def member(self, component_id: str, version: str, registry: CollectorRegistry,
+               environment: str = "dev") -> "MemberTelemetry":
+        return MemberTelemetry(self, component_id, version, registry, environment)
 
     def shutdown(self) -> None:
         """After every member stopped: flush the fallback and close the real exporter."""
@@ -107,9 +111,10 @@ class _MemberReader(PrometheusMetricReader):
 class MemberTelemetry:
     """A member's own tracer provider and meter provider (P19.4)."""
 
-    def __init__(self, platform: Platform, component_id: str, version: str, registry: CollectorRegistry):
+    def __init__(self, platform: Platform, component_id: str, version: str, registry: CollectorRegistry,
+                 environment: str = "dev"):
         self.platform = platform
-        self.tracer_provider = platform._provider(component_id, version)
+        self.tracer_provider = platform._provider(component_id, version, environment)
         self.tracer = self.tracer_provider.get_tracer("besdk")
         reader = _MemberReader(registry)
         self.meter_provider = MeterProvider(metric_readers=[reader],

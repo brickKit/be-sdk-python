@@ -73,7 +73,6 @@ DB_PROPS = {
     "PG_PASSWORD_FILE": {"type": "string", "secret": True, "mount": "file"},
     "PG_OWNER_USER": {"type": "string"}, "PG_OWNER_PASSWORD_FILE": {"type": "string", "secret": True, "mount": "file"},
     "PG_SCHEMA": {"type": "string"}, "PG_POOL_MAX": {"type": "integer", "default": 10},
-    "PG_POOL_MIN_IDLE": {"type": "integer", "default": 2},
     "PG_POOL_ACQUIRE_TIMEOUT": {"type": "string", "default": "5s"},
     "PG_CONN_MAX_LIFETIME": {"type": "string", "default": "30m"},
     "PG_CONN_MAX_IDLE_TIME": {"type": "string", "default": "5m"},

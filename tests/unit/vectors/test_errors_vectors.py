@@ -48,15 +48,18 @@ def test_sqlstate_classify(case):
         if out.retry:
             return {"action": "retry", "base_delay_ms": out.base_delay_ms}
         err = out.error
-        return {"action": "fail", "code": err.code.name, "reason": err.reason, "domain": err.domain,
-                "http": err.http}
+        got = {"action": "fail", "code": err.code.name, "reason": err.reason, "domain": err.domain, "http": err.http}
+        if err.metadata or "metadata" in case.get("expected", {}):
+            got["metadata"] = err.metadata
+        return got
 
     expect(case, run)
 
 
 @pytest.mark.parametrize("case", cases("errors", "levels"))
 def test_log_level(case):
-    expect(case, lambda: {"level": E.log_level(E.Code.parse(case["input"]["code"]))})
+    fn = E.access_log_level if case["op"] == "access_log_level" else E.log_level
+    expect(case, lambda: {"level": fn(E.Code.parse(case["input"]["code"]))})
 
 
 @pytest.mark.parametrize("case", cases("errors", "problem", "problem"))

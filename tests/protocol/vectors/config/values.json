@@ -92,8 +92,8 @@
       }
     },
     {
-      "id": "config.values.empty-string-is-value",
-      "description": "an empty string is a value",
+      "id": "config.values.empty-string-is-absent",
+      "description": "an empty string counts as not set too: the default applies",
       "op": "parse_value",
       "input": {
         "type": "string",
@@ -106,7 +106,40 @@
       ],
       "expected": {
         "set": true,
+        "value": "x"
+      }
+    },
+    {
+      "id": "config.values.empty-string-required",
+      "description": "an empty required string is missing (a missing PG_SCHEMA is never an empty schema name)",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "",
+        "required": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.empty-string-optional",
+      "description": "an empty optional string without a default: not set",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
         "value": ""
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": false
       }
     },
     {

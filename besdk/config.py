@@ -222,8 +222,7 @@ class Config:
         parsed = V.parse_value(spec, raw)
         if not parsed.set:
             return None, parsed
-        empty = raw is None or (raw == "" and (spec.format != "string" or spec.secret))
-        return (spec.default if empty else raw), parsed
+        return (spec.default if raw in (None, "") else raw), parsed
 
     @staticmethod
     def _check_endpoints(env: Mapping[str, str], manifest: Manifest) -> list[ProtocolError]:

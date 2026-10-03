@@ -133,7 +133,8 @@ class Runtime:
                                          stream=log_stream)
         self.registry = metrics.ComponentRegistry(self.id)
         self.metrics = metrics.BeMetrics(self.registry)
-        self.telemetry = shared.platform.member(self.id, self.version, self.registry)
+        self.telemetry = shared.platform.member(self.id, self.version, self.registry,
+                                                environment=self._proto("DEPLOY_ENV", "dev"))
         self.tracer, self.meter = self.telemetry.tracer, self.telemetry.meter
         self.error_domain = spec.error_domain or self.id
         self.catalog = errors.Catalog.with_file(Path(spec.contracts) / "errors.yaml", self.error_domain)
