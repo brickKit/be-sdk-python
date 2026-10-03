@@ -150,6 +150,9 @@ class Runtime:
         self._store: Any = None
         self._outbound: Any = None
         self.events: Any = None  # besdk.events.runtime.EventsRuntime
+        from besdk.auth import resources
+
+        self.resources = resources.load(spec.manifest_path().parent, self.id)  # P6.10, P6.12
         self._wire_secrets()
         if self._declared("AUTHZ_URL") and self._declared("IAM_URL"):
             shared.ensure_auth(self.config, self.logger)
@@ -179,7 +182,7 @@ class Runtime:
     def authorizer(self) -> Authorizer:
         if self.shared.verifier is None or self.shared.bundle_source is None:
             raise errors.internal("protected route without AUTHZ_URL / IAM_URL in configSchema")
-        return Authorizer(self.shared.verifier, self.shared.bundle_source)
+        return Authorizer(self.shared.verifier, self.shared.bundle_source, self)
 
     def store(self) -> Any:
         """The database store bound to this member's identity (P10); no PG_SCHEMA → error."""

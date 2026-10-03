@@ -113,3 +113,17 @@ def test_pg14_floor(tmp_path, pg14, which):
     ident = Identity(pg14, tmp_path)
     migrator(component_dir(tmp_path), ident).up()
     assert "besdk_outbox" in tables(ident)
+
+
+def test_authz_projection_tables_only_with_resources(tmp_path, ident):
+    """ddl/07 only in schemas whose component owns resource types (stage-B ruling, CP-DB-04)."""
+    root = component_dir(tmp_path)
+    migrator(root, ident).up()
+    assert "besdk_authz_acl" not in tables(ident)
+    (root / "assembly.yaml").write_text(
+        "resources:\n  - {type: conformance.widget.widget, view_key: conformance.widget.view, relations: {}, "
+        "derivation: direct, dimensions: [owner]}\n")
+    m = migrator(root, ident)
+    m.up()
+    assert {"besdk_authz_acl", "besdk_authz_cursor"} <= set(tables(ident))
+    assert "besdk-0001_authz" in m.applied()

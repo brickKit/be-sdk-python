@@ -60,7 +60,8 @@ class BeMiddleware:
                 if message["type"] == "http.response.start":
                     sent["status"] = message["status"]
                     message.setdefault("headers", [])
-                    message["headers"] = [*message["headers"], (b"x-request-id", req["request_id"].encode())]
+                    extra = [(k.lower().encode(), v.encode()) for k, v in (req.get("headers") or {}).items()]
+                    message["headers"] = [*message["headers"], (b"x-request-id", req["request_id"].encode()), *extra]
                 await send(message)
 
             err: errors.Error | None = None

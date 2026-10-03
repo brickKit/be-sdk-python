@@ -224,9 +224,9 @@ async def _db_ready(rt: Runtime, stop: asyncio.Event, fatal: list[str]) -> None:
 
 async def _migration_state(rt: Runtime) -> tuple[list[str], list[str]]:
     """(missing in the schema, applied but unknown to this image)."""
-    from besdk.migrate import PLATFORM_IDS, PLATFORM_VERSION, component_ids
+    from besdk.migrate import AUTHZ_ID, PLATFORM_IDS, component_ids, platform_ids
 
-    mine = component_ids(Path(rt.spec.migrations)) + [PLATFORM_IDS[PLATFORM_VERSION]]
+    mine = component_ids(Path(rt.spec.migrations)) + platform_ids(Path(rt.spec.migrations).parent)
 
     async def read(tx):
         if not await tx.fetchval("SELECT to_regclass('_yoyo_migration') IS NOT NULL"):
@@ -236,7 +236,7 @@ async def _migration_state(rt: Runtime) -> tuple[list[str], list[str]]:
     done = await rt.store().tx(read)
     behind = [i for i in mine if i not in done]
     newer = [i for i in done if i not in mine and not i.startswith("besdk-")]
-    newer += [i for i in done if i.startswith("besdk-") and i not in PLATFORM_IDS.values()]
+    newer += [i for i in done if i.startswith("besdk-") and i not in (*PLATFORM_IDS.values(), AUTHZ_ID)]
     return behind, newer
 
 

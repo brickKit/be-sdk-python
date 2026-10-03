@@ -23,6 +23,8 @@ from besdk.config import Config
 
 PLATFORM_VERSION = 1
 PLATFORM_IDS = {1: "besdk-0001_platform"}
+AUTHZ_ID = "besdk-0001_authz"  # ddl/07, only for a component that declares resources (CP-DB-04)
+AUTHZ_DDL = "07-authz-projection.sql"
 WINDOW_AHEAD = 2  # weeks of besdk_outbox kept ready beyond the current one (P16.6)
 LOCK_RETRIES = 3
 _COMPONENT_FILE = re.compile(r"(?!besdk-)([0-9]+)_[A-Za-z0-9_]+\.sql")
@@ -46,7 +48,19 @@ def image_component_version(directory: Path) -> str | None:
 
 def _platform_sql() -> str:
     ddl = resources.files("besdk").joinpath("_protocol/ddl")
-    return "\n".join(ddl.joinpath(n).read_text() for n in sorted(x.name for x in ddl.iterdir() if x.name.endswith(".sql")))
+    names = sorted(x.name for x in ddl.iterdir() if x.name.endswith(".sql") and x.name != AUTHZ_DDL)
+    return "\n".join(ddl.joinpath(n).read_text() for n in names)
+
+
+def declares_resources(component_root: Path) -> bool:
+    from besdk.auth.resources import assembly
+
+    return bool(assembly(component_root).get("resources"))
+
+
+def platform_ids(component_root: Path) -> list[str]:
+    """The platform migrations this component gets: the platform, plus the projection with resources."""
+    return [PLATFORM_IDS[PLATFORM_VERSION]] + ([AUTHZ_ID] if declares_resources(component_root) else [])
 
 
 def _stage(directory: Path, into: Path) -> None:
@@ -57,6 +71,9 @@ def _stage(directory: Path, into: Path) -> None:
             text = "-- transactional: false\n" + text
         (into / p.name).write_text(text)
     (into / f"{PLATFORM_IDS[1]}.sql").write_text(_platform_sql())
+    if declares_resources(Path(directory).parent):
+        ddl = resources.files("besdk").joinpath("_protocol/ddl")
+        (into / f"{AUTHZ_ID}.sql").write_text(ddl.joinpath(AUTHZ_DDL).read_text())
 
 
 def outbox_partition_name(d: date) -> str:
