@@ -25,9 +25,29 @@ PLATFORM_VERSION = 1
 PLATFORM_IDS = {1: "besdk-0001_platform"}
 AUTHZ_ID = "besdk-0001_authz"  # ddl/07, only for a component that declares resources (CP-DB-04)
 AUTHZ_DDL = "07-authz-projection.sql"
-WINDOW_AHEAD = 2  # weeks of besdk_outbox kept ready beyond the current one (P16.6)
 LOCK_RETRIES = 3
 _COMPONENT_FILE = re.compile(r"(?!besdk-)([0-9]+)_[A-Za-z0-9_]+\.sql")
+_CONTRACT = re.compile(r"--\s*be:contract\s+after=(\S+)")
+
+
+class ContractBlocked(Exception):
+    """P11.4: a contract step waits for older versions to disconnect; the migration step exits 1."""
+
+
+def semver(v: str) -> tuple[int, ...]:
+    core = re.split(r"[-+]", v, maxsplit=1)[0]
+    return tuple(int(x) if x.isdigit() else 0 for x in core.split("."))
+
+
+def contract_after(path: Path) -> str | None:
+    """``<version>`` of a ``-- be:contract after=<version>`` header line, else None."""
+    for line in path.read_text().splitlines():
+        if line.strip() and not line.startswith("--"):
+            return None
+        m = _CONTRACT.match(line.strip())
+        if m:
+            return m.group(1)
+    return None
 
 
 def component_files(directory: Path) -> list[Path]:
@@ -82,10 +102,6 @@ def outbox_partition_name(d: date) -> str:
     return f"besdk_outbox_{y}w{w:02d}"
 
 
-def iso_week_start(d: date) -> date:
-    return d - timedelta(days=d.isoweekday() - 1)
-
-
 class Migrator:
     def __init__(self, config: Config, directory: Path, component_id: str, logger: logging.Logger):
         self.config, self.directory, self.component_id, self.logger = config, Path(directory), component_id, logger
@@ -127,7 +143,7 @@ class Migrator:
             for attempt in range(1, LOCK_RETRIES + 2):
                 try:
                     with backend.lock(timeout=900):
-                        backend.apply_migrations(backend.to_apply(ms))
+                        self._apply_gated(backend, backend.to_apply(ms))
                     break
                 except Exception as e:  # noqa: BLE001
                     if _sqlstate(e) != "55P03" or attempt > LOCK_RETRIES:
@@ -139,17 +155,60 @@ class Migrator:
         self.logger.info("migrations_applied", extra={"component": image_component_version(self.directory) or "",
                                                       "platform": PLATFORM_VERSION})
 
+    def _apply_gated(self, backend, todo) -> None:
+        """Apply in order; stop before a contract step while an older version is still connected (P11.4)."""
+        for i, m in enumerate(todo):
+            after = contract_after(Path(m.path)) if getattr(m, "path", None) else None
+            if after is None:
+                continue
+            blocking = self._older_sessions(backend, after)
+            if blocking:
+                backend.apply_migrations(type(todo)(list(todo)[:i]))
+                detail = ", ".join(f"{v} ({n} sessions)" for v, n in blocking)
+                self.logger.error("contract_step_blocked", extra={"migration": m.id, "after": after,
+                                                                  "blocking": detail})
+                raise ContractBlocked(f"{m.id} waits for versions <= {after} to disconnect: {detail}")
+        backend.apply_migrations(todo)
+
+    def _older_sessions(self, backend, after: str) -> list[tuple[str, int]]:
+        prefix = self.component_id + "@"
+        rows = backend.execute(
+            "SELECT application_name, count(*) FROM pg_stat_activity WHERE left(application_name, :n) = :p "
+            "GROUP BY 1", {"n": len(prefix), "p": prefix}).fetchall()
+        out = [(name[len(prefix):], n) for name, n in rows]
+        return sorted((v, n) for v, n in out if semver(v) <= semver(after))
+
+    def _declared(self, backend) -> "Declaration":
+        """lifecycle.yaml loads, keeps its invariants and declares every table of the schema (P16.1)."""
+        from besdk.lifecycle.decl import Declaration, LifecycleInvalid
+
+        decl = Declaration.load(self.directory)
+        rows = backend.execute(
+            "SELECT c.relname FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace "
+            "AND c.relkind IN ('r', 'p') AND NOT c.relispartition AND left(c.relname, 6) <> 'besdk_' "
+            "AND left(c.relname, 6) <> '_yoyo_' AND c.relname <> 'yoyo_lock'").fetchall()
+        missing = sorted(r[0] for r in rows if r[0] not in decl.tables)
+        if missing:
+            raise LifecycleInvalid(f"lifecycle.yaml does not declare: {', '.join(missing)}")
+        return decl
+
     def _after(self, backend) -> None:
-        """The platform version row and the current window of every platform partitioned table."""
+        """The platform version row and the current window of every partitioned table (P16.6, P16.10)."""
+        from besdk.lifecycle.decl import units
+        from besdk.lifecycle.engine import OUTBOX_AHEAD
+
+        decl = self._declared(backend)
         backend.execute("INSERT INTO besdk_platform_version (component, version) VALUES (:c, :v) "
                         "ON CONFLICT (component) DO UPDATE SET version = EXCLUDED.version, applied_at = now()",
                         {"c": self.component_id, "v": PLATFORM_VERSION})
-        start = iso_week_start(datetime.now(timezone.utc).date())
-        for i in range(WINDOW_AHEAD + 1):
-            lo = start + timedelta(weeks=i)
-            backend.execute("SELECT besdk_ensure_range_partition('besdk_outbox', :n, :lo, :hi)",
-                            {"n": outbox_partition_name(lo), "lo": f"{lo}T00:00:00Z",
-                             "hi": f"{lo + timedelta(weeks=1)}T00:00:00Z"})
+        now = datetime.now(timezone.utc)
+        window = [("besdk_outbox", u) for u in units("besdk_outbox", "week", now, ahead=OUTBOX_AHEAD)]
+        for name in decl.partitioned():
+            t = decl.tables[name]
+            window += [(name, u) for u in units(name, t.grain, now, ahead=t.ahead)]
+        for parent, (n, lo, hi) in window:
+            backend.execute("SELECT besdk_ensure_range_partition(:p, :n, :lo, :hi)",
+                            {"p": parent, "n": n, "lo": lo.isoformat(), "hi": hi.isoformat()})
         backend.commit()
 
     def _log_blockers(self, backend) -> None:

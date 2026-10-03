@@ -159,6 +159,10 @@ def build_app(rt: "Runtime", module: "Module") -> FastAPI:
         module.http(router)
     if rt.jobs is not None and rt.shared.verifier is not None:
         _mount_ops(router, rt)
+    if "PG_SCHEMA" in rt.config.declared() and rt.shared.verifier is not None:
+        from besdk.lifecycle import contract as lifecycle_contract
+
+        lifecycle_contract.mount(router, rt)
     if rt.resources and rt.shared.verifier is not None:
         from besdk.auth import contract
 

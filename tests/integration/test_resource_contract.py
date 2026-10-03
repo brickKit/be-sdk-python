@@ -183,3 +183,27 @@ async def test_consistency_token(env):
     r = await c.post(f"{B}/_authz/check", json={"checks": [{"key": VIEW, "type": T, "id": "theirs"}]},
                      headers={**h(iam, ["rep"]), "X-Authz-Revision": "99"})
     assert r.headers["x-authz-consistency"] == "stale", rt.logger.handlers[0].stream.getvalue()[-2500:]
+
+
+async def test_lifecycle_contract_is_mounted(env, ident):
+    """P16.4, P16.8: every _lifecycle endpoint is mounted with its key; units and holds answer from the
+    tables, the rest 501 CAPABILITY_UNAVAILABLE until its adapter exists."""
+    rt, c, iam, bundle, *_ = env
+    bundle["roles"]["lc"] = ["conformance.widget-py.lifecycle.read", "conformance.widget-py.lifecycle.admin",
+                             "conformance.widget-py.lifecycle.thaw"]
+    await rt.shared.bundle_source.fetch()
+    ident.sql(f"INSERT INTO \"{ident.schema}\".besdk_lifecycle_units (table_name, unit_key, state) "
+              f"VALUES ('widgets', 'widgets', 'ACTIVE')")
+    r = await c.get(f"{B}/_lifecycle/units", headers=h(iam, ["rep"]))
+    assert (r.status_code, r.json()["reason"]) == (403, "MISSING_PERMISSION")
+    r = await c.get(f"{B}/_lifecycle/units", headers=h(iam, ["lc"]))
+    assert r.status_code == 200 and r.json()["units"][0]["unit_key"] == "widgets"
+    assert (await c.get(f"{B}/_lifecycle/holds", headers=h(iam, ["lc"]))).json() == {"holds": []}
+    for m, path in (("post", "/_lifecycle/units/widgets/widgets:thaw"), ("get", "/_lifecycle/verify"),
+                    ("post", "/_lifecycle/exports"), ("get", "/_lifecycle/exports/j1"), ("post", "/_lifecycle/holds"),
+                    ("delete", "/_lifecycle/holds/h1"), ("post", "/_lifecycle/erasures"),
+                    ("get", "/_lifecycle/erasures/e1"), ("get", "/_lifecycle/destructions"),
+                    ("post", "/_lifecycle/destructions/d1:approve")):
+        r = await getattr(c, m)(f"{B}{path}", headers=h(iam, ["lc"]))
+        assert (r.status_code, r.json()["reason"]) == (501, "CAPABILITY_UNAVAILABLE"), path
+        assert r.json()["metadata"]["capability"]

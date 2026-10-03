@@ -48,10 +48,15 @@ def _jobs(rt: Runtime, module: Module, **kw: Any) -> Any:
     """The member's job plan; an invalid declaration or JOBS_OVERRIDES is a configuration error (78)."""
     from besdk.jobs.runner import JobsRuntime
 
+    from besdk.lifecycle.decl import LifecycleInvalid
+
     try:
         rt.jobs = JobsRuntime(rt, module, **kw)
     except JobsConfigError as e:
         rt.logger.error("config_invalid", extra={"key": "JOBS_OVERRIDES", "reason": "CONFIG_INVALID", "error": str(e)})
+        return None
+    except LifecycleInvalid as e:  # P16.1: fatal, names the table
+        rt.logger.error("lifecycle_invalid", extra={"error": str(e)})
         return None
     return rt.jobs
 

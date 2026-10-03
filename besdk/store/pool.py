@@ -7,7 +7,10 @@ new connection, so a rotated password applies to the connections opened after th
 time zone is UTC (a start-up parameter, never a ``SET``). The prepared-statement cache stays on: every
 statement carries its member's ``/* be:<schema> */`` prefix (repro r1-04), and the cache grows with the
 number of members. The pool keeps no idle minimum (``PG_POOL_MIN_IDLE`` is retired in be-protocol rc.2):
-connections open on demand and close after ``PG_CONN_MAX_IDLE_TIME``.
+connections open on demand and close after ``PG_CONN_MAX_IDLE_TIME``. Sessions are named
+``<component ID>@<version>`` at connect (P10.2), and one idle **presence session** of that name stays open while
+the pool is open, outside the budget and used for nothing else, so a contract migration sees this version
+(P10.5, P11.4).
 """
 
 from __future__ import annotations
@@ -24,12 +27,14 @@ CACHE_PER_MEMBER = 100
 class PhysicalPool:
     def __init__(self, *, host: str, port: int, database: str, user: str, password: Callable[[], str],
                  max_size: int, min_size: int = 0, members: int = 1, max_lifetime: float = 1800.0,
-                 max_idle: float = 300.0):
+                 max_idle: float = 300.0, application_name: str = "besdk"):
         self.kw = dict(host=host, port=port, database=database, user=user, password=password,
                        max_size=max_size, min_size=min(min_size, max_size),
                        max_inactive_connection_lifetime=max_idle,
                        statement_cache_size=CACHE_PER_MEMBER * max(1, members),
-                       server_settings={"TimeZone": "UTC", "application_name": "besdk"})
+                       server_settings={"TimeZone": "UTC", "application_name": application_name})
+        self.application_name = application_name
+        self._presence: asyncpg.Connection | None = None
         self.max_lifetime = max_lifetime
         self.max_size = max_size
         self.pool: asyncpg.Pool | None = None
@@ -45,6 +50,15 @@ class PhysicalPool:
             self.pool = await asyncpg.create_pool(init=self._init, **self.kw)
             async with self.pool.acquire() as c:
                 self.server_version = int(await c.fetchval("SELECT current_setting('server_version_num')"))
+            await self.presence(self.application_name)
+
+    async def presence(self, name: str) -> None:
+        """Open the idle session named ``name`` (a shell opens one per member: ``<member ID>@<version>``)."""
+        if self._presence is None or self._presence.is_closed():
+            kw = {k: self.kw[k] for k in ("host", "port", "database", "user")}
+            pw = self.kw["password"]
+            self._presence = await asyncpg.connect(**kw, password=pw() if callable(pw) else pw,
+                                                   server_settings={"TimeZone": "UTC", "application_name": name})
 
     @property
     def ready(self) -> bool:
@@ -78,6 +92,9 @@ class PhysicalPool:
             yield c
 
     async def close(self) -> None:
+        if self._presence is not None:
+            await self._presence.close()
+            self._presence = None
         if self.pool is not None:
             await self.pool.close()
             self.pool = None

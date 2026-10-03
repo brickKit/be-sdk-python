@@ -3,6 +3,7 @@
 the project's database initialisation creates them (be-protocol P10, roles table)."""
 
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -84,7 +85,7 @@ DB_REQUIRED = ["PG_HOST", "PG_DATABASE", "PG_USER", "PG_PASSWORD_FILE", "PG_OWNE
 
 
 def component_dir(tmp: Path, component_id: str = "conformance/widget-py", migrations: dict | None = None,
-                  props: dict | None = None, extra: dict | None = None) -> Path:
+                  props: dict | None = None, extra: dict | None = None, lifecycle: str | None = None) -> Path:
     """A component directory: component.yaml, contracts/, migrations/ (with lifecycle.yaml)."""
     root = tmp / component_id.replace("/", "_")
     (root / "contracts" / "events").mkdir(parents=True, exist_ok=True)
@@ -94,9 +95,13 @@ def component_dir(tmp: Path, component_id: str = "conformance/widget-py", migrat
            "deployment": {"port": 0}}
     doc.update(extra or {})
     (root / "component.yaml").write_text(yaml.safe_dump(doc))
-    (root / "migrations" / "lifecycle.yaml").write_text("version: 1\ntables: {}\n")
-    for name, sql in (migrations or {"0001_widget": "CREATE TABLE widget (id uuid PRIMARY KEY, name text NOT NULL);"}).items():
+    migrations = migrations or {"0001_widget": "CREATE TABLE widget (id uuid PRIMARY KEY, name text NOT NULL);"}
+    for name, sql in migrations.items():
         (root / "migrations" / f"{name}.sql").write_text(sql)
+    if lifecycle is None:  # every table the migrations create, as master data (P16.1)
+        names = sorted(set(re.findall(r"CREATE TABLE (?:IF NOT EXISTS )?([a-z_][a-z0-9_]*)", " ".join(migrations.values()))))
+        lifecycle = "lifecycle: v1\ntables:\n" + "".join(f"  {n}: {{class: master}}\n" for n in names)
+    (root / "migrations" / "lifecycle.yaml").write_text(lifecycle)
     return root
 
 

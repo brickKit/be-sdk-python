@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from zoneinfo import ZoneInfo
@@ -53,6 +54,10 @@ class JobsRuntime:
             from besdk.jobs.cleanup import cleanup
 
             rt.store().jobs = self  # tx.enqueue finds the worker kinds here
+            from besdk.lifecycle.decl import Declaration
+            from besdk.lifecycle.engine import Engine
+
+            self.bind("be.lifecycle", Engine(rt, Declaration.load(Path(rt.spec.migrations))).run)
             if rt.projection is not None:
                 self.bind("be.authz.changes", rt.projection.pull)  # P6.12: every 5 s, singleton
             self.bind("be.cleanup", lambda: cleanup(rt.store()))

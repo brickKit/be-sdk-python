@@ -47,12 +47,7 @@ class DBIdentity:
     schema: str
     member: str
     owner: str = ""
-    version: str = ""
 
-    @property
-    def application_name(self) -> str:
-        """``<member ID>@<version>`` (P10.2, rc.2): each member's sessions are countable on their own."""
-        return f"{self.member}@{self.version}" if self.version else self.member
 
 
 def _ms(seconds: float) -> str:
@@ -105,9 +100,10 @@ class Store:
                                 database=c.require("PG_DATABASE"), user=c.require("PG_USER"),
                                 password=secret.current, max_size=c.int("PG_POOL_MAX", 10),
                                 max_lifetime=c.duration("PG_CONN_MAX_LIFETIME", 1800.0),
+                                application_name=f"{rt.id}@{rt.version}",
                                 max_idle=c.duration("PG_CONN_MAX_IDLE_TIME", 300.0))
             rt.shared.pool = pool
-        ident = DBIdentity(c.require("PG_USER"), c.require("PG_SCHEMA"), rt.id, c.require("PG_OWNER_USER"), rt.version)
+        ident = DBIdentity(c.require("PG_USER"), c.require("PG_SCHEMA"), rt.id, c.require("PG_OWNER_USER"))
         return cls(pool, ident, budget=c.int("PG_POOL_MAX", 10), acquire_timeout=c.duration("PG_POOL_ACQUIRE_TIMEOUT", 5.0),
                    logger=rt.logger, metrics=rt.metrics)
 
@@ -216,7 +212,7 @@ class Store:
 
     async def _begin(self, conn: Any, statement: float, lock: float, idle: float, remaining: float | None) -> None:
         i = self.identity
-        args = [i.role, _quote_ident(i.schema), i.application_name, _ms(statement), _ms(lock), _ms(idle)]
+        args = [i.role, _quote_ident(i.schema), i.member, _ms(statement), _ms(lock), _ms(idle)]
         if self.pool.server_version >= 170000:
             args.append(_ms(remaining) if remaining is not None else "0")
             await conn.execute(f"/* be:{i.schema} */ " + _SET17, *args)

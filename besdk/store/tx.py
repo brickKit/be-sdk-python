@@ -59,6 +59,13 @@ class Tx:
 
         return await enqueue(self, kind, args, run_at=run_at, unique_key=unique_key)
 
+    async def seal(self, table: str, unit: str = "") -> None:
+        """Seal one unit (a partition name, or the whole table): UPDATE / DELETE / TRUNCATE answer UNIT_SEALED."""
+        from besdk.idem import caller_of
+        from besdk.lifecycle.engine import seal
+
+        await seal(self, table, unit, caller_of())
+
     async def publish(self, ev: "Event") -> None:
         """Write the event to the outbox in this transaction (P12.1); the pump publishes it after commit."""
         from besdk.events.outbox import write

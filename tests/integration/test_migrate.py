@@ -4,6 +4,7 @@ import io
 import threading
 from datetime import datetime, timezone
 
+import psycopg
 import pytest
 
 from besdk import logs
@@ -127,3 +128,28 @@ def test_authz_projection_tables_only_with_resources(tmp_path, ident):
     m.up()
     assert {"besdk_authz_acl", "besdk_authz_cursor"} <= set(tables(ident))
     assert "besdk-0001_authz" in m.applied()
+
+
+def test_contract_step_waits_for_older_versions(tmp_path, ident):
+    """P11.4: `-- be:contract after=<v>` runs only once no session <id>@<w> with w <= v is connected; the
+    files before it stay applied and the step fails with exit 1 (ContractBlocked)."""
+    from besdk.migrate import ContractBlocked
+
+    root = component_dir(tmp_path, migrations={
+        "0001_widget": "CREATE TABLE widget (id uuid PRIMARY KEY, legacy text);",
+        "0002_note": "ALTER TABLE widget ADD COLUMN note text;",
+        "0003_drop_legacy": "-- be:contract after=1.4.0\nALTER TABLE widget DROP COLUMN legacy;"})
+    host, port = ident.hostport.rsplit(":", 1)
+
+    def session(version):
+        return psycopg.connect(f"postgresql://postgres:x@{host}:{port}/postgres",
+                               application_name=f"conformance/widget-py@{version}")
+
+    with session("1.10.0"), session("1.4.0"):
+        with pytest.raises(ContractBlocked) as ei:
+            migrator(root, ident).up()
+        assert "0003_drop_legacy" in str(ei.value) and "1.4.0" in str(ei.value) and "1.10.0" not in str(ei.value)
+        assert migrator(root, ident).status()["pending"] == ["0003_drop_legacy"]
+    with session("1.5.0"):
+        migrator(root, ident).up()  # only newer versions remain
+    assert migrator(root, ident).status()["pending"] == []

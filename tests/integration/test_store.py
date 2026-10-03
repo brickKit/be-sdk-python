@@ -44,7 +44,7 @@ async def test_every_transaction_sets_identity_and_timeouts(rt, ident):
             "current_setting('idle_in_transaction_session_timeout') AS it, current_setting('TimeZone') AS tz")
 
     row = await rt.store().tx(body)
-    assert (row["u"], row["s"], row["app"]) == (ident.user, ident.schema, "conformance/widget-py@1.0.0")  # rc.2: <id>@<version>
+    assert (row["u"], row["s"], row["app"]) == (ident.user, ident.schema, "conformance/widget-py")
     assert (row["st"], row["lt"], row["it"], row["tz"]) == ("5s", "2s", "30s", "UTC")
     async with rt.store().pool.raw() as conn:  # the pooled connection is clean afterwards
         assert await conn.fetchval("SHOW search_path") == '"$user", public'
@@ -196,3 +196,13 @@ async def test_pg14_floor(tmp_path, pg14):
     assert await r.store().probe() == []
     assert await r.store().tx(lambda tx: tx.fetchval("SELECT current_schema()")) == ident.schema
     await r.store().close()
+
+
+async def test_versioned_presence_session(rt, ident):
+    """P10.2 / P10.5 (rc.2): sessions are named <id>@<version> at connect; one stays open while serving,
+    even after every idle pooled connection was closed, so a contract migration can see this version."""
+    await rt.store().tx(lambda tx: tx.fetchval("SELECT 1"))
+    await rt.store().pool.expire_all()
+    names = [r[0] for r in ident.sql("SELECT application_name FROM pg_stat_activity WHERE usename = "
+                                     f"'{ident.user}'")]
+    assert "conformance/widget-py@1.0.0" in names
