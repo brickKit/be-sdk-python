@@ -169,6 +169,29 @@ async def test_metrics_use_route_template(setup):
             'route="/conformance/widget-py/fail",status_code="400"} 1.0') in text
 
 
+async def test_stale_token_header(setup):
+    import time
+    rt, fakes, _, c = setup
+    fakes.bundle = {**fakes.bundle, "stale_since": {"u_me": int(time.time())}}
+    await rt.shared.bundle_source.fetch()
+    tok = fakes.iam.token(roles=["rep"], iat=int(time.time()) - 60)
+    r = await c.get(f"{BASE}/widgets/w1", headers={"Authorization": f"Bearer {tok}"})
+    assert r.status_code == 401 and r.json()["reason"] == "TOKEN_STALE"
+    assert r.headers["WWW-Authenticate"] == 'Bearer error="token_stale"'
+
+
+async def test_authz_metrics(setup):
+    rt, fakes, _, c = setup
+    await rt.shared.bundle_source.fetch()
+    tok = fakes.iam.token(roles=["rep"])
+    await c.post(f"{BASE}/widgets/w1/approve", headers={"Authorization": f"Bearer {tok}"})
+    await c.get(f"{BASE}/widgets/w1")
+    text = (await c.get("/metrics")).text
+    assert 'be_authz_denied_total{component="conformance/widget-py",reason="MISSING_PERMISSION"} 1.0' in text
+    assert 'be_authz_denied_total{component="conformance/widget-py",reason="TOKEN_INVALID"} 1.0' in text
+    assert 'be_authz_bundle_age_seconds{component="conformance/widget-py"}' in text
+
+
 async def test_be_info(setup):
     _, _, _, c = setup
     info = (await c.get("/_be/info")).json()

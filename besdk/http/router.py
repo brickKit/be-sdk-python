@@ -96,6 +96,17 @@ def _limit_receive(request: Request, limit: int) -> None:
     request._receive = counted
 
 
+async def _decide(rt: Any, guard: PermKey, authorization: str | None) -> Any:
+    """The decision chain (P6.2); refusals are counted in ``be_authz_denied_total{reason}``."""
+    if guard == PUBLIC:
+        return None
+    try:
+        return await rt.authorizer().decide(guard, authorization)
+    except Error as e:
+        rt.metrics.authz_denied.labels(reason=e.reason or e.code.name).inc()
+        raise
+
+
 def _meta_of(extra: dict) -> RouteMeta:
     """The route's guard, deadline and body limit, carried in its OpenAPI extensions (P3.13)."""
     return RouteMeta(PermKey(extra.get("x-be-guard", "")), extra.get("x-be-deadline-seconds"),
@@ -120,8 +131,7 @@ class BeRoute(APIRoute):
             deadline = time.monotonic() + seconds
             req["perm"] = "" if meta.guard in (PUBLIC,) else str(meta.guard)
             with context.scope(deadline=deadline, perm=req["perm"], req=req):
-                access = await rt.authorizer().decide(meta.guard, request.headers.get("authorization")) \
-                    if meta.guard != PUBLIC else None
+                access = await _decide(rt, meta.guard, request.headers.get("authorization"))
                 user = access.user if access else None
                 if user:
                     req["sub"] = user.sub

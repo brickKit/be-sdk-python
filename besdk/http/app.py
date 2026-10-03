@@ -149,6 +149,9 @@ def build_app(rt: "Runtime", module: "Module") -> FastAPI:
 
     @app.get("/metrics", include_in_schema=False)
     async def metrics_() -> Response:
+        src = rt.shared.bundle_source
+        if src is not None and src.bundle is not None:
+            rt.metrics.authz_bundle_age.set(src.age())
         return Response(generate_latest(rt.registry), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/_be/info", include_in_schema=False)
