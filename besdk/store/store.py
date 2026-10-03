@@ -69,6 +69,13 @@ def is_lock_timeout(e: BaseException) -> bool:
     return sqlstate_of(e) == "55P03" or (isinstance(e, errors.Error) and e.reason == "LOCK_TIMEOUT")
 
 
+def unavailable(cause: BaseException) -> errors.Error:
+    """The database cannot be reached: 503 DEPENDENCY_UNAVAILABLE, dependency "db" (stage-B ruling)."""
+    err = errors.be_error("DEPENDENCY_UNAVAILABLE", {"dependency": "db"})
+    err.internal_message = f"{type(cause).__name__}: {cause}"
+    return err
+
+
 class Store:
     def __init__(self, pool: PhysicalPool, identity: DBIdentity, *, budget: int, acquire_timeout: float,
                  logger: logging.Logger, metrics: BeMetrics, opener: Callable[[], Awaitable[None]] | None = None):
@@ -133,7 +140,7 @@ class Store:
                     if err.code == errors.Code.INTERNAL:
                         err = errors.internal(e)
                     raise err from e
-                self.metrics.tx_retries.labels(reason=e.sqlstate).inc()
+                self.metrics.tx_retries.labels(sqlstate=e.sqlstate).inc()
                 await asyncio.sleep(out.base_delay_ms / 1000 * (0.5 + random.random()))
                 attempt += 1
 
@@ -157,6 +164,9 @@ class Store:
         except (TimeoutError, asyncio.TimeoutError):
             self._budget.release()
             raise errors.be_error("DB_POOL_EXHAUSTED") from None
+        except (OSError, asyncpg.InterfaceError) as e:
+            self._budget.release()
+            raise unavailable(e) from e
         except BaseException:
             self._budget.release()
             raise
@@ -168,10 +178,10 @@ class Store:
     async def _open_or_fail(self) -> None:
         try:
             await self.pool.open()
-        except (OSError, asyncpg.PostgresError) as e:
+        except (OSError, asyncpg.PostgresError, asyncpg.InterfaceError) as e:
             if sqlstate_of(e) == "53300":
                 raise errors.be_error("DB_TOO_MANY_CONNECTIONS") from e
-            raise errors.internal(e) from e
+            raise unavailable(e) from e
 
     async def _release(self, conn: Any) -> None:
         self._in_use -= 1

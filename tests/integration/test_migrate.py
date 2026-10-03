@@ -48,7 +48,7 @@ def test_outbox_window_accepts_writes_today(tmp_path, ident):
     parts = {r[0] for r in ident.sql(
         f"SELECT c.relname FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid JOIN pg_class p ON p.oid = i.inhparent "
         f"JOIN pg_namespace n ON n.oid = p.relnamespace WHERE n.nspname = '{ident.schema}' AND p.relname = 'besdk_outbox'")}
-    assert f"besdk_outbox_w{iy}_{iw:02d}" in parts and len(parts) == 3
+    assert f"besdk_outbox_{iy}w{iw:02d}" in parts and len(parts) == 3  # stage-B ruling: <isoyear>w<ww>
 
 
 def test_down_and_status(tmp_path, ident):

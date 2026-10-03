@@ -96,6 +96,17 @@ async def test_protected_route_before_bundle_is_503(setup):
     assert r.status_code == 503 and r.json()["reason"] == "AUTHZ_NOT_READY"
 
 
+async def test_before_bundle_token_is_checked_first(setup):
+    """401 before 503 (stage-B ruling): a missing or invalid token is refused before the bundle check."""
+    _, _, _, c = setup
+    for path in ("/widgets/w1", "/me"):
+        r = await c.get(f"{BASE}{path}")
+        assert r.status_code == 401 and r.json()["reason"] == "TOKEN_INVALID"
+        r = await c.get(f"{BASE}{path}", headers={"Authorization": "Bearer not.a.jwt"})
+        assert r.status_code == 401 and r.json()["reason"] == "TOKEN_INVALID"
+    assert (await c.get(f"{BASE}/public")).status_code == 200
+
+
 async def test_guards(setup):
     rt, fakes, log, c = setup
     await rt.shared.bundle_source.fetch()
@@ -157,6 +168,7 @@ async def test_validation_and_unknown_route(setup):
     _, _, _, c = setup
     r = await c.post(f"{BASE}/typed?q=abc")
     assert r.status_code == 400 and r.json()["code"] == "INVALID_ARGUMENT" and r.json()["violations"]
+    assert (r.json()["reason"], r.json()["domain"]) == ("REQUEST_INVALID", "be")
     r = await c.get("/nope")
     assert r.status_code == 404 and (r.json()["reason"], r.json()["domain"]) == ("NOT_FOUND", "be")
 

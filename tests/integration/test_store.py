@@ -68,7 +68,7 @@ async def test_retries_serialization_failures_then_conflict(rt):
         return "ok"
 
     assert await rt.store().tx(flaky) == "ok" and len(attempts) == 3
-    assert 'be_tx_retries_total{component="conformance/widget-py",reason="40001"} 2.0' in generate_latest(
+    assert 'be_tx_retries_total{component="conformance/widget-py",sqlstate="40001"} 2.0' in generate_latest(
         rt.registry).decode()
 
     async def always(tx):

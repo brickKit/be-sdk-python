@@ -115,7 +115,7 @@ class Consumer:
 
     def _inbound(self, headers: dict) -> E.Inbound:
         decl = self.contract.get(self.sub.subject)
-        agg = decl.aggregate_type if decl else headers.get("ce-aggregatetype", "")
+        agg = decl.aggregate_type if decl else (self.sub.aggregate_type or headers.get("ce-aggregatetype", ""))
         return E.Inbound(self.member, self.sub.subject, agg, bool(decl and decl.transaction_document))
 
     async def handle(self, msg: Any) -> None:

@@ -53,6 +53,7 @@ class Subscription:
     backoff: tuple[float, ...] | None = None  # seconds
     start_from: StartFrom = StartFrom.ALL
     concurrency: int = 4
+    aggregate_type: str = ""  # for a subject absent from the local contract; else ce-aggregatetype is used
 
 
 @dataclass(frozen=True)

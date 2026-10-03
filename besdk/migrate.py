@@ -59,6 +59,12 @@ def _stage(directory: Path, into: Path) -> None:
     (into / f"{PLATFORM_IDS[1]}.sql").write_text(_platform_sql())
 
 
+def outbox_partition_name(d: date) -> str:
+    """``besdk_outbox_<isoyear>w<ww>`` for the ISO week containing ``d`` (stage-B ruling, P16)."""
+    y, w, _ = d.isocalendar()
+    return f"besdk_outbox_{y}w{w:02d}"
+
+
 def iso_week_start(d: date) -> date:
     return d - timedelta(days=d.isoweekday() - 1)
 
@@ -124,9 +130,8 @@ class Migrator:
         start = iso_week_start(datetime.now(timezone.utc).date())
         for i in range(WINDOW_AHEAD + 1):
             lo = start + timedelta(weeks=i)
-            y, w, _ = lo.isocalendar()
             backend.execute("SELECT besdk_ensure_range_partition('besdk_outbox', :n, :lo, :hi)",
-                            {"n": f"besdk_outbox_w{y}_{w:02d}", "lo": f"{lo}T00:00:00Z",
+                            {"n": outbox_partition_name(lo), "lo": f"{lo}T00:00:00Z",
                              "hi": f"{lo + timedelta(weeks=1)}T00:00:00Z"})
         backend.commit()
 

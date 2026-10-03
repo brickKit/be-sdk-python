@@ -47,7 +47,7 @@ class BeMetrics:
         self.outbound_inflight = g("be_outbound_inflight", "outbound calls in flight", ("target",))
         self.db_pool_in_use = g("be_db_pool_in_use", "database connections in use by this member")
         self.db_pool_wait = h("be_db_pool_wait_seconds", "time waiting for a database connection")
-        self.tx_retries = c("be_tx_retries", "transaction bodies re-run", ("reason",))
+        self.tx_retries = c("be_tx_retries", "transaction bodies re-run", ("sqlstate",))
         self.db_identity_ok = g("be_db_identity_ok", "1 when the database identity probe passed")
         self.secret_reload_failures = c("be_secret_reload_failures", "secret files that could not be re-read",
                                         ("key",))

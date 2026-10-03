@@ -76,8 +76,7 @@ class Router:
 def _validation_error(e: RequestValidationError) -> Error:
     vs = [Violation(".".join(str(p) for p in err.get("loc", ())), str(err.get("type", "invalid")).upper(),
                     str(err.get("msg", ""))) for err in e.errors()]
-    return Error(Code.INVALID_ARGUMENT, "REQUEST_INVALID", message="the request does not match the contract",
-                 violations=vs)
+    return be_error("REQUEST_INVALID", message="the request does not match the contract", violations=vs)
 
 
 def _limit_receive(request: Request, limit: int) -> None:

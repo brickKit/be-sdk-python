@@ -156,9 +156,25 @@ class Catalog:
         return self._by.get((domain or "", reason or ""))
 
 
+# Reasons ruled into domain `be` after rc.1 (stage-B review: 33 → 35). They are added only while the
+# synced catalogue lacks them, so syncing rc.2 makes this list a no-op; delete it after that sync.
+_PENDING_BE = [
+    {"reason": "REQUEST_INVALID", "code": "INVALID_ARGUMENT", "http": 400, "params": [],
+     "title": {"en": "Invalid request", "zh": "请求不合法"},
+     "message": {"en": "The request does not match the contract.", "zh": "请求和接口约定不符。"}},
+    {"reason": "DEPENDENCY_UNAVAILABLE", "code": "UNAVAILABLE", "http": 503, "params": ["dependency"],
+     "title": {"en": "Dependency unavailable", "zh": "依赖暂不可用"},
+     "message": {"en": "{dependency} cannot be reached right now. Try again shortly.",
+                 "zh": "暂时连不上 {dependency}，请稍后再试。"}},
+]
+
+
 @cache
 def _be_doc() -> dict:
-    return yaml.safe_load(resources.files("besdk").joinpath("_protocol/errors-be.yaml").read_text())
+    doc = yaml.safe_load(resources.files("besdk").joinpath("_protocol/errors-be.yaml").read_text())
+    have = {r["reason"] for r in doc["reasons"]}
+    doc["reasons"] += [r for r in _PENDING_BE if r["reason"] not in have]
+    return doc
 
 
 @cache

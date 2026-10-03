@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from besdk.store.store import Store
     from besdk.store.tx import Tx
 
-SOFT_LIMIT, HARD_LIMIT = 64 * 1024, 1024 * 1024
+PAYLOAD_LIMIT = 64 * 1024  # P12.2: above it the event carries a claim check (stage-B ruling: rejected)
 BATCH = 256
 BUSY, IDLE = 0.2, 2.0
 
@@ -88,10 +88,9 @@ async def write(tx: "Tx", ev: Event) -> None:
         raise errors.internal("SUBJECT_NOT_DECLARED: this member declares no events")
     decl = pub.decl(ev)
     data = json.dumps(ev.payload, ensure_ascii=False, separators=(",", ":"))
-    if len(data.encode()) > HARD_LIMIT:
-        raise errors.internal(f"PAYLOAD_TOO_LARGE: {ev.subject} is above 1 MiB; use a claim check")
-    if len(data.encode()) > SOFT_LIMIT:
-        pub.logger.warning("event_payload_large", extra={"subject": ev.subject, "bytes": len(data.encode())})
+    size = len(data.encode())
+    if size > PAYLOAD_LIMIT:
+        raise errors.internal(f"PAYLOAD_TOO_LARGE: {ev.subject} is {size} bytes, above 64 KiB; use a claim check")
     eid = ids.new_id()
     carrier: dict[str, str] = {}
     pub.propagator.inject(carrier)
