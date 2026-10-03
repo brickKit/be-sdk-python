@@ -37,6 +37,7 @@ class Unit:
     event: HandledEvent | None = None
     job: str = ""
     member: str = ""  # component ID of the member doing the work
+    req: dict | None = None  # mutable facts of the current HTTP request, read by the access log
 
 
 _unit: ContextVar[Unit] = ContextVar("besdk_unit", default=Unit())

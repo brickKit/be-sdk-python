@@ -91,8 +91,11 @@ class _MemberReader(PrometheusMetricReader):
     def __init__(self, registry: CollectorRegistry):
         super().__init__(disable_target_info=True)
         REGISTRY.unregister(self._collector)
-        registry.register(self._collector)
         self._registry = registry
+
+    def attach(self) -> None:
+        """Register in the member's registry once the meter provider owns the reader."""
+        self._registry.register(self._collector)
 
     def shutdown(self, timeout_millis: float = 30_000, **kwargs) -> None:
         try:
@@ -108,8 +111,10 @@ class MemberTelemetry:
         self.platform = platform
         self.tracer_provider = platform._provider(component_id, version)
         self.tracer = self.tracer_provider.get_tracer("besdk")
-        self.meter_provider = MeterProvider(metric_readers=[_MemberReader(registry)],
+        reader = _MemberReader(registry)
+        self.meter_provider = MeterProvider(metric_readers=[reader],
                                             resource=Resource.create({"service.name": component_id}))
+        reader.attach()
         self.meter: Meter = self.meter_provider.get_meter("besdk")
 
     @property
