@@ -1,7 +1,9 @@
 """Reconcilers (be-protocol P14, kind ``reconciler``): candidates from the component's own SQL, each item
 claimed with a lease in ``besdk_reconcile`` (due and not leased), handled outside any transaction, the
 outcome applied in a short transaction. A failure backs off; past ``max_attempts`` the reconciler gives
-up (``give_up`` suspends the item and opens an exception task). Applying or giving up deletes the row."""
+up (``give_up`` suspends the item and opens an exception task). Applying deletes the row (terminal); giving
+up keeps it with ``next_at = infinity``, so a replica with a stale candidate list cannot claim the suspended
+item again."""
 
 from __future__ import annotations
 
@@ -19,8 +21,10 @@ _CLAIM = ("INSERT INTO besdk_reconcile (name, item_id, lease_until) VALUES ($1, 
 _FAIL = ("UPDATE besdk_reconcile SET attempts = attempts + 1, lease_until = NULL, last_error = $3, "
          "next_at = now() + make_interval(secs => $4) WHERE name = $1 AND item_id = $2")
 _DELETE = "DELETE FROM besdk_reconcile WHERE name = $1 AND item_id = $2"
+_SUSPEND = ("UPDATE besdk_reconcile SET attempts = attempts + 1, lease_until = NULL, last_error = $3, "
+            "next_at = 'infinity' WHERE name = $1 AND item_id = $2")
 _AGE = ("SELECT count(*) AS n, coalesce(extract(epoch FROM now() - min(next_at)), 0) AS age "
-        "FROM besdk_reconcile WHERE name = $1 AND attempts > 0")
+        "FROM besdk_reconcile WHERE name = $1 AND attempts > 0 AND next_at < 'infinity'")
 
 
 class ReconcilerLoop:
@@ -46,7 +50,14 @@ class ReconcilerLoop:
 
     async def _item(self, item: Any) -> int:
         r, iid = self.r, self.r.id(item)
-        attempts = await self.store.tx(lambda tx: tx.fetchval(_CLAIM, r.name, iid, r.timeout + LEASE_GRACE))
+        async def claim(tx: Any) -> int | None:
+            n = await tx.fetchval(_CLAIM, r.name, iid, r.timeout + LEASE_GRACE)
+            if n is not None and r.still_due is not None and not await r.still_due(tx, item):
+                await tx.execute(_DELETE, r.name, iid)
+                return None
+            return n
+
+        attempts = await self.store.tx(claim)
         if attempts is None:
             return 0
         try:
@@ -71,7 +82,7 @@ class ReconcilerLoop:
         async def give_up(tx: Any) -> None:
             if r.give_up is not None:
                 await r.give_up(tx, item)
-            await tx.execute(_DELETE, r.name, iid)
+            await tx.execute(_SUSPEND, r.name, iid, text)
 
         await self.store.tx(give_up)
         self.rt.metrics.reconcile_giveups.labels(name=r.name).inc()

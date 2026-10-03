@@ -87,6 +87,7 @@ class Reconciler:
     max_attempts: int = 10
     backoff: tuple[float, ...] = (10, 60, 300, 900, 3600)
     give_up: Callable[[Any, Any], Awaitable[None]] | None = None
+    still_due: Callable[[Any, Any], Awaitable[bool]] | None = None
 
 
 # Runtime-owned jobs (P14.1): bound to their work by the runtime; listed so JOBS_OVERRIDES can name them.

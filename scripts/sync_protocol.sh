@@ -10,6 +10,7 @@
 #   besdk/_protocol/ddl/*.sql             reference DDL = the platform migration (P11.3)
 #   besdk/_protocol/{errors-be,config-keys}.yaml   the `be` reasons (P4) and the key catalogue (P2)
 #   besdk/_protocol/VERSION               the tag the copy came from
+#   besdk/_protocol/authz-provider-v2.binpb  descriptor set of infra.authz.v2 (WriteTuples, P6.10)
 #   tests/protocol/vectors/               be-protocol vectors/ (checked against its SHA256SUMS)
 #   tests/protocol/authz-vectors/         contract-infra-authz vectors/decision (core checks, P6.2)
 set -euo pipefail
@@ -35,6 +36,11 @@ mkdir -p "$D/ddl"
 cp "$TMP"/p/ddl/[0-9]*.sql "$D/ddl/"
 cp "$TMP/p/schemas/errors-be.yaml" "$TMP/p/schemas/config-keys.yaml" "$D/"
 echo "$PROTO_TAG" > "$D/VERSION"
+# the provider contract's descriptor set, loaded into a private pool by besdk.auth.provider (P6.10)
+PY=${PY:-$ROOT/.venv/bin/python}
+INC=$("$PY" -c 'import grpc_tools, os; print(os.path.join(os.path.dirname(grpc_tools.__file__), "_proto"))')
+"$PY" -m grpc_tools.protoc -I "$TMP/a/proto" -I "$INC" --include_imports \
+  --descriptor_set_out="$D/authz-provider-v2.binpb" infra/authz/v2/provider.proto
 
 V="$ROOT/tests/protocol"
 rm -rf "$V/vectors" "$V/authz-vectors"

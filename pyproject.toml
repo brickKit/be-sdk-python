@@ -43,7 +43,7 @@ build-backend = "setuptools.build_meta"
 include = ["besdk*", "be*"]
 
 [tool.setuptools.package-data]
-besdk = ["_protocol/*.yaml", "_protocol/VERSION", "_protocol/ddl/*.sql"]
+besdk = ["_protocol/*.yaml", "_protocol/VERSION", "_protocol/ddl/*.sql", "_protocol/*.binpb"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

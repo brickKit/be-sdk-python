@@ -159,6 +159,10 @@ def build_app(rt: "Runtime", module: "Module") -> FastAPI:
         module.http(router)
     if rt.jobs is not None and rt.shared.verifier is not None:
         _mount_ops(router, rt)
+    if rt.resources and rt.shared.verifier is not None:
+        from besdk.auth import contract
+
+        contract.mount(router, contract.ResourceContract(rt, list(module.sharing)))
     rt.protected_routes = router.protected
     app.include_router(router.api)
 

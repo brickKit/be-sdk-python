@@ -153,6 +153,11 @@ class Runtime:
         from besdk.auth import resources
 
         self.resources = resources.load(spec.manifest_path().parent, self.id)  # P6.10, P6.12
+        self.projection: Any = None  # besdk.auth.projection.Projection: with resources, a database and AUTHZ_URL
+        if self.resources and self._declared("PG_SCHEMA") and self._declared("AUTHZ_URL"):
+            from besdk.auth.projection import Projection
+
+            self.projection = Projection(self)
         self._wire_secrets()
         if self._declared("AUTHZ_URL") and self._declared("IAM_URL"):
             shared.ensure_auth(self.config, self.logger)

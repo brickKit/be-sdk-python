@@ -112,6 +112,22 @@ def _meta_of(extra: dict) -> RouteMeta:
                      extra.get("x-be-max-body-bytes"))
 
 
+CONSISTENCY_BUDGET = 0.3
+
+
+async def _consistency(rt: Any, header: str | None, req: dict) -> None:
+    """P6.11: a request carrying ``X-Authz-Revision: N`` while the projection is behind pulls once within
+    300 ms; still behind, the answer carries ``X-Authz-Consistency: stale``."""
+    proj = getattr(rt, "projection", None)
+    if not header or proj is None or not header.isdigit():
+        return
+    src = rt.shared.bundle_source
+    if src is None or src.bundle is None or not src.bundle.capability("sharing"):
+        return
+    if not await proj.catch_up(int(header), budget=CONSISTENCY_BUDGET):
+        req.setdefault("headers", {})["X-Authz-Consistency"] = "stale"
+
+
 class BeRoute(APIRoute):
     """Runs the decision chain, the route deadline and the body limit around the FastAPI handler."""
 
@@ -135,6 +151,7 @@ class BeRoute(APIRoute):
                 if user:
                     req["sub"] = user.sub
                 token = (request.headers.get("authorization") or "")[7:] if user else ""
+                await _consistency(rt, request.headers.get("x-authz-revision"), req)
                 with context.scope(access=access, sub=user.sub if user else "", act=user.act if user else None,
                                    token=token, authz_revision=request.headers.get("x-authz-revision", "")):
                     try:

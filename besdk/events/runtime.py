@@ -83,9 +83,11 @@ class EventsRuntime:
         for subject in self.module.events.publishes:
             await bus.ensure_stream_for(subject)
         src = rt.shared.bundle_source
-        if src is not None:  # best-effort poke: fetch the bundle at once (P6.1, P12.10)
+        if src is not None:  # best-effort poke: fetch the bundle and the changes at once (P6.1, P6.12, P12.10)
             async def poke(_msg) -> None:
                 src.poke()
+                if rt.projection is not None:
+                    asyncio.get_running_loop().create_task(rt.projection.pull())
 
             await bus.nc.subscribe("infra.authz.changed.v1", cb=poke)
         store = rt.store()

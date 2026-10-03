@@ -53,6 +53,8 @@ class JobsRuntime:
             from besdk.jobs.cleanup import cleanup
 
             rt.store().jobs = self  # tx.enqueue finds the worker kinds here
+            if rt.projection is not None:
+                self.bind("be.authz.changes", rt.projection.pull)  # P6.12: every 5 s, singleton
             self.bind("be.cleanup", lambda: cleanup(rt.store()))
 
     def _runtime_jobs(self) -> tuple:

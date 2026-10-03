@@ -3,6 +3,8 @@
 
 from besdk import context
 from besdk.auth.access import AUTHENTICATED, PUBLIC, Access, PermKey, User, access
+from besdk.auth.contract import SharingLoader
+from besdk.auth.evaluate import Decision, Row
 from besdk.errors import Code, Error, Violation, be_error
 from besdk.events.model import Event, Events, Permanent, StartFrom, Subscription, permanent
 from besdk.http.router import Router
@@ -13,7 +15,7 @@ from besdk.main import main
 from besdk.runtime import Module, Runtime, Spec
 
 __all__ = [
-    "AUTHENTICATED", "PUBLIC", "Access", "Code", "Command", "Error", "Event", "Events", "Module", "PermKey",
-    "Job", "JobKind", "Permanent", "Prior", "QueuedJob", "Reconciler", "Router", "Runtime", "Spec", "StartFrom", "Subscription", "User", "Violation", "Worker", "access",
+    "AUTHENTICATED", "PUBLIC", "Access", "Code", "Command", "Decision", "Error", "Event", "Events", "Module", "PermKey",
+    "Job", "JobKind", "Permanent", "Prior", "QueuedJob", "Reconciler", "Router", "Row", "Runtime", "SharingLoader", "Spec", "StartFrom", "Subscription", "User", "Violation", "Worker", "access",
     "be_error", "caller_of", "context", "id_time", "idempotent", "main", "new_id", "permanent", "resolve_key",
 ]

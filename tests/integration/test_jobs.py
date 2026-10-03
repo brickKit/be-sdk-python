@@ -81,12 +81,14 @@ async def test_singleton_has_one_holder_and_is_taken_over(root, ident):
     await asyncio.sleep(1.5)
     assert peak[0] == 1 and holders
     first = holders[-1]
-    await a[1].stop()  # releases the lease; the other replica takes over with a new epoch
-    await a[0].supervisor.stop(timeout=2)
+    held = ident.sql(f"SELECT holder FROM \"{ident.schema}\".besdk_job_lease WHERE name = 'widget.sweep'")[0][0]
+    holder, other = (a, b) if held == a[1].holder else (b, a)
+    await holder[1].stop()  # releases the lease; the other replica takes over with a new epoch
+    await holder[0].supervisor.stop(timeout=2)
     await asyncio.sleep(2.0)
     assert holders[-1] == first + 1 and peak[0] == 1
-    await stop(b)
-    await a[0].store().close()
+    await stop(other)
+    await holder[0].store().close()
 
 
 async def test_queue_runs_once_after_commit_retries_and_dies(root, ident):
@@ -151,8 +153,11 @@ async def test_reconciler_claims_applies_and_gives_up(root, ident):
     async def give_up(tx, item):
         await tx.execute("UPDATE proc SET state = 'SUSPENDED' WHERE id = $1", item)
 
+    async def still_due(tx, item):
+        return await tx.fetchval("SELECT state = 'PENDING' FROM proc WHERE id = $1", item)
+
     rec = Reconciler("widget.recon", every=0.2, timeout=5, candidates=candidates, id=lambda x: x, handle=handle,
-                     apply=apply, max_attempts=2, backoff=(0.1,), give_up=give_up)
+                     apply=apply, max_attempts=2, backoff=(0.1,), give_up=give_up, still_due=still_due)
     m = Module(reconcilers=[rec])
     a, b = replica(root, ident, m), replica(root, ident, m)
     await a[1].start()
@@ -162,7 +167,8 @@ async def test_reconciler_claims_applies_and_gives_up(root, ident):
     assert dict(ident.sql(f'SELECT id, state FROM "{ident.schema}".proc')) == {
         "ok1": "DONE", "ok2": "DONE", "bad": "SUSPENDED"}
     assert handled.count("ok1") == 1 and handled.count("bad") == 2
-    assert ident.sql(f'SELECT count(*) FROM "{ident.schema}".besdk_reconcile')[0][0] == 0
+    # applied items leave no row; the given-up one stays suspended so a stale replica cannot claim it again
+    assert ident.sql(f'SELECT item_id, next_at = \'infinity\' FROM "{ident.schema}".besdk_reconcile') == [("bad", True)]
 
 
 async def test_overrides_disable_and_reschedule(root, ident):
