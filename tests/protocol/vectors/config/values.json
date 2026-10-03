@@ -1,0 +1,1798 @@
+{
+  "area": "config",
+  "topic": "values",
+  "protocol": "1.0",
+  "generated_by": "config/gen/gen_config.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "config.values.absent-default",
+      "description": "absent: the default applies",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": null,
+        "default": "10"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": 10
+      }
+    },
+    {
+      "id": "config.values.absent-required",
+      "description": "absent and required: start fails naming the key",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": null,
+        "required": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.absent-optional",
+      "description": "absent, optional, no default: not set",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": null
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": false
+      }
+    },
+    {
+      "id": "config.values.empty-typed-is-absent",
+      "description": "an empty value for a typed key counts as not set",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "",
+        "default": "10"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": 10
+      }
+    },
+    {
+      "id": "config.values.empty-typed-required",
+      "description": "empty and required",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "",
+        "required": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.empty-string-is-value",
+      "description": "an empty string is a value",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "",
+        "default": "x"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": ""
+      }
+    },
+    {
+      "id": "config.values.invalid-not-default",
+      "description": "present but invalid never falls back to the default",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "ten",
+        "default": "10"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.invalid-default",
+      "description": "a broken default is a configuration error too",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": null,
+        "default": "ten"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int",
+      "description": "integer",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "10"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": 10
+      }
+    },
+    {
+      "id": "config.values.int-negative",
+      "description": "negative",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "-5"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": -5
+      }
+    },
+    {
+      "id": "config.values.int-zero-padded",
+      "description": "leading zeros are decimal, not octal",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "007"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": 7
+      }
+    },
+    {
+      "id": "config.values.int-plus",
+      "description": "no plus sign",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "+5"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-space",
+      "description": "no whitespace",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": " 5"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-trailing-newline",
+      "description": "a trailing newline is not trimmed",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "5\n"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-underscore",
+      "description": "no digit separators",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "1_000"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-hex",
+      "description": "no hex",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "0x10"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-float",
+      "description": "not an integer",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "1.0"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-exponent",
+      "description": "no exponent",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "1e3"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-max",
+      "description": "the largest integer exact in every language (2^53-1)",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "9007199254740991"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": 9007199254740991
+      }
+    },
+    {
+      "id": "config.values.int-overflow",
+      "description": "beyond 2^53-1",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "9007199254740992"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-min",
+      "description": "-(2^53-1)",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "-9007199254740991"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": -9007199254740991
+      }
+    },
+    {
+      "id": "config.values.int-fullwidth",
+      "description": "full-width digits",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "１０"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.int-minimum",
+      "description": "below the declared minimum",
+      "op": "parse_value",
+      "input": {
+        "type": "integer",
+        "value": "0",
+        "minimum": 1
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.bool-true",
+      "description": "true",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "true"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": true
+      }
+    },
+    {
+      "id": "config.values.bool-false",
+      "description": "false",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "false"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": false
+      }
+    },
+    {
+      "id": "config.values.bool-one",
+      "description": "1",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "1"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": true
+      }
+    },
+    {
+      "id": "config.values.bool-zero",
+      "description": "0",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "0"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": false
+      }
+    },
+    {
+      "id": "config.values.bool-upper",
+      "description": "case-sensitive",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "TRUE"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.bool-title",
+      "description": "case-sensitive",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "True"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.bool-t",
+      "description": "single letters are not accepted",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "t"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.bool-yes",
+      "description": "yes/no are not booleans",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "yes"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.bool-on",
+      "description": "on/off are not booleans",
+      "op": "parse_value",
+      "input": {
+        "type": "boolean",
+        "value": "on"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-seconds",
+      "description": "5s",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "5s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "5000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-minutes",
+      "description": "15m",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "15m"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "900000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-compound",
+      "description": "compound",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "1h30m"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "5400000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-fraction",
+      "description": "fraction",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "1.5h"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "5400000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-ms",
+      "description": "milliseconds",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "200ms"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "200000000"
+      }
+    },
+    {
+      "id": "config.values.dur-us",
+      "description": "microseconds",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "10us"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "10000"
+      }
+    },
+    {
+      "id": "config.values.dur-micro-sign",
+      "description": "U+00B5 micro sign",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "10µs"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "10000"
+      }
+    },
+    {
+      "id": "config.values.dur-mu",
+      "description": "U+03BC Greek mu",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "10μs"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "10000"
+      }
+    },
+    {
+      "id": "config.values.dur-ns",
+      "description": "nanoseconds",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "7ns"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "7"
+      }
+    },
+    {
+      "id": "config.values.dur-zero",
+      "description": "a bare 0",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "0"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "0"
+      }
+    },
+    {
+      "id": "config.values.dur-zero-unit",
+      "description": "0s",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "0s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "0"
+      }
+    },
+    {
+      "id": "config.values.dur-leading-dot",
+      "description": ".5s is valid Go syntax",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": ".5s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "500000000"
+      }
+    },
+    {
+      "id": "config.values.dur-trailing-dot",
+      "description": "5.s is valid Go syntax",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "5.s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "5000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-fraction-truncates",
+      "description": "below a nanosecond truncates",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "1.0000000001s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "1000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-plus",
+      "description": "a leading plus is Go syntax",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "+5s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "5000000000"
+      }
+    },
+    {
+      "id": "config.values.dur-negative",
+      "description": "negative durations are rejected for configuration",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "-5s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-bare-number",
+      "description": "a number without a unit",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "5"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-days",
+      "description": "there is no day unit",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "1d"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-upper",
+      "description": "units are lower case",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "5S"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-space",
+      "description": "no spaces",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "5 s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-dot-only",
+      "description": "no digits",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": ".s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-iso",
+      "description": "ISO 8601 is not accepted",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "PT5S"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.dur-max",
+      "description": "the largest Go duration",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "2562047h47m16.854775807s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "9223372036854775807"
+      }
+    },
+    {
+      "id": "config.values.dur-overflow",
+      "description": "beyond int64 nanoseconds",
+      "op": "parse_value",
+      "input": {
+        "type": "duration",
+        "value": "2562048h"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.durlist-default-backoff",
+      "description": "EVENTS_BACKOFF default",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "1s,10s,1m,5m,15m,30m,1h"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": [
+          "1000000000",
+          "10000000000",
+          "60000000000",
+          "300000000000",
+          "900000000000",
+          "1800000000000",
+          "3600000000000"
+        ]
+      }
+    },
+    {
+      "id": "config.values.durlist-conformance",
+      "description": "the compconf tuning",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "200ms,500ms,1s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": [
+          "200000000",
+          "500000000",
+          "1000000000"
+        ]
+      }
+    },
+    {
+      "id": "config.values.durlist-single",
+      "description": "one element",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "5s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": [
+          "5000000000"
+        ]
+      }
+    },
+    {
+      "id": "config.values.durlist-space",
+      "description": "no spaces after commas",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "1s, 10s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.durlist-empty-element",
+      "description": "an empty element",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "1s,,10s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.durlist-trailing-comma",
+      "description": "a trailing comma",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "1s,"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.durlist-zero",
+      "description": "backoff steps are positive",
+      "op": "parse_value",
+      "input": {
+        "type": "duration_list",
+        "value": "0s,1s"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-http",
+      "description": "OTLP base URL",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "http://otel-collector:4318"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "http://otel-collector:4318"
+      }
+    },
+    {
+      "id": "config.values.url-https-path",
+      "description": "https with a path",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "https://authz.example.com/base/"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "https://authz.example.com/base/"
+      }
+    },
+    {
+      "id": "config.values.url-nats",
+      "description": "EVENT_BUS_URL nats",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "nats://be-nats:4222",
+        "schemes": [
+          "nats",
+          "postgres",
+          "kafka"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "nats://be-nats:4222"
+      }
+    },
+    {
+      "id": "config.values.url-postgres-query",
+      "description": "EVENT_BUS_URL postgres queue",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "postgres://be-postgres:5432/brickkit_db?schema=be_bus",
+        "schemes": [
+          "nats",
+          "postgres",
+          "kafka"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "postgres://be-postgres:5432/brickkit_db?schema=be_bus"
+      }
+    },
+    {
+      "id": "config.values.url-kafka-list",
+      "description": "a broker list is not one host",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "kafka://broker1:9092,broker2:9092",
+        "schemes": [
+          "nats",
+          "postgres",
+          "kafka"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-scheme-not-allowed",
+      "description": "scheme not allowed for the key",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "amqp://rabbit:5672",
+        "schemes": [
+          "nats",
+          "postgres",
+          "kafka"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-no-scheme",
+      "description": "no scheme",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "be-nats:4222"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-relative",
+      "description": "relative",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "/authz"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-upper-scheme",
+      "description": "scheme in upper case",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "HTTP://x:1"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-port-range",
+      "description": "port out of range",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "http://x:70000"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-space",
+      "description": "whitespace",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "http://x y:1"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.url-ipv6",
+      "description": "an IPv6 literal",
+      "op": "parse_value",
+      "input": {
+        "type": "url",
+        "value": "http://[::1]:8080/"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "http://[::1]:8080/"
+      }
+    },
+    {
+      "id": "config.values.json-object",
+      "description": "JOBS_OVERRIDES",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "{\"be.cleanup\":{\"interval\":\"2s\"}}",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": {
+          "be.cleanup": {
+            "interval": "2s"
+          }
+        }
+      }
+    },
+    {
+      "id": "config.values.json-empty-object",
+      "description": "an empty object",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "{}",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": {}
+      }
+    },
+    {
+      "id": "config.values.json-array-not-object",
+      "description": "an array where an object is declared",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "[]",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.json-invalid",
+      "description": "not JSON",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "{interval: 2s}",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.json-duplicate",
+      "description": "duplicate member names",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "{\"a\":1,\"a\":2}",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.json-nan",
+      "description": "NaN is not JSON",
+      "op": "parse_value",
+      "input": {
+        "type": "json",
+        "value": "{\"a\":NaN}",
+        "json_kind": "object"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.enum-ok",
+      "description": "LOG_LEVEL",
+      "op": "parse_value",
+      "input": {
+        "type": "enum",
+        "value": "warn",
+        "enum": [
+          "debug",
+          "info",
+          "warn",
+          "error"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "warn"
+      }
+    },
+    {
+      "id": "config.values.enum-upper",
+      "description": "enum values are case-sensitive",
+      "op": "parse_value",
+      "input": {
+        "type": "enum",
+        "value": "WARN",
+        "enum": [
+          "debug",
+          "info",
+          "warn",
+          "error"
+        ]
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.enum-default",
+      "description": "LOG_LEVEL default",
+      "op": "parse_value",
+      "input": {
+        "type": "enum",
+        "value": null,
+        "enum": [
+          "debug",
+          "info",
+          "warn",
+          "error"
+        ],
+        "default": "info"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "info"
+      }
+    },
+    {
+      "id": "config.values.secret-file",
+      "description": "a secret: the variable holds the path brickKit mounted, the value is in the file",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "/run/brickkit/secrets/erp-sales-3-0-0/PG_PASSWORD_FILE",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "source": "file",
+        "path": "/run/brickkit/secrets/erp-sales-3-0-0/PG_PASSWORD_FILE"
+      }
+    },
+    {
+      "id": "config.values.secret-file-host-path",
+      "description": "mode: local / debug: the absolute path of the file on the developer's machine",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "/home/dev/shop/.brickkit/generated/secrets/erp-sales-3-0-0/PG_PASSWORD_FILE",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "source": "file",
+        "path": "/home/dev/shop/.brickkit/generated/secrets/erp-sales-3-0-0/PG_PASSWORD_FILE"
+      }
+    },
+    {
+      "id": "config.values.secret-file-relative",
+      "description": "the path must be absolute",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "secrets/pg_password",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.secret-file-root",
+      "description": "a directory is not a secret file",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "/",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.secret-file-directory",
+      "description": "a path ending in / is a directory",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "/run/brickkit/secrets/erp-sales-3-0-0/",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.secret-value-in-env",
+      "description": "a secret value in the environment is refused: secrets travel only as files",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "s3cr3t",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.secret-at-file-retired",
+      "description": "the @file: prefix of rc drafts is gone: the value is the path itself",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "@file:/run/secrets/pg_password",
+        "secret": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.values.secret-missing",
+      "description": "a required secret that is absent",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": null,
+        "secret": true,
+        "required": true
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.not-secret-path-is-text",
+      "description": "for a key that is not secret a path is ordinary text",
+      "op": "parse_value",
+      "input": {
+        "type": "string",
+        "value": "/etc/app/rules.json"
+      },
+      "refs": [
+        "P2.3",
+        "P2.7"
+      ],
+      "expected": {
+        "set": true,
+        "value": "/etc/app/rules.json"
+      }
+    },
+    {
+      "id": "config.values.undeclared",
+      "description": "reading a key the component did not declare in configSchema",
+      "op": "read_undeclared",
+      "input": {
+        "key": "SOME_OTHER_KEY",
+        "declared": [
+          "PG_HOST",
+          "PG_SCHEMA"
+        ]
+      },
+      "refs": [
+        "P2.2"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_UNDECLARED"
+      }
+    },
+    {
+      "id": "config.values.undeclared-reserved-ok",
+      "description": "platform names may be read without being declared",
+      "op": "read_undeclared",
+      "input": {
+        "key": "COMPONENT_ID",
+        "declared": [
+          "PG_HOST"
+        ]
+      },
+      "refs": [
+        "P2.2"
+      ],
+      "expected": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "config.values.secret-text-plain",
+      "description": "the file's text is the value",
+      "op": "secret_text",
+      "input": {
+        "content": "s3cr3t",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": "s3cr3t"
+      }
+    },
+    {
+      "id": "config.values.secret-text-trailing-lf",
+      "description": "one trailing LF (what an editor or echo writes) is removed",
+      "op": "secret_text",
+      "input": {
+        "content": "s3cr3t\n",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": "s3cr3t"
+      }
+    },
+    {
+      "id": "config.values.secret-text-trailing-crlf",
+      "description": "one trailing CRLF is removed",
+      "op": "secret_text",
+      "input": {
+        "content": "s3cr3t\r\n",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": "s3cr3t"
+      }
+    },
+    {
+      "id": "config.values.secret-text-two-lf",
+      "description": "only one trailing newline is removed",
+      "op": "secret_text",
+      "input": {
+        "content": "s3cr3t\n\n",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": "s3cr3t\n"
+      }
+    },
+    {
+      "id": "config.values.secret-text-spaces-kept",
+      "description": "spaces are part of the value",
+      "op": "secret_text",
+      "input": {
+        "content": " s3cr3t ",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": " s3cr3t "
+      }
+    },
+    {
+      "id": "config.values.secret-text-pem",
+      "description": "a PEM keeps its inner newlines",
+      "op": "secret_text",
+      "input": {
+        "content": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIA==\n-----END PRIVATE KEY-----\n",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": true,
+        "value": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIA==\n-----END PRIVATE KEY-----"
+      }
+    },
+    {
+      "id": "config.values.secret-text-empty-required",
+      "description": "an empty file for a required secret",
+      "op": "secret_text",
+      "input": {
+        "content": "",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.secret-text-newline-only-required",
+      "description": "a file holding only a newline is empty",
+      "op": "secret_text",
+      "input": {
+        "content": "\n",
+        "required": true
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_MISSING"
+      }
+    },
+    {
+      "id": "config.values.secret-text-empty-optional",
+      "description": "an empty file for an optional secret: not set",
+      "op": "secret_text",
+      "input": {
+        "content": "",
+        "required": false
+      },
+      "refs": [
+        "P2.9"
+      ],
+      "expected": {
+        "set": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "area": "numbering",
+  "topic": "period",
+  "protocol": "1.0",
+  "generated_by": "numbering/gen/gen_numbering.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "numbering.period.monthly",
+      "description": "a format with {mm} resets monthly",
+      "op": "period_key",
+      "input": {
+        "format": "SO{yyyy}{mm}-{seq:05}",
+        "business_date": "2026-10-02"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": "2026-10"
+      }
+    },
+    {
+      "id": "numbering.period.monthly-yy",
+      "description": "{yy}{mm} resets monthly too",
+      "op": "period_key",
+      "input": {
+        "format": "INV{yy}{mm}{seq:04}",
+        "business_date": "2026-12-31"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": "2026-12"
+      }
+    },
+    {
+      "id": "numbering.period.yearly",
+      "description": "a format with only a year resets yearly",
+      "op": "period_key",
+      "input": {
+        "format": "PO{yyyy}-{seq:06}",
+        "business_date": "2026-10-02"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": "2026"
+      }
+    },
+    {
+      "id": "numbering.period.yearly-yy",
+      "description": "{yy} alone resets yearly",
+      "op": "period_key",
+      "input": {
+        "format": "Y{yy}-{seq:03}",
+        "business_date": "2026-01-01"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": "2026"
+      }
+    },
+    {
+      "id": "numbering.period.never",
+      "description": "no date part: the period key is empty",
+      "op": "period_key",
+      "input": {
+        "format": "C{seq:08}",
+        "business_date": "2026-10-02"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": ""
+      }
+    },
+    {
+      "id": "numbering.period.le-only",
+      "description": "the legal entity is the scope, not the period",
+      "op": "period_key",
+      "input": {
+        "format": "{le}-{seq:06}",
+        "business_date": "2026-10-02"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "period": ""
+      }
+    },
+    {
+      "id": "numbering.period.month-without-year",
+      "description": "rejected",
+      "op": "period_key",
+      "input": {
+        "format": "SO{mm}-{seq:05}",
+        "business_date": "2026-10-02"
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_REPEATS"
+      }
+    }
+  ]
+}

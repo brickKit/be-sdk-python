@@ -1,0 +1,270 @@
+# The reserved reasons of domain `be` (be-protocol P4). Complete set: identical to the table in
+# spec/04-errors.md and to the platform reason table of BrickEnterprise foundations 15 (33 reasons).
+# Format: schemas/errors-yaml.schema.json. Append-only: a reason is never renamed, removed or reused.
+domain: be
+reasons:
+  - reason: INTERNAL
+    code: INTERNAL
+    http: 500
+    params: []
+    title:   { en: "Internal error", zh: "内部错误" }
+    message: { en: "Something went wrong. Quote the trace ID when reporting it.", zh: "系统出错了。反馈时请提供 trace ID。" }
+    since: "1.0"
+    deprecated: false
+  - reason: TOKEN_STALE
+    code: UNAUTHENTICATED
+    http: 401
+    params: []
+    title:   { en: "Session out of date", zh: "登录状态已过期" }
+    message: { en: "Your roles changed since you signed in; the session is being refreshed.", zh: "登录之后你的角色有变化，正在刷新登录状态。" }
+    since: "1.0"
+    deprecated: false
+  - reason: MISSING_PERMISSION
+    code: PERMISSION_DENIED
+    http: 403
+    params: [permission]
+    title:   { en: "Not permitted", zh: "没有权限" }
+    message: { en: "You do not have the permission {permission}.", zh: "你没有权限 {permission}。" }
+    since: "1.0"
+    deprecated: false
+  - reason: NOT_FOUND
+    code: NOT_FOUND
+    http: 404
+    params: []
+    title:   { en: "Not found", zh: "找不到" }
+    message: { en: "The record does not exist or you cannot see it.", zh: "记录不存在，或者你看不到它。" }
+    since: "1.0"
+    deprecated: false
+  - reason: AUTHZ_NOT_READY
+    code: UNAVAILABLE
+    http: 503
+    params: []
+    title:   { en: "Starting up", zh: "正在启动" }
+    message: { en: "Permissions are still loading. Try again in a moment.", zh: "权限数据还在加载，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: NOT_READY
+    code: UNAVAILABLE
+    http: 503
+    params: [waiting]
+    title:   { en: "Not ready", zh: "尚未就绪" }
+    message: { en: "The service is not ready yet (waiting for {waiting}).", zh: "服务尚未就绪（在等待：{waiting}）。" }
+    since: "1.0"
+    deprecated: false
+  - reason: TOKEN_INVALID
+    code: UNAUTHENTICATED
+    http: 401
+    params: []
+    title:   { en: "Please sign in", zh: "请登录" }
+    message: { en: "You are not signed in, or your session is no longer valid.", zh: "你还没有登录，或者登录已失效。" }
+    since: "1.0"
+    deprecated: false
+  - reason: UNSUPPORTED_DELEGATION
+    code: UNAUTHENTICATED
+    http: 401
+    params: [kind]
+    title:   { en: "Delegation not supported", zh: "不支持的代理方式" }
+    message: { en: "Acting through a delegate of kind {kind} is not supported here.", zh: "这里不支持经由 {kind} 类代理方行事。" }
+    since: "1.0"
+    deprecated: false
+  - reason: MISSING_CALLER
+    code: UNAUTHENTICATED
+    http: 401
+    params: []
+    title:   { en: "Caller not identified", zh: "调用方未标明" }
+    message: { en: "A system call must name its caller in be-caller.", zh: "系统面调用必须在 be-caller 里写明调用方。" }
+    since: "1.0"
+    deprecated: false
+  - reason: OUT_OF_SCOPE
+    code: PERMISSION_DENIED
+    http: 403
+    params: []
+    title:   { en: "Outside your scope", zh: "超出你的数据范围" }
+    message: { en: "This is outside your data scope.", zh: "这超出了你的数据范围。" }
+    since: "1.0"
+    deprecated: false
+  - reason: FIELD_FORBIDDEN
+    code: PERMISSION_DENIED
+    http: 403
+    params: [field]
+    title:   { en: "Field not editable", zh: "字段不可修改" }
+    message: { en: "You may not change the field {field}.", zh: "你不能修改字段 {field}。" }
+    since: "1.0"
+    deprecated: false
+  - reason: SORT_FORBIDDEN
+    code: INVALID_ARGUMENT
+    http: 400
+    params: [field]
+    title:   { en: "Cannot sort or filter by this field", zh: "不能按这个字段排序或筛选" }
+    message: { en: "The field {field} is hidden from you and cannot be used to sort, filter or aggregate.", zh: "字段 {field} 对你不可见，不能用来排序、筛选或汇总。" }
+    since: "1.0"
+    deprecated: false
+  - reason: SHARE_NOT_ALLOWED
+    code: PERMISSION_DENIED
+    http: 403
+    params: []
+    title:   { en: "Sharing not allowed", zh: "不允许共享" }
+    message: { en: "This record cannot be shared this way.", zh: "这条记录不能这样共享。" }
+    since: "1.0"
+    deprecated: false
+  - reason: CAPABILITY_UNAVAILABLE
+    code: UNIMPLEMENTED
+    http: 501
+    params: [capability]
+    title:   { en: "Not available in this installation", zh: "本系统未提供此功能" }
+    message: { en: "The installed provider does not offer {capability}.", zh: "当前安装的提供方不支持 {capability}。" }
+    since: "1.0"
+    deprecated: false
+  - reason: IDEMPOTENCY_MISMATCH
+    code: INVALID_ARGUMENT
+    http: 400
+    params: []
+    title:   { en: "Request does not match its key", zh: "请求与幂等键不符" }
+    message: { en: "This idempotency key was already used for a different request.", zh: "这个幂等键已经用于另一个请求。" }
+    since: "1.0"
+    deprecated: false
+  - reason: IDEMPOTENCY_IN_PROGRESS
+    code: ABORTED
+    http: 409
+    params: []
+    title:   { en: "Still in progress", zh: "仍在处理中" }
+    message: { en: "The first attempt of this request has not finished yet.", zh: "这个请求的第一次执行还没有结束。" }
+    since: "1.0"
+    deprecated: false
+  - reason: CURSOR_INVALID
+    code: INVALID_ARGUMENT
+    http: 400
+    params: []
+    title:   { en: "List position no longer valid", zh: "翻页位置已失效" }
+    message: { en: "The page cursor does not match this request. Start again from the first page.", zh: "翻页游标与本次请求不符，请从第一页重新开始。" }
+    since: "1.0"
+    deprecated: false
+  - reason: BATCH_TOO_LARGE
+    code: INVALID_ARGUMENT
+    http: 400
+    params: [field, max, got]
+    title:   { en: "Batch too large", zh: "批量过大" }
+    message: { en: "{field} has {got} items; at most {max} are allowed.", zh: "{field} 有 {got} 项，最多允许 {max} 项。" }
+    since: "1.0"
+    deprecated: false
+  - reason: LOCK_TIMEOUT
+    code: ABORTED
+    http: 409
+    params: []
+    title:   { en: "Busy, try again", zh: "资源繁忙，请重试" }
+    message: { en: "Someone else is changing the same data. Try again.", zh: "有人正在修改同一份数据，请重试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: STATEMENT_TIMEOUT
+    code: DEADLINE_EXCEEDED
+    http: 504
+    params: []
+    title:   { en: "Took too long", zh: "处理超时" }
+    message: { en: "The operation took too long and was stopped.", zh: "操作耗时过长，已被中止。" }
+    since: "1.0"
+    deprecated: false
+  - reason: TX_CONFLICT
+    code: ABORTED
+    http: 409
+    params: []
+    title:   { en: "Conflict, try again", zh: "并发冲突，请重试" }
+    message: { en: "The change conflicted with another one at the same time. Try again.", zh: "这次修改与同时发生的另一次修改冲突，请重试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: DB_POOL_EXHAUSTED
+    code: RESOURCE_EXHAUSTED
+    http: 429
+    params: []
+    title:   { en: "Too busy", zh: "系统繁忙" }
+    message: { en: "The service is too busy right now. Try again shortly.", zh: "服务当前过于繁忙，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: OUTBOUND_LIMIT
+    code: RESOURCE_EXHAUSTED
+    http: 429
+    params: [target]
+    title:   { en: "Too busy", zh: "系统繁忙" }
+    message: { en: "Too many requests to {target} at once. Try again shortly.", zh: "同时发往 {target} 的请求过多，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: DEADLINE_BUDGET_EXHAUSTED
+    code: DEADLINE_EXCEEDED
+    http: 504
+    params: []
+    title:   { en: "Took too long", zh: "处理超时" }
+    message: { en: "Not enough time was left to finish the operation.", zh: "剩余时间不足以完成这次操作。" }
+    since: "1.0"
+    deprecated: false
+  - reason: BODY_TOO_LARGE
+    code: INVALID_ARGUMENT
+    http: 413
+    params: [limit]
+    title:   { en: "Request too large", zh: "请求过大" }
+    message: { en: "The request body is larger than the {limit} bytes allowed.", zh: "请求体超过允许的 {limit} 字节。" }
+    since: "1.0"
+    deprecated: false
+  - reason: RANGE_COLD
+    code: FAILED_PRECONDITION
+    http: 400
+    params: [online_from, cold_ranges, thaw_allowed, export_allowed]
+    title:   { en: "Archived data", zh: "数据已归档" }
+    message: { en: "Data before {online_from} is archived. Request an export, or ask for it to be restored.", zh: "{online_from} 之前的数据已归档。可以申请导出，或申请解冻。" }
+    since: "1.0"
+    deprecated: false
+  - reason: UNIT_SEALED
+    code: FAILED_PRECONDITION
+    http: 400
+    params: [table, unit]
+    title:   { en: "Period closed", zh: "数据已封存" }
+    message: { en: "{table} {unit} is sealed and cannot be changed. Record a reversing document instead.", zh: "{table} 的 {unit} 已封存，不能修改。请改为新建一张冲销单据。" }
+    since: "1.0"
+    deprecated: false
+  - reason: RATE_LIMITED
+    code: RESOURCE_EXHAUSTED
+    http: 429
+    params: []
+    title:   { en: "Too many requests", zh: "请求过于频繁" }
+    message: { en: "Too many requests. Wait a moment and try again.", zh: "请求过于频繁，请稍候再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: UPSTREAM_UNAVAILABLE
+    code: UNAVAILABLE
+    http: 503
+    http_also: [502]
+    params: []
+    title:   { en: "Service unavailable", zh: "服务暂不可用" }
+    message: { en: "The service cannot be reached right now. Try again shortly.", zh: "服务暂时无法访问，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: UPSTREAM_TIMEOUT
+    code: DEADLINE_EXCEEDED
+    http: 504
+    params: []
+    title:   { en: "Took too long", zh: "处理超时" }
+    message: { en: "The service did not answer in time.", zh: "服务没有及时响应。" }
+    since: "1.0"
+    deprecated: false
+  - reason: NETWORK_IN_TX
+    code: INTERNAL
+    http: 500
+    params: []
+    title:   { en: "Internal error", zh: "内部错误" }
+    message: { en: "An outbound call was started inside an open transaction (a programming error). Never shown to a caller: the answer is the generic INTERNAL body; the reason appears only in the log.", zh: "在未结束的事务里发起了出站调用（编程错误）。永远不给调用方看：回答是通用的 INTERNAL 错误体，这个 reason 只出现在日志里。" }
+    since: "1.0"
+    deprecated: false
+  - reason: DB_TOO_MANY_CONNECTIONS
+    code: UNAVAILABLE
+    http: 503
+    params: []
+    title:   { en: "Service busy", zh: "服务繁忙" }
+    message: { en: "The database is not accepting more connections right now. Try again shortly.", zh: "数据库暂时不接受更多连接，请稍后再试。" }
+    since: "1.0"
+    deprecated: false
+  - reason: NESTED_TX
+    code: INTERNAL
+    http: 500
+    params: []
+    title:   { en: "Internal error", zh: "内部错误" }
+    message: { en: "A transaction was opened inside another one in the same unit of work (a programming error). Never shown to a caller: the answer is the generic INTERNAL body; the reason appears only in the log.", zh: "在同一个工作单元里，在一个事务内又打开了另一个事务（编程错误）。永远不给调用方看：回答是通用的 INTERNAL 错误体，这个 reason 只出现在日志里。" }
+    since: "1.0"
+    deprecated: false

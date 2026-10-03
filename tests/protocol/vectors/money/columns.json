@@ -1,0 +1,159 @@
+{
+  "area": "money",
+  "topic": "columns",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.columns.amount",
+      "description": "column specification of kind 'amount'",
+      "op": "column",
+      "input": {
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(19,4)",
+        "precision": 19,
+        "scale": 4,
+        "integer_digits": 15
+      }
+    },
+    {
+      "id": "money.columns.price",
+      "description": "column specification of kind 'price'",
+      "op": "column",
+      "input": {
+        "kind": "price"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(19,6)",
+        "precision": 19,
+        "scale": 6,
+        "integer_digits": 13
+      }
+    },
+    {
+      "id": "money.columns.cost",
+      "description": "column specification of kind 'cost'",
+      "op": "column",
+      "input": {
+        "kind": "cost"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(19,6)",
+        "precision": 19,
+        "scale": 6,
+        "integer_digits": 13
+      }
+    },
+    {
+      "id": "money.columns.quantity",
+      "description": "column specification of kind 'quantity'",
+      "op": "column",
+      "input": {
+        "kind": "quantity"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(19,6)",
+        "precision": 19,
+        "scale": 6,
+        "integer_digits": 13
+      }
+    },
+    {
+      "id": "money.columns.rate",
+      "description": "column specification of kind 'rate'",
+      "op": "column",
+      "input": {
+        "kind": "rate"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(19,10)",
+        "precision": 19,
+        "scale": 10,
+        "integer_digits": 9
+      }
+    },
+    {
+      "id": "money.columns.ratio",
+      "description": "column specification of kind 'ratio'",
+      "op": "column",
+      "input": {
+        "kind": "ratio"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(9,6)",
+        "precision": 9,
+        "scale": 6,
+        "integer_digits": 3
+      }
+    },
+    {
+      "id": "money.columns.factor",
+      "description": "column specification of kind 'factor'",
+      "op": "column",
+      "input": {
+        "kind": "factor"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "NUMERIC(24,12)",
+        "precision": 24,
+        "scale": 12,
+        "integer_digits": 12
+      }
+    },
+    {
+      "id": "money.columns.currency",
+      "description": "column specification of kind 'currency'",
+      "op": "column",
+      "input": {
+        "kind": "currency"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "sql": "CHAR(3)",
+        "precision": null,
+        "scale": null,
+        "integer_digits": null
+      }
+    },
+    {
+      "id": "money.columns.unknown-kind",
+      "description": "column specification of kind 'percent'",
+      "op": "column",
+      "input": {
+        "kind": "percent"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "KIND_UNKNOWN"
+      }
+    }
+  ]
+}

@@ -1,0 +1,702 @@
+{
+  "area": "calendar",
+  "topic": "business_date",
+  "protocol": "1.0",
+  "generated_by": "calendar/gen/gen_calendar.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "notes": {
+    "tzdata": "2026c"
+  },
+  "cases": [
+    {
+      "id": "calendar.business_date.shanghai-midnight",
+      "description": "midnight in Beijing on 1 October",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-09-30T16:00:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.shanghai-before-midnight",
+      "description": "the last microsecond of 30 September",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-09-30T15:59:59.999999Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-09-30"
+      }
+    },
+    {
+      "id": "calendar.business_date.shanghai-0730",
+      "description": "07:30 Beijing on 1 October is still 30 September in UTC",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-09-30T23:30:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.shanghai-month-end-afternoon",
+      "description": "the afternoon of the last day of the month",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-31T07:00:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-31"
+      }
+    },
+    {
+      "id": "calendar.business_date.shanghai-year-end",
+      "description": "the new year starts at 16:00 UTC",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-12-31T16:00:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2027-01-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.utc-same-instant",
+      "description": "the same instant is still 30 September in UTC",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-09-30T16:00:00Z",
+        "time_zone": "UTC"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-09-30"
+      }
+    },
+    {
+      "id": "calendar.business_date.two-entities-shanghai",
+      "description": "10:00 in Beijing",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T02:00:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.two-entities-new-york",
+      "description": "22:00 the evening before in New York",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T02:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-09-30"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-spring-before",
+      "description": "23:59:59 EST on 7 March",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-03-08T04:59:59Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-03-07"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-spring-midnight",
+      "description": "00:00 EST on 8 March",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-03-08T05:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-03-08"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-spring-gap",
+      "description": "02:00 EST becomes 03:00 EDT",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-03-08T07:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-03-08"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-spring-next-before",
+      "description": "23:59:59 EDT on 8 March",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-03-09T03:59:59Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-03-08"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-spring-next-midnight",
+      "description": "00:00 EDT on 9 March",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-03-09T04:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-03-09"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-fall-before",
+      "description": "23:59:59 EDT on 31 October",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-11-01T03:59:59Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-31"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-fall-midnight",
+      "description": "00:00 EDT on 1 November",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-11-01T04:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-11-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-fall-repeated-hour",
+      "description": "01:30 EST, the second 01:30",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-11-01T06:30:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-11-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-fall-next-before",
+      "description": "23:59:59 EST on 1 November",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-11-02T04:59:59Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-11-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.ny-fall-next-midnight",
+      "description": "00:00 EST on 2 November",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-11-02T05:00:00Z",
+        "time_zone": "America/New_York"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-11-02"
+      }
+    },
+    {
+      "id": "calendar.business_date.london-winter",
+      "description": "GMT",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-01-15T00:00:00Z",
+        "time_zone": "Europe/London"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-01-15"
+      }
+    },
+    {
+      "id": "calendar.business_date.london-summer-midnight",
+      "description": "00:00 BST is 23:00 UTC",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-07-14T23:00:00Z",
+        "time_zone": "Europe/London"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-07-15"
+      }
+    },
+    {
+      "id": "calendar.business_date.london-summer-before",
+      "description": "23:59:59 BST",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-07-14T22:59:59Z",
+        "time_zone": "Europe/London"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-07-14"
+      }
+    },
+    {
+      "id": "calendar.business_date.sydney-summer",
+      "description": "AEDT +11: 00:00 on 16 January",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-01-15T13:00:00Z",
+        "time_zone": "Australia/Sydney"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-01-16"
+      }
+    },
+    {
+      "id": "calendar.business_date.sydney-winter",
+      "description": "AEST +10: 00:00 on 16 July",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-07-15T14:00:00Z",
+        "time_zone": "Australia/Sydney"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-07-16"
+      }
+    },
+    {
+      "id": "calendar.business_date.sydney-dst-end-day",
+      "description": "00:00 AEDT on 5 April, the DST end day",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-04-04T13:00:00Z",
+        "time_zone": "Australia/Sydney"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-04-05"
+      }
+    },
+    {
+      "id": "calendar.business_date.kolkata-half-hour",
+      "description": "+05:30 midnight",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T18:30:00Z",
+        "time_zone": "Asia/Kolkata"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "calendar.business_date.kolkata-half-hour-before",
+      "description": "+05:30, one second earlier",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T18:29:59Z",
+        "time_zone": "Asia/Kolkata"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.kathmandu-45",
+      "description": "+05:45 midnight",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T18:15:00Z",
+        "time_zone": "Asia/Kathmandu"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "calendar.business_date.chatham-1345",
+      "description": "+13:45 in the southern summer",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-01-01T10:15:00Z",
+        "time_zone": "Pacific/Chatham"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-01-02"
+      }
+    },
+    {
+      "id": "calendar.business_date.kiritimati-plus-14",
+      "description": "+14: already the next day",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T10:00:00Z",
+        "time_zone": "Pacific/Kiritimati"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "calendar.business_date.pago-pago-minus-11",
+      "description": "-11: still the previous day",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T10:59:59Z",
+        "time_zone": "Pacific/Pago_Pago"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-09-30"
+      }
+    },
+    {
+      "id": "calendar.business_date.st-johns-half-hour",
+      "description": "NDT -02:30 midnight",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-07-01T02:30:00Z",
+        "time_zone": "America/St_Johns"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-07-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.etc-gmt-minus-8",
+      "description": "Etc/GMT-8 is UTC+8 (POSIX sign inverted)",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-09-30T16:00:00Z",
+        "time_zone": "Etc/GMT-8"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "id": "calendar.business_date.etc-gmt-plus-8",
+      "description": "Etc/GMT+8 is UTC-8",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T07:59:59Z",
+        "time_zone": "Etc/GMT+8"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2026-09-30"
+      }
+    },
+    {
+      "id": "calendar.business_date.apia-before-skip",
+      "description": "23:59:59 on 29 December 2011 at UTC-10",
+      "op": "business_date",
+      "input": {
+        "instant": "2011-12-30T09:59:59Z",
+        "time_zone": "Pacific/Apia"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2011-12-29"
+      }
+    },
+    {
+      "id": "calendar.business_date.apia-after-skip",
+      "description": "30 December 2011 was skipped: 00:00 on the 31st at UTC+14",
+      "op": "business_date",
+      "input": {
+        "instant": "2011-12-30T10:00:00Z",
+        "time_zone": "Pacific/Apia"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2011-12-31"
+      }
+    },
+    {
+      "id": "calendar.business_date.sao-paulo-midnight-dst",
+      "description": "DST began at midnight: 00:00 did not exist, 01:00 -02",
+      "op": "business_date",
+      "input": {
+        "instant": "2018-11-04T03:00:00Z",
+        "time_zone": "America/Sao_Paulo"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2018-11-04"
+      }
+    },
+    {
+      "id": "calendar.business_date.sao-paulo-before-midnight-dst",
+      "description": "23:59:59 -03 on 3 November",
+      "op": "business_date",
+      "input": {
+        "instant": "2018-11-04T02:59:59Z",
+        "time_zone": "America/Sao_Paulo"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2018-11-03"
+      }
+    },
+    {
+      "id": "calendar.business_date.leap-day",
+      "description": "29 February 2028",
+      "op": "business_date",
+      "input": {
+        "instant": "2028-02-28T16:00:00Z",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected": {
+        "date": "2028-02-29"
+      }
+    },
+    {
+      "id": "calendar.business_date.zone-unknown",
+      "description": "not an IANA zone",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T00:00:00Z",
+        "time_zone": "Asia/Beijing"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "TZ_UNKNOWN"
+      }
+    },
+    {
+      "id": "calendar.business_date.zone-offset-string",
+      "description": "an offset is not a zone",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T00:00:00Z",
+        "time_zone": "+08:00"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "TZ_UNKNOWN"
+      }
+    },
+    {
+      "id": "calendar.business_date.zone-utc-plus",
+      "description": "not an IANA zone",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T00:00:00Z",
+        "time_zone": "UTC+8"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "TZ_UNKNOWN"
+      }
+    },
+    {
+      "id": "calendar.business_date.zone-lower-case",
+      "description": "zone names are case-sensitive",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T00:00:00Z",
+        "time_zone": "asia/shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "TZ_UNKNOWN"
+      }
+    },
+    {
+      "id": "calendar.business_date.zone-empty",
+      "description": "empty",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T00:00:00Z",
+        "time_zone": ""
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "TZ_UNKNOWN"
+      }
+    },
+    {
+      "id": "calendar.business_date.instant-offset",
+      "description": "instants travel in UTC with Z",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T08:00:00+08:00",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "INSTANT_INVALID"
+      }
+    },
+    {
+      "id": "calendar.business_date.instant-no-zone",
+      "description": "a local time is not an instant",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01T08:00:00",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "INSTANT_INVALID"
+      }
+    },
+    {
+      "id": "calendar.business_date.instant-date-only",
+      "description": "a date is not an instant",
+      "op": "business_date",
+      "input": {
+        "instant": "2026-10-01",
+        "time_zone": "Asia/Shanghai"
+      },
+      "refs": [
+        "P11.7"
+      ],
+      "expected_error": {
+        "reason": "INSTANT_INVALID"
+      }
+    }
+  ]
+}

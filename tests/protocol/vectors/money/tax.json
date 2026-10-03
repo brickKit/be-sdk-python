@@ -1,0 +1,316 @@
+{
+  "area": "money",
+  "topic": "tax",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.tax.vat13-line",
+      "description": "tax per line at 0.13 on ['10.01', '10.01', '10.01'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "10.01",
+          "10.01",
+          "10.01"
+        ],
+        "rate": "0.13",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "1.30",
+          "1.30",
+          "1.30"
+        ],
+        "total": "3.90"
+      }
+    },
+    {
+      "id": "money.tax.vat13-document",
+      "description": "tax per document at 0.13 on ['10.01', '10.01', '10.01'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_document",
+      "input": {
+        "lines": [
+          "10.01",
+          "10.01",
+          "10.01"
+        ],
+        "rate": "0.13",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "1.30",
+          "1.30",
+          "1.30"
+        ],
+        "total": "3.90"
+      }
+    },
+    {
+      "id": "money.tax.vat6-line",
+      "description": "tax per line at 0.06 on ['0.05', '0.05', '0.05', '0.05'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "0.05",
+          "0.05",
+          "0.05",
+          "0.05"
+        ],
+        "rate": "0.06",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "0.00",
+          "0.00",
+          "0.00",
+          "0.00"
+        ],
+        "total": "0.00"
+      }
+    },
+    {
+      "id": "money.tax.vat6-document",
+      "description": "tax per document at 0.06 on ['0.05', '0.05', '0.05', '0.05'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_document",
+      "input": {
+        "lines": [
+          "0.05",
+          "0.05",
+          "0.05",
+          "0.05"
+        ],
+        "rate": "0.06",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "0.01",
+          "0.00",
+          "0.00",
+          "0.00"
+        ],
+        "total": "0.01"
+      }
+    },
+    {
+      "id": "money.tax.vat9-line",
+      "description": "tax per line at 0.09 on ['0.50', '1.50'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "0.50",
+          "1.50"
+        ],
+        "rate": "0.09",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "0.05",
+          "0.14"
+        ],
+        "total": "0.19"
+      }
+    },
+    {
+      "id": "money.tax.vat9-line-even",
+      "description": "tax per line at 0.09 on ['0.50', '1.50'] CNY, HALF_EVEN",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "0.50",
+          "1.50"
+        ],
+        "rate": "0.09",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "0.04",
+          "0.14"
+        ],
+        "total": "0.18"
+      }
+    },
+    {
+      "id": "money.tax.zero-rate",
+      "description": "tax per line at 0 on ['100.00'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "100.00"
+        ],
+        "rate": "0",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "0.00"
+        ],
+        "total": "0.00"
+      }
+    },
+    {
+      "id": "money.tax.jpy-document",
+      "description": "tax per document at 0.10 on ['105', '205', '305'] JPY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_document",
+      "input": {
+        "lines": [
+          "105",
+          "205",
+          "305"
+        ],
+        "rate": "0.10",
+        "currency": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "10",
+          "21",
+          "31"
+        ],
+        "total": "62"
+      }
+    },
+    {
+      "id": "money.tax.jpy-line",
+      "description": "tax per line at 0.10 on ['105', '205', '305'] JPY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "105",
+          "205",
+          "305"
+        ],
+        "rate": "0.10",
+        "currency": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "line_taxes": [
+          "11",
+          "21",
+          "31"
+        ],
+        "total": "63"
+      }
+    },
+    {
+      "id": "money.tax.rate-negative",
+      "description": "tax per line at -0.13 on ['1.00'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "1.00"
+        ],
+        "rate": "-0.13",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATIO_INVALID"
+      }
+    },
+    {
+      "id": "money.tax.rate-above-one",
+      "description": "tax per document at 1.5 on ['1.00'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_document",
+      "input": {
+        "lines": [
+          "1.00"
+        ],
+        "rate": "1.5",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATIO_INVALID"
+      }
+    },
+    {
+      "id": "money.tax.document-negative-line",
+      "description": "tax per document at 0.13 on ['10.00', '-2.00'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_document",
+      "input": {
+        "lines": [
+          "10.00",
+          "-2.00"
+        ],
+        "rate": "0.13",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ALLOCATION_INVALID"
+      }
+    },
+    {
+      "id": "money.tax.line-net-too-fine",
+      "description": "tax per line at 0.13 on ['1.001'] CNY, HALF_AWAY_FROM_ZERO",
+      "op": "tax_line",
+      "input": {
+        "lines": [
+          "1.001"
+        ],
+        "rate": "0.13",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    }
+  ]
+}

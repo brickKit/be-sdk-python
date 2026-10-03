@@ -1,0 +1,639 @@
+{
+  "area": "money",
+  "topic": "currencies",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.currencies.cny",
+      "description": "ISO 4217 minor units of CNY",
+      "op": "minor_units",
+      "input": {
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.usd",
+      "description": "ISO 4217 minor units of USD",
+      "op": "minor_units",
+      "input": {
+        "currency": "USD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.eur",
+      "description": "ISO 4217 minor units of EUR",
+      "op": "minor_units",
+      "input": {
+        "currency": "EUR"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.gbp",
+      "description": "ISO 4217 minor units of GBP",
+      "op": "minor_units",
+      "input": {
+        "currency": "GBP"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.hkd",
+      "description": "ISO 4217 minor units of HKD",
+      "op": "minor_units",
+      "input": {
+        "currency": "HKD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.mop",
+      "description": "ISO 4217 minor units of MOP",
+      "op": "minor_units",
+      "input": {
+        "currency": "MOP"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.twd",
+      "description": "ISO 4217 minor units of TWD",
+      "op": "minor_units",
+      "input": {
+        "currency": "TWD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.jpy",
+      "description": "ISO 4217 minor units of JPY",
+      "op": "minor_units",
+      "input": {
+        "currency": "JPY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.krw",
+      "description": "ISO 4217 minor units of KRW",
+      "op": "minor_units",
+      "input": {
+        "currency": "KRW"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.vnd",
+      "description": "ISO 4217 minor units of VND",
+      "op": "minor_units",
+      "input": {
+        "currency": "VND"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.idr",
+      "description": "ISO 4217 minor units of IDR",
+      "op": "minor_units",
+      "input": {
+        "currency": "IDR"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.inr",
+      "description": "ISO 4217 minor units of INR",
+      "op": "minor_units",
+      "input": {
+        "currency": "INR"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.sgd",
+      "description": "ISO 4217 minor units of SGD",
+      "op": "minor_units",
+      "input": {
+        "currency": "SGD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.chf",
+      "description": "ISO 4217 minor units of CHF",
+      "op": "minor_units",
+      "input": {
+        "currency": "CHF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.aud",
+      "description": "ISO 4217 minor units of AUD",
+      "op": "minor_units",
+      "input": {
+        "currency": "AUD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.cad",
+      "description": "ISO 4217 minor units of CAD",
+      "op": "minor_units",
+      "input": {
+        "currency": "CAD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.rub",
+      "description": "ISO 4217 minor units of RUB",
+      "op": "minor_units",
+      "input": {
+        "currency": "RUB"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.brl",
+      "description": "ISO 4217 minor units of BRL",
+      "op": "minor_units",
+      "input": {
+        "currency": "BRL"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.kwd",
+      "description": "ISO 4217 minor units of KWD",
+      "op": "minor_units",
+      "input": {
+        "currency": "KWD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.bhd",
+      "description": "ISO 4217 minor units of BHD",
+      "op": "minor_units",
+      "input": {
+        "currency": "BHD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.omr",
+      "description": "ISO 4217 minor units of OMR",
+      "op": "minor_units",
+      "input": {
+        "currency": "OMR"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.jod",
+      "description": "ISO 4217 minor units of JOD",
+      "op": "minor_units",
+      "input": {
+        "currency": "JOD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.tnd",
+      "description": "ISO 4217 minor units of TND",
+      "op": "minor_units",
+      "input": {
+        "currency": "TND"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.lyd",
+      "description": "ISO 4217 minor units of LYD",
+      "op": "minor_units",
+      "input": {
+        "currency": "LYD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.iqd",
+      "description": "ISO 4217 minor units of IQD",
+      "op": "minor_units",
+      "input": {
+        "currency": "IQD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 3
+      }
+    },
+    {
+      "id": "money.currencies.clp",
+      "description": "ISO 4217 minor units of CLP",
+      "op": "minor_units",
+      "input": {
+        "currency": "CLP"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.clf",
+      "description": "ISO 4217 minor units of CLF",
+      "op": "minor_units",
+      "input": {
+        "currency": "CLF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 4
+      }
+    },
+    {
+      "id": "money.currencies.uyw",
+      "description": "ISO 4217 minor units of UYW",
+      "op": "minor_units",
+      "input": {
+        "currency": "UYW"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 4
+      }
+    },
+    {
+      "id": "money.currencies.isk",
+      "description": "ISO 4217 minor units of ISK",
+      "op": "minor_units",
+      "input": {
+        "currency": "ISK"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.huf",
+      "description": "ISO 4217 minor units of HUF",
+      "op": "minor_units",
+      "input": {
+        "currency": "HUF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 2
+      }
+    },
+    {
+      "id": "money.currencies.pyg",
+      "description": "ISO 4217 minor units of PYG",
+      "op": "minor_units",
+      "input": {
+        "currency": "PYG"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.ugx",
+      "description": "ISO 4217 minor units of UGX",
+      "op": "minor_units",
+      "input": {
+        "currency": "UGX"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.xaf",
+      "description": "ISO 4217 minor units of XAF",
+      "op": "minor_units",
+      "input": {
+        "currency": "XAF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.xof",
+      "description": "ISO 4217 minor units of XOF",
+      "op": "minor_units",
+      "input": {
+        "currency": "XOF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "minor_units": 0
+      }
+    },
+    {
+      "id": "money.currencies.xau-unknown",
+      "description": "XAU (gold: minor units N.A.) is not in the SDK table",
+      "op": "minor_units",
+      "input": {
+        "currency": "XAU"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.currencies.xxx-unknown",
+      "description": "XXX (the no-currency code) is not in the SDK table",
+      "op": "minor_units",
+      "input": {
+        "currency": "XXX"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.currencies.xts-unknown",
+      "description": "XTS (the testing code) is not in the SDK table",
+      "op": "minor_units",
+      "input": {
+        "currency": "XTS"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.currencies.xdr-unknown",
+      "description": "XDR (SDR: minor units N.A.) is not in the SDK table",
+      "op": "minor_units",
+      "input": {
+        "currency": "XDR"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.currencies.abc-unknown",
+      "description": "ABC (not assigned) is not in the SDK table",
+      "op": "minor_units",
+      "input": {
+        "currency": "ABC"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-lower-case",
+      "description": "'cny' is not an alphabetic ISO code (lower case)",
+      "op": "minor_units",
+      "input": {
+        "currency": "cny"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-two-letters",
+      "description": "'CN' is not an alphabetic ISO code (two letters)",
+      "op": "minor_units",
+      "input": {
+        "currency": "CN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-four-letters",
+      "description": "'CNYX' is not an alphabetic ISO code (four letters)",
+      "op": "minor_units",
+      "input": {
+        "currency": "CNYX"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-empty",
+      "description": "'' is not an alphabetic ISO code (empty)",
+      "op": "minor_units",
+      "input": {
+        "currency": ""
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-numeric",
+      "description": "'156' is not an alphabetic ISO code (the numeric code)",
+      "op": "minor_units",
+      "input": {
+        "currency": "156"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.currencies.invalid-leading-space",
+      "description": "' CNY' is not an alphabetic ISO code (leading space)",
+      "op": "minor_units",
+      "input": {
+        "currency": " CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    }
+  ]
+}

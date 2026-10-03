@@ -1,0 +1,430 @@
+{
+  "area": "envelope",
+  "topic": "names",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.names.stream-sales-order-created-v1",
+      "description": "stream of sales.order.created.v1",
+      "op": "stream",
+      "input": {
+        "subject": "sales.order.created.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_SALES",
+        "filter": "sales.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-erp-inventory-adjusted-v1",
+      "description": "stream of erp.inventory.adjusted.v1",
+      "op": "stream",
+      "input": {
+        "subject": "erp.inventory.adjusted.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_ERP",
+        "filter": "erp.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-infra-authz-changed-v1",
+      "description": "stream of infra.authz.changed.v1",
+      "op": "stream",
+      "input": {
+        "subject": "infra.authz.changed.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_INFRA",
+        "filter": "infra.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-integration-im-result-v1",
+      "description": "stream of integration.im.result.v1",
+      "op": "stream",
+      "input": {
+        "subject": "integration.im.result.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_INTEGRATION",
+        "filter": "integration.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-conformance-widget-created-v1",
+      "description": "stream of conformance.widget.created.v1",
+      "op": "stream",
+      "input": {
+        "subject": "conformance.widget.created.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_CONFORMANCE",
+        "filter": "conformance.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-crm-opportunity-stage-changed-v1",
+      "description": "stream of crm.opportunity.stage_changed.v1",
+      "op": "stream",
+      "input": {
+        "subject": "crm.opportunity.stage_changed.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_CRM",
+        "filter": "crm.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-finance-credit-rejected-v1",
+      "description": "stream of finance.credit.rejected.v1",
+      "op": "stream",
+      "input": {
+        "subject": "finance.credit.rejected.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_FINANCE",
+        "filter": "finance.>"
+      }
+    },
+    {
+      "id": "envelope.names.stream-infra-notification-dispatch-im-v1",
+      "description": "stream of infra.notification.dispatch.im.v1",
+      "op": "stream",
+      "input": {
+        "subject": "infra.notification.dispatch.im.v1"
+      },
+      "refs": [
+        "P12.4"
+      ],
+      "expected": {
+        "stream": "BE_INFRA",
+        "filter": "infra.>"
+      }
+    },
+    {
+      "id": "envelope.names.subject-three-segments",
+      "description": "'erp.created.v1': fewer than four segments",
+      "op": "stream",
+      "input": {
+        "subject": "erp.created.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-upper-case",
+      "description": "'ERP.inventory.adjusted.v1': upper case",
+      "op": "stream",
+      "input": {
+        "subject": "ERP.inventory.adjusted.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-hyphen",
+      "description": "'integration.im-dingtalk.sent.v1': a hyphen in a segment",
+      "op": "stream",
+      "input": {
+        "subject": "integration.im-dingtalk.sent.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-no-version",
+      "description": "'erp.inventory.adjusted': no version segment",
+      "op": "stream",
+      "input": {
+        "subject": "erp.inventory.adjusted"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-version-zero",
+      "description": "'erp.inventory.adjusted.v0': versions start at v1",
+      "op": "stream",
+      "input": {
+        "subject": "erp.inventory.adjusted.v0"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-wildcard",
+      "description": "'erp.inventory.*.v1': a wildcard",
+      "op": "stream",
+      "input": {
+        "subject": "erp.inventory.*.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-empty-segment",
+      "description": "'erp..adjusted.v1': an empty segment",
+      "op": "stream",
+      "input": {
+        "subject": "erp..adjusted.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-leading-underscore",
+      "description": "'erp._inventory.adjusted.v1': a segment starting with an underscore",
+      "op": "stream",
+      "input": {
+        "subject": "erp._inventory.adjusted.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-trailing-underscore",
+      "description": "'erp.inventory_.adjusted.v1': a segment ending with an underscore",
+      "op": "stream",
+      "input": {
+        "subject": "erp.inventory_.adjusted.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-double-underscore",
+      "description": "'erp.stock__level.changed.v1': a double underscore",
+      "op": "stream",
+      "input": {
+        "subject": "erp.stock__level.changed.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.subject-leading-digit",
+      "description": "'erp.2fa.enabled.v1': a segment starting with a digit",
+      "op": "stream",
+      "input": {
+        "subject": "erp.2fa.enabled.v1"
+      },
+      "refs": [
+        "P12.3"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.durable-erp-finance-order",
+      "description": "durable of erp/finance on sales.order.created.v1",
+      "op": "durable",
+      "input": {
+        "component_id": "erp/finance",
+        "subject": "sales.order.created.v1"
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "durable": "erp_finance__sales__order__created__v1",
+        "dlq_subject": "dlq.erp_finance__sales__order__created__v1.sales.order.created.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durable-integration-im-dingtalk-notification",
+      "description": "durable of integration/im-dingtalk on infra.notification.dispatch.im.v1",
+      "op": "durable",
+      "input": {
+        "component_id": "integration/im-dingtalk",
+        "subject": "infra.notification.dispatch.im.v1"
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "durable": "integration_im-dingtalk__infra__notification__dispatch__im__v1",
+        "dlq_subject": "dlq.integration_im-dingtalk__infra__notification__dispatch__im__v1.infra.notification.dispatch.im.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durable-crm-opportunity-sales",
+      "description": "durable of crm/opportunity on erp.sales.order.created.v1",
+      "op": "durable",
+      "input": {
+        "component_id": "crm/opportunity",
+        "subject": "erp.sales.order.created.v1"
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "durable": "crm_opportunity__erp__sales__order__created__v1",
+        "dlq_subject": "dlq.crm_opportunity__erp__sales__order__created__v1.erp.sales.order.created.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durable-conformance-widget-go-owner",
+      "description": "durable of conformance/widget-go on conformance.owner.updated.v1",
+      "op": "durable",
+      "input": {
+        "component_id": "conformance/widget-go",
+        "subject": "conformance.owner.updated.v1"
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "dlq_subject": "dlq.conformance_widget-go__conformance__owner__updated__v1.conformance.owner.updated.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durable-mdm-customer-opportunity",
+      "description": "durable of mdm/customer on crm.opportunity.stage_changed.v1",
+      "op": "durable",
+      "input": {
+        "component_id": "mdm/customer",
+        "subject": "crm.opportunity.stage_changed.v1"
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "durable": "mdm_customer__crm__opportunity__stage_changed__v1",
+        "dlq_subject": "dlq.mdm_customer__crm__opportunity__stage_changed__v1.crm.opportunity.stage_changed.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durable-bad-component",
+      "description": "invalid input",
+      "op": "durable",
+      "input": {
+        "component_id": "erp.finance",
+        "subject": "sales.order.created.v1"
+      },
+      "refs": [
+        "P12.5"
+      ],
+      "expected_error": {
+        "reason": "COMPONENT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.durable-bad-subject",
+      "description": "invalid input",
+      "op": "durable",
+      "input": {
+        "component_id": "erp/finance",
+        "subject": "sales.order.created"
+      },
+      "refs": [
+        "P12.5"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.names.durables-injective-stage-changed",
+      "description": "'.' becomes '__', so subjects that differ only by where '.' and '_' sit keep distinct names",
+      "op": "durable",
+      "input": {
+        "component_id": "crm/opportunity",
+        "subject": "crm.lead.stage_changed.v1"
+      },
+      "refs": [
+        "P12.5"
+      ],
+      "expected": {
+        "durable": "crm_opportunity__crm__lead__stage_changed__v1",
+        "dlq_subject": "dlq.crm_opportunity__crm__lead__stage_changed__v1.crm.lead.stage_changed.v1"
+      }
+    },
+    {
+      "id": "envelope.names.durables-injective-changed",
+      "description": "'.' becomes '__', so subjects that differ only by where '.' and '_' sit keep distinct names",
+      "op": "durable",
+      "input": {
+        "component_id": "crm/opportunity",
+        "subject": "crm.lead_stage.changed.v1"
+      },
+      "refs": [
+        "P12.5"
+      ],
+      "expected": {
+        "durable": "crm_opportunity__crm__lead_stage__changed__v1",
+        "dlq_subject": "dlq.crm_opportunity__crm__lead_stage__changed__v1.crm.lead_stage.changed.v1"
+      }
+    }
+  ]
+}

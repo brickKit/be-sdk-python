@@ -1,0 +1,484 @@
+{
+  "area": "config",
+  "topic": "endpoints",
+  "protocol": "1.0",
+  "generated_by": "config/gen/gen_config.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "config.endpoints.name-http",
+      "description": "address variable of erp/inventory port (main)",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "erp/inventory",
+        "port": ""
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "ERP_INVENTORY_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-grpc",
+      "description": "address variable of erp/inventory port grpc",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "erp/inventory",
+        "port": "grpc"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "ERP_INVENTORY_GRPC_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-hyphen-id",
+      "description": "address variable of integration/im-dingtalk port grpc",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "integration/im-dingtalk",
+        "port": "grpc"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "INTEGRATION_IM_DINGTALK_GRPC_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-hyphen-id-http",
+      "description": "address variable of infra/bff-mobile port (main)",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "infra/bff-mobile",
+        "port": ""
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "INFRA_BFF_MOBILE_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-member-instance",
+      "description": "address variable of conformance/widget-go port grpc",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "conformance/widget-go",
+        "port": "grpc"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "CONFORMANCE_WIDGET_GO_GRPC_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-hyphen-port",
+      "description": "address variable of conformance/peer port admin-api",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "conformance/peer",
+        "port": "admin-api"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected": {
+        "name": "CONFORMANCE_PEER_ADMIN_API_ENDPOINT"
+      }
+    },
+    {
+      "id": "config.endpoints.name-bad-id",
+      "description": "address variable of erp.inventory port grpc",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "erp.inventory",
+        "port": "grpc"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "COMPONENT_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.name-bad-port",
+      "description": "address variable of erp/inventory port GRPC",
+      "op": "endpoint_name",
+      "input": {
+        "dependency": "erp/inventory",
+        "port": "GRPC"
+      },
+      "refs": [
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "PORT_NAME_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-plain",
+      "description": "the scheme is stripped",
+      "op": "endpoint_value",
+      "input": {
+        "value": "http://erp-inventory-3-0-0:9096"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected": {
+        "present": true,
+        "address": "erp-inventory-3-0-0:9096"
+      }
+    },
+    {
+      "id": "config.endpoints.value-trailing-slash",
+      "description": "a trailing slash is stripped",
+      "op": "endpoint_value",
+      "input": {
+        "value": "http://erp-inventory-3-0-0:9096/"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected": {
+        "present": true,
+        "address": "erp-inventory-3-0-0:9096"
+      }
+    },
+    {
+      "id": "config.endpoints.value-absent",
+      "description": "an optional dependency not installed: the variable does not exist",
+      "op": "endpoint_value",
+      "input": {
+        "value": null
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected": {
+        "present": false
+      }
+    },
+    {
+      "id": "config.endpoints.value-empty",
+      "description": "empty is not absent: a configuration error",
+      "op": "endpoint_value",
+      "input": {
+        "value": ""
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-no-scheme",
+      "description": "brickKit always writes http://",
+      "op": "endpoint_value",
+      "input": {
+        "value": "erp-inventory-3-0-0:9096"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-https",
+      "description": "only http:// is injected",
+      "op": "endpoint_value",
+      "input": {
+        "value": "https://erp-inventory:9096"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-no-port",
+      "description": "a port is always present",
+      "op": "endpoint_value",
+      "input": {
+        "value": "http://erp-inventory"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-path",
+      "description": "an address has no path",
+      "op": "endpoint_value",
+      "input": {
+        "value": "http://erp-inventory:9096/v1"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.value-shell-service",
+      "description": "in a shell the member's port on the shell's service",
+      "op": "endpoint_value",
+      "input": {
+        "value": "http://be-go-core-1-1-0:9096"
+      },
+      "refs": [
+        "P2.5",
+        "P2.6"
+      ],
+      "expected": {
+        "present": true,
+        "address": "be-go-core-1-1-0:9096"
+      }
+    },
+    {
+      "id": "config.endpoints.family-authz",
+      "description": "$endpoint:infra/authz: the REST base",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": "http://infra-authz-3-0-0:8223"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "base": "http://infra-authz-3-0-0:8223"
+      }
+    },
+    {
+      "id": "config.endpoints.family-authz-grpc",
+      "description": "$endpoint:infra/authz:grpc: the gRPC target is host:port",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_GRPC_URL",
+        "value": "http://infra-authz-3-0-0:9223"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "target": "infra-authz-3-0-0:9223"
+      }
+    },
+    {
+      "id": "config.endpoints.family-iam",
+      "description": "the identity family the same way",
+      "op": "family_address",
+      "input": {
+        "key": "IAM_URL",
+        "value": "http://infra-iam-casdoor-3-0-0:8200"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "base": "http://infra-iam-casdoor-3-0-0:8200"
+      }
+    },
+    {
+      "id": "config.endpoints.family-iam-grpc",
+      "description": "$endpoint:infra/iam-casdoor:grpc",
+      "op": "family_address",
+      "input": {
+        "key": "IAM_GRPC_URL",
+        "value": "http://infra-iam-casdoor-3-0-0:9200"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "target": "infra-iam-casdoor-3-0-0:9200"
+      }
+    },
+    {
+      "id": "config.endpoints.family-grpc-port-unrelated",
+      "description": "the gRPC port is whatever the member declares: no port arithmetic",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_GRPC_URL",
+        "value": "http://infra-authz-openfga-3-0-0:7311"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "target": "infra-authz-openfga-3-0-0:7311"
+      }
+    },
+    {
+      "id": "config.endpoints.family-shell-hosted",
+      "description": "a member hosted by a shell: the shell's service, the member's own port",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_GRPC_URL",
+        "value": "http://be-go-infra-1-1-0:9223"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "target": "be-go-infra-1-1-0:9223"
+      }
+    },
+    {
+      "id": "config.endpoints.family-trailing-slash",
+      "description": "a trailing slash is stripped",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": "http://infra-authz-3-0-0:8223/"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": true,
+        "base": "http://infra-authz-3-0-0:8223"
+      }
+    },
+    {
+      "id": "config.endpoints.family-absent",
+      "description": "the family member does not run: the key does not exist and the caller degrades",
+      "op": "family_address",
+      "input": {
+        "key": "IAM_GRPC_URL",
+        "value": null
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "present": false
+      }
+    },
+    {
+      "id": "config.endpoints.family-no-port",
+      "description": "the port must be explicit",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": "http://infra-authz-3-0-0"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.family-path",
+      "description": "a family address has no path; REST paths are appended by the runtime",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": "http://infra-authz-3-0-0:8223/authz/v2"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.family-https",
+      "description": "project-network addresses are http://",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": "https://infra-authz-3-0-0:8223"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.family-grpc-no-scheme",
+      "description": "the value is written by $endpoint:, always with http://",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_GRPC_URL",
+        "value": "infra-authz-3-0-0:9223"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.family-empty",
+      "description": "a family key may not be empty",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_URL",
+        "value": ""
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_INVALID"
+      }
+    },
+    {
+      "id": "config.endpoints.family-not-family-key",
+      "description": "only the four family address keys",
+      "op": "family_address",
+      "input": {
+        "key": "AUTHZ_BUNDLE_URL",
+        "value": "http://infra-authz-3-0-0:8223/authz/v2/bundle"
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    }
+  ]
+}

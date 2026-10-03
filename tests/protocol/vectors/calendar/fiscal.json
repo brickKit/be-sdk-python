@@ -1,0 +1,630 @@
+{
+  "area": "calendar",
+  "topic": "fiscal",
+  "protocol": "1.0",
+  "generated_by": "calendar/gen/gen_calendar.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "notes": {
+    "tzdata": "2026c"
+  },
+  "cases": [
+    {
+      "id": "calendar.fiscal.jan-start",
+      "description": "calendar fiscal year",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-10-15",
+        "start_month": 1
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026",
+        "period": 10,
+        "period_key": "2026-P10",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "label": "2026-10"
+      }
+    },
+    {
+      "id": "calendar.fiscal.jan-start-january",
+      "description": "first period",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-01-01",
+        "start_month": 1
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026",
+        "period": 1,
+        "period_key": "2026-P01",
+        "start_date": "2026-01-01",
+        "end_date": "2026-01-31",
+        "label": "2026-01"
+      }
+    },
+    {
+      "id": "calendar.fiscal.jan-start-december",
+      "description": "last period",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-12-31",
+        "start_month": 1
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026",
+        "period": 12,
+        "period_key": "2026-P12",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-31",
+        "label": "2026-12"
+      }
+    },
+    {
+      "id": "calendar.fiscal.april-start-april",
+      "description": "first period of FY 2026/27",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-04-01",
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026/27",
+        "period": 1,
+        "period_key": "2026-P01",
+        "start_date": "2026-04-01",
+        "end_date": "2026-04-30",
+        "label": "2026-04"
+      }
+    },
+    {
+      "id": "calendar.fiscal.april-start-march",
+      "description": "last period of FY 2026/27",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2027-03-31",
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026/27",
+        "period": 12,
+        "period_key": "2026-P12",
+        "start_date": "2027-03-01",
+        "end_date": "2027-03-31",
+        "label": "2027-03"
+      }
+    },
+    {
+      "id": "calendar.fiscal.april-start-october",
+      "description": "period 7; the label 2026-10 is display only",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-10-02",
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026/27",
+        "period": 7,
+        "period_key": "2026-P07",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "label": "2026-10"
+      }
+    },
+    {
+      "id": "calendar.fiscal.april-start-january",
+      "description": "January belongs to the fiscal year that began the April before",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2027-01-15",
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026/27",
+        "period": 10,
+        "period_key": "2026-P10",
+        "start_date": "2027-01-01",
+        "end_date": "2027-01-31",
+        "label": "2027-01"
+      }
+    },
+    {
+      "id": "calendar.fiscal.july-start",
+      "description": "June is the last period of FY 2025/26",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-06-30",
+        "start_month": 7
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2025,
+        "fiscal_year_label": "2025/26",
+        "period": 12,
+        "period_key": "2025-P12",
+        "start_date": "2026-06-01",
+        "end_date": "2026-06-30",
+        "label": "2026-06"
+      }
+    },
+    {
+      "id": "calendar.fiscal.october-start",
+      "description": "first period of FY 2026/27",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-10-01",
+        "start_month": 10
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "fiscal_year_label": "2026/27",
+        "period": 1,
+        "period_key": "2026-P01",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "label": "2026-10"
+      }
+    },
+    {
+      "id": "calendar.fiscal.december-start",
+      "description": "December start: November is period 12",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-11-30",
+        "start_month": 12
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2025,
+        "fiscal_year_label": "2025/26",
+        "period": 12,
+        "period_key": "2025-P12",
+        "start_date": "2026-11-01",
+        "end_date": "2026-11-30",
+        "label": "2026-11"
+      }
+    },
+    {
+      "id": "calendar.fiscal.leap-february",
+      "description": "the leap day",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2028-02-29",
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2027,
+        "fiscal_year_label": "2027/28",
+        "period": 11,
+        "period_key": "2027-P11",
+        "start_date": "2028-02-01",
+        "end_date": "2028-02-29",
+        "label": "2028-02"
+      }
+    },
+    {
+      "id": "calendar.fiscal.start-zero",
+      "description": "start month 0",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-10-01",
+        "start_month": 0
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected_error": {
+        "reason": "FISCAL_START_INVALID"
+      }
+    },
+    {
+      "id": "calendar.fiscal.start-thirteen",
+      "description": "start month 13",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-10-01",
+        "start_month": 13
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected_error": {
+        "reason": "FISCAL_START_INVALID"
+      }
+    },
+    {
+      "id": "calendar.fiscal.bad-date",
+      "description": "no such date",
+      "op": "fiscal_period",
+      "input": {
+        "date": "2026-02-29",
+        "start_month": 1
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected_error": {
+        "reason": "DATE_INVALID"
+      }
+    },
+    {
+      "id": "calendar.fiscal.year-jan",
+      "description": "twelve calendar months",
+      "op": "fiscal_year",
+      "input": {
+        "fiscal_year": 2026,
+        "start_month": 1
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "periods": [
+          {
+            "period": 1,
+            "period_key": "2026-P01",
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31",
+            "label": "2026-01"
+          },
+          {
+            "period": 2,
+            "period_key": "2026-P02",
+            "start_date": "2026-02-01",
+            "end_date": "2026-02-28",
+            "label": "2026-02"
+          },
+          {
+            "period": 3,
+            "period_key": "2026-P03",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-31",
+            "label": "2026-03"
+          },
+          {
+            "period": 4,
+            "period_key": "2026-P04",
+            "start_date": "2026-04-01",
+            "end_date": "2026-04-30",
+            "label": "2026-04"
+          },
+          {
+            "period": 5,
+            "period_key": "2026-P05",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-31",
+            "label": "2026-05"
+          },
+          {
+            "period": 6,
+            "period_key": "2026-P06",
+            "start_date": "2026-06-01",
+            "end_date": "2026-06-30",
+            "label": "2026-06"
+          },
+          {
+            "period": 7,
+            "period_key": "2026-P07",
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-31",
+            "label": "2026-07"
+          },
+          {
+            "period": 8,
+            "period_key": "2026-P08",
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-31",
+            "label": "2026-08"
+          },
+          {
+            "period": 9,
+            "period_key": "2026-P09",
+            "start_date": "2026-09-01",
+            "end_date": "2026-09-30",
+            "label": "2026-09"
+          },
+          {
+            "period": 10,
+            "period_key": "2026-P10",
+            "start_date": "2026-10-01",
+            "end_date": "2026-10-31",
+            "label": "2026-10"
+          },
+          {
+            "period": 11,
+            "period_key": "2026-P11",
+            "start_date": "2026-11-01",
+            "end_date": "2026-11-30",
+            "label": "2026-11"
+          },
+          {
+            "period": 12,
+            "period_key": "2026-P12",
+            "start_date": "2026-12-01",
+            "end_date": "2026-12-31",
+            "label": "2026-12"
+          }
+        ]
+      }
+    },
+    {
+      "id": "calendar.fiscal.year-april",
+      "description": "April 2026 to March 2027",
+      "op": "fiscal_year",
+      "input": {
+        "fiscal_year": 2026,
+        "start_month": 4
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2026,
+        "start_date": "2026-04-01",
+        "end_date": "2027-03-31",
+        "periods": [
+          {
+            "period": 1,
+            "period_key": "2026-P01",
+            "start_date": "2026-04-01",
+            "end_date": "2026-04-30",
+            "label": "2026-04"
+          },
+          {
+            "period": 2,
+            "period_key": "2026-P02",
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-31",
+            "label": "2026-05"
+          },
+          {
+            "period": 3,
+            "period_key": "2026-P03",
+            "start_date": "2026-06-01",
+            "end_date": "2026-06-30",
+            "label": "2026-06"
+          },
+          {
+            "period": 4,
+            "period_key": "2026-P04",
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-31",
+            "label": "2026-07"
+          },
+          {
+            "period": 5,
+            "period_key": "2026-P05",
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-31",
+            "label": "2026-08"
+          },
+          {
+            "period": 6,
+            "period_key": "2026-P06",
+            "start_date": "2026-09-01",
+            "end_date": "2026-09-30",
+            "label": "2026-09"
+          },
+          {
+            "period": 7,
+            "period_key": "2026-P07",
+            "start_date": "2026-10-01",
+            "end_date": "2026-10-31",
+            "label": "2026-10"
+          },
+          {
+            "period": 8,
+            "period_key": "2026-P08",
+            "start_date": "2026-11-01",
+            "end_date": "2026-11-30",
+            "label": "2026-11"
+          },
+          {
+            "period": 9,
+            "period_key": "2026-P09",
+            "start_date": "2026-12-01",
+            "end_date": "2026-12-31",
+            "label": "2026-12"
+          },
+          {
+            "period": 10,
+            "period_key": "2026-P10",
+            "start_date": "2027-01-01",
+            "end_date": "2027-01-31",
+            "label": "2027-01"
+          },
+          {
+            "period": 11,
+            "period_key": "2026-P11",
+            "start_date": "2027-02-01",
+            "end_date": "2027-02-28",
+            "label": "2027-02"
+          },
+          {
+            "period": 12,
+            "period_key": "2026-P12",
+            "start_date": "2027-03-01",
+            "end_date": "2027-03-31",
+            "label": "2027-03"
+          }
+        ]
+      }
+    },
+    {
+      "id": "calendar.fiscal.year-march-leap",
+      "description": "March 2027 to February 2028 (leap)",
+      "op": "fiscal_year",
+      "input": {
+        "fiscal_year": 2027,
+        "start_month": 3
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected": {
+        "fiscal_year": 2027,
+        "start_date": "2027-03-01",
+        "end_date": "2028-02-29",
+        "periods": [
+          {
+            "period": 1,
+            "period_key": "2027-P01",
+            "start_date": "2027-03-01",
+            "end_date": "2027-03-31",
+            "label": "2027-03"
+          },
+          {
+            "period": 2,
+            "period_key": "2027-P02",
+            "start_date": "2027-04-01",
+            "end_date": "2027-04-30",
+            "label": "2027-04"
+          },
+          {
+            "period": 3,
+            "period_key": "2027-P03",
+            "start_date": "2027-05-01",
+            "end_date": "2027-05-31",
+            "label": "2027-05"
+          },
+          {
+            "period": 4,
+            "period_key": "2027-P04",
+            "start_date": "2027-06-01",
+            "end_date": "2027-06-30",
+            "label": "2027-06"
+          },
+          {
+            "period": 5,
+            "period_key": "2027-P05",
+            "start_date": "2027-07-01",
+            "end_date": "2027-07-31",
+            "label": "2027-07"
+          },
+          {
+            "period": 6,
+            "period_key": "2027-P06",
+            "start_date": "2027-08-01",
+            "end_date": "2027-08-31",
+            "label": "2027-08"
+          },
+          {
+            "period": 7,
+            "period_key": "2027-P07",
+            "start_date": "2027-09-01",
+            "end_date": "2027-09-30",
+            "label": "2027-09"
+          },
+          {
+            "period": 8,
+            "period_key": "2027-P08",
+            "start_date": "2027-10-01",
+            "end_date": "2027-10-31",
+            "label": "2027-10"
+          },
+          {
+            "period": 9,
+            "period_key": "2027-P09",
+            "start_date": "2027-11-01",
+            "end_date": "2027-11-30",
+            "label": "2027-11"
+          },
+          {
+            "period": 10,
+            "period_key": "2027-P10",
+            "start_date": "2027-12-01",
+            "end_date": "2027-12-31",
+            "label": "2027-12"
+          },
+          {
+            "period": 11,
+            "period_key": "2027-P11",
+            "start_date": "2028-01-01",
+            "end_date": "2028-01-31",
+            "label": "2028-01"
+          },
+          {
+            "period": 12,
+            "period_key": "2027-P12",
+            "start_date": "2028-02-01",
+            "end_date": "2028-02-29",
+            "label": "2028-02"
+          }
+        ]
+      }
+    },
+    {
+      "id": "calendar.fiscal.year-bad-start",
+      "description": "start month 0",
+      "op": "fiscal_year",
+      "input": {
+        "fiscal_year": 2026,
+        "start_month": 0
+      },
+      "refs": [
+        "P11.7",
+        "P11.9"
+      ],
+      "expected_error": {
+        "reason": "FISCAL_START_INVALID"
+      }
+    }
+  ]
+}

@@ -1,0 +1,523 @@
+{
+  "area": "config",
+  "topic": "forms",
+  "protocol": "1.0",
+  "generated_by": "config/gen/gen_config.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "config.forms.literal",
+      "description": "a literal",
+      "op": "value_form",
+      "input": {
+        "written": "erp_sales",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "literal"
+      }
+    },
+    {
+      "id": "config.forms.var",
+      "description": "a shared variable",
+      "op": "value_form",
+      "input": {
+        "written": "$var:PG_HOST",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "var",
+        "name": "PG_HOST"
+      }
+    },
+    {
+      "id": "config.forms.var-secret",
+      "description": "a secret through a shared variable (vars.yaml holds ${PG_PASSWORD})",
+      "op": "value_form",
+      "input": {
+        "written": "$var:PG_PASSWORD",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "var",
+        "name": "PG_PASSWORD"
+      }
+    },
+    {
+      "id": "config.forms.var-with-suffix",
+      "description": "$var: must be the whole value",
+      "op": "value_form",
+      "input": {
+        "written": "$var:PG_HOST:5432",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.env",
+      "description": "a secret from .env or the process environment",
+      "op": "value_form",
+      "input": {
+        "written": "${PG_PASSWORD}",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "env",
+        "name": "PG_PASSWORD"
+      }
+    },
+    {
+      "id": "config.forms.env-empty-default",
+      "description": "may legitimately be empty",
+      "op": "value_form",
+      "input": {
+        "written": "${DINGTALK_SECRET:-}",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "env",
+        "name": "DINGTALK_SECRET",
+        "default": ""
+      }
+    },
+    {
+      "id": "config.forms.env-plain-default",
+      "description": "a default for a plain value",
+      "op": "value_form",
+      "input": {
+        "written": "${LOG_LEVEL:-info}",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "env",
+        "name": "LOG_LEVEL",
+        "default": "info"
+      }
+    },
+    {
+      "id": "config.forms.env-secret-default",
+      "description": "a plaintext default for a secret",
+      "op": "value_form",
+      "input": {
+        "written": "${PG_PASSWORD:-dev}",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "SECRET_PLAINTEXT_DEFAULT"
+      }
+    },
+    {
+      "id": "config.forms.env-nested",
+      "description": "references do not nest",
+      "op": "value_form",
+      "input": {
+        "written": "${A:-${B}}",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.env-digit-name",
+      "description": "a name cannot start with a digit",
+      "op": "value_form",
+      "input": {
+        "written": "${1X}",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.env-unclosed",
+      "description": "a missing brace",
+      "op": "value_form",
+      "input": {
+        "written": "${PG_PASSWORD",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.template",
+      "description": "a template inside a string",
+      "op": "value_form",
+      "input": {
+        "written": "jdbc:postgresql://${PG_HOST}:5432/people",
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "template",
+        "names": [
+          "PG_HOST"
+        ]
+      }
+    },
+    {
+      "id": "config.forms.template-secret",
+      "description": "a secret written inside a template leaks the rest as plaintext",
+      "op": "value_form",
+      "input": {
+        "written": "postgres://u:${PG_PASSWORD}@h/db",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "SECRET_NOT_REFERENCE"
+      }
+    },
+    {
+      "id": "config.forms.file",
+      "description": "a file read at generation time",
+      "op": "value_form",
+      "input": {
+        "written": "file://.secrets/app_token_private_key.pem",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "file",
+        "path": ".secrets/app_token_private_key.pem"
+      }
+    },
+    {
+      "id": "config.forms.file-absolute",
+      "description": "file:// paths are relative to the project root",
+      "op": "value_form",
+      "input": {
+        "written": "file:///etc/passwd",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.file-parent",
+      "description": "no escaping the project",
+      "op": "value_form",
+      "input": {
+        "written": "file://../outside.pem",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.secret-literal",
+      "description": "a plaintext secret",
+      "op": "value_form",
+      "input": {
+        "written": "s3cr3t",
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "SECRET_NOT_REFERENCE"
+      }
+    },
+    {
+      "id": "config.forms.existing-secret",
+      "description": "Kubernetes: a Secret managed elsewhere",
+      "op": "value_form",
+      "input": {
+        "written": {
+          "existingSecret": "pg-credentials",
+          "key": "password"
+        },
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected": {
+        "form": "existing_secret",
+        "name": "pg-credentials",
+        "key": "password"
+      }
+    },
+    {
+      "id": "config.forms.existing-secret-plain",
+      "description": "existingSecret only for secret: true items",
+      "op": "value_form",
+      "input": {
+        "written": {
+          "existingSecret": "pg-credentials",
+          "key": "host"
+        },
+        "secret": false
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_NOT_FOR_PLAIN"
+      }
+    },
+    {
+      "id": "config.forms.existing-secret-bad",
+      "description": "the key is required",
+      "op": "value_form",
+      "input": {
+        "written": {
+          "existingSecret": "pg-credentials"
+        },
+        "secret": true
+      },
+      "refs": [
+        "P2.7"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint",
+      "description": "a family address: the project's default version, main port",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/authz"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-port",
+      "description": "the extra port named grpc",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz:grpc",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/authz",
+        "port": "grpc"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-version-port",
+      "description": "a given version, then the port",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz@3.0.0:grpc",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/authz",
+        "version": "3.0.0",
+        "port": "grpc"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-path",
+      "description": "an address with a path appended",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/iam-casdoor/.well-known/jwks.json",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/iam-casdoor",
+        "path": "/.well-known/jwks.json"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-self-callback",
+      "description": "a member's own callback address, handed to its IdP",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/iam-casdoor/api/iam/webhooks/casdoor",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/iam-casdoor",
+        "path": "/api/iam/webhooks/casdoor"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-version-path",
+      "description": "a version, then a path",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz@3.0.0/authz/v2/bundle",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected": {
+        "form": "endpoint",
+        "component": "infra/authz",
+        "version": "3.0.0",
+        "path": "/authz/v2/bundle"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-port-then-version",
+      "description": "the version comes before the port",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz:grpc@3.0.0",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-loose-version",
+      "description": "versions are exact",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz@3.0",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-port-upper",
+      "description": "port names are lower case",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz:GRPC",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-one-segment",
+      "description": "a component ID has two segments",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:authz",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-suffix",
+      "description": "$endpoint: must be the whole value",
+      "op": "value_form",
+      "input": {
+        "written": "http://$endpoint:infra/authz",
+        "secret": false
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "FORM_INVALID"
+      }
+    },
+    {
+      "id": "config.forms.endpoint-secret",
+      "description": "an address is never a secret",
+      "op": "value_form",
+      "input": {
+        "written": "$endpoint:infra/authz",
+        "secret": true
+      },
+      "refs": [
+        "P2.10"
+      ],
+      "expected_error": {
+        "reason": "SECRET_NOT_REFERENCE"
+      }
+    }
+  ]
+}

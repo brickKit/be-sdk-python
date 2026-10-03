@@ -1,0 +1,485 @@
+{
+  "area": "numbering",
+  "topic": "format",
+  "protocol": "1.0",
+  "generated_by": "numbering/gen/gen_numbering.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "numbering.format.sales-order-default",
+      "description": "the documented default SO{yyyy}{mm}-{seq:05}",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy}{mm}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "SO202610-00012"
+      }
+    },
+    {
+      "id": "numbering.format.with-legal-entity",
+      "description": "legal entity code in the number",
+      "op": "format_number",
+      "input": {
+        "format": "{le}-SO{yyyy}{mm}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "LE01-SO202610-00012"
+      }
+    },
+    {
+      "id": "numbering.format.two-digit-year",
+      "description": "{yy}",
+      "op": "format_number",
+      "input": {
+        "format": "INV{yy}{mm}{seq:04}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "INV26100012"
+      }
+    },
+    {
+      "id": "numbering.format.yearly",
+      "description": "a yearly series",
+      "op": "format_number",
+      "input": {
+        "format": "PO{yyyy}-{seq:06}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "PO2026-000012"
+      }
+    },
+    {
+      "id": "numbering.format.never-resets",
+      "description": "no date part: one series forever",
+      "op": "format_number",
+      "input": {
+        "format": "C{seq:08}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "C00000012"
+      }
+    },
+    {
+      "id": "numbering.format.voucher-cjk",
+      "description": "a Chinese voucher prefix",
+      "op": "format_number",
+      "input": {
+        "format": "记-{yyyy}{mm}-{seq:04}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "记-202610-0012"
+      }
+    },
+    {
+      "id": "numbering.format.seq-wider-than-width",
+      "description": "a sequence beyond the width widens, never truncates",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy}{mm}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 123456
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "SO202610-123456"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-1",
+      "description": "width 1",
+      "op": "format_number",
+      "input": {
+        "format": "X{seq:1}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 7
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "X7"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-18",
+      "description": "width 18",
+      "op": "format_number",
+      "input": {
+        "format": "X{seq:18}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 1
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "X000000000000000001"
+      }
+    },
+    {
+      "id": "numbering.format.january",
+      "description": "month is zero-padded",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy}{mm}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2027-01-31",
+        "seq": 1
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "SO202701-00001"
+      }
+    },
+    {
+      "id": "numbering.format.year-2000-yy",
+      "description": "{yy} of 2000 is 00",
+      "op": "format_number",
+      "input": {
+        "format": "Y{yy}-{seq:03}",
+        "legal_entity_code": "LE01",
+        "business_date": "2000-06-01",
+        "seq": 5
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "Y00-005"
+      }
+    },
+    {
+      "id": "numbering.format.unknown-placeholder",
+      "description": "{dd} is not a placeholder",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy}{mm}{dd}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-no-width",
+      "description": "{seq} needs a width",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-zero",
+      "description": "width 0",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:0}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-19",
+      "description": "width above 18",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:19}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-unpadded",
+      "description": "{seq:5} and {seq:05} mean the same width",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:5}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "number": "SO00012"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-three-digits",
+      "description": "a width has at most two digits",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:005}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-width-zero-padded-zero",
+      "description": "{seq:00} is width 0",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:00}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.two-seq",
+      "description": "two sequences",
+      "op": "format_number",
+      "input": {
+        "format": "{seq:03}-{seq:03}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.no-seq",
+      "description": "no sequence: numbers would repeat",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy}{mm}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_NO_SEQUENCE"
+      }
+    },
+    {
+      "id": "numbering.format.month-without-year",
+      "description": "monthly reset without a year repeats every year",
+      "op": "format_number",
+      "input": {
+        "format": "SO{mm}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_REPEATS"
+      }
+    },
+    {
+      "id": "numbering.format.unbalanced-open",
+      "description": "an unclosed brace",
+      "op": "format_number",
+      "input": {
+        "format": "SO{yyyy-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.unbalanced-close",
+      "description": "a stray closing brace",
+      "op": "format_number",
+      "input": {
+        "format": "SO}{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.whitespace",
+      "description": "whitespace in a literal",
+      "op": "format_number",
+      "input": {
+        "format": "SO {seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.upper-case-placeholder",
+      "description": "placeholders are lower case",
+      "op": "format_number",
+      "input": {
+        "format": "SO{YYYY}-{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.empty",
+      "description": "an empty format",
+      "op": "format_number",
+      "input": {
+        "format": "",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "FORMAT_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.seq-zero",
+      "description": "sequences start at 1",
+      "op": "format_number",
+      "input": {
+        "format": "SO{seq:05}",
+        "legal_entity_code": "LE01",
+        "business_date": "2026-10-02",
+        "seq": 0
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "SEQ_INVALID"
+      }
+    },
+    {
+      "id": "numbering.format.bad-legal-entity-code",
+      "description": "a legal entity code with a space",
+      "op": "format_number",
+      "input": {
+        "format": "{le}{seq:03}",
+        "legal_entity_code": "LE 01",
+        "business_date": "2026-10-02",
+        "seq": 12
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected_error": {
+        "reason": "LEGAL_ENTITY_CODE_INVALID"
+      }
+    }
+  ]
+}

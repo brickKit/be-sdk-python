@@ -1,0 +1,1042 @@
+{
+  "area": "errors",
+  "topic": "codes",
+  "protocol": "1.0",
+  "generated_by": "errors/gen/gen_errors.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "errors.codes.ok",
+      "description": "OK on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "OK"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 0,
+        "http": 200
+      }
+    },
+    {
+      "id": "errors.codes.cancelled",
+      "description": "CANCELLED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "CANCELLED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 1,
+        "http": 499
+      }
+    },
+    {
+      "id": "errors.codes.unknown",
+      "description": "UNKNOWN on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "UNKNOWN"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 2,
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.invalid-argument",
+      "description": "INVALID_ARGUMENT on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "INVALID_ARGUMENT"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 3,
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.deadline-exceeded",
+      "description": "DEADLINE_EXCEEDED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "DEADLINE_EXCEEDED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 4,
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.codes.not-found",
+      "description": "NOT_FOUND on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "NOT_FOUND"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 5,
+        "http": 404
+      }
+    },
+    {
+      "id": "errors.codes.already-exists",
+      "description": "ALREADY_EXISTS on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "ALREADY_EXISTS"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 6,
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.permission-denied",
+      "description": "PERMISSION_DENIED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "PERMISSION_DENIED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 7,
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.resource-exhausted",
+      "description": "RESOURCE_EXHAUSTED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "RESOURCE_EXHAUSTED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 8,
+        "http": 429
+      }
+    },
+    {
+      "id": "errors.codes.failed-precondition",
+      "description": "FAILED_PRECONDITION on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "FAILED_PRECONDITION"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 9,
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.aborted",
+      "description": "ABORTED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "ABORTED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 10,
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.out-of-range",
+      "description": "OUT_OF_RANGE on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "OUT_OF_RANGE"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 11,
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.unimplemented",
+      "description": "UNIMPLEMENTED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "UNIMPLEMENTED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 12,
+        "http": 501
+      }
+    },
+    {
+      "id": "errors.codes.internal",
+      "description": "INTERNAL on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "INTERNAL"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 13,
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.unavailable",
+      "description": "UNAVAILABLE on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "UNAVAILABLE"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 14,
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.data-loss",
+      "description": "DATA_LOSS on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "DATA_LOSS"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 15,
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.unauthenticated",
+      "description": "UNAUTHENTICATED on the wire",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "UNAUTHENTICATED"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected": {
+        "number": 16,
+        "http": 401
+      }
+    },
+    {
+      "id": "errors.codes.body-too-large",
+      "description": "BODY_TOO_LARGE is INVALID_ARGUMENT answered as 413",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "INVALID_ARGUMENT",
+        "reason": "BODY_TOO_LARGE",
+        "domain": "be"
+      },
+      "refs": [
+        "P3.6",
+        "P4.2"
+      ],
+      "expected": {
+        "number": 3,
+        "http": 413
+      }
+    },
+    {
+      "id": "errors.codes.unknown-code",
+      "description": "not a canonical code name",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "NOT_A_CODE"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected_error": {
+        "reason": "CODE_UNKNOWN"
+      }
+    },
+    {
+      "id": "errors.codes.lower-case-code",
+      "description": "code names are upper case",
+      "op": "grpc_to_http",
+      "input": {
+        "code": "not_found"
+      },
+      "refs": [
+        "P4.2"
+      ],
+      "expected_error": {
+        "reason": "CODE_UNKNOWN"
+      }
+    },
+    {
+      "id": "errors.codes.be-internal",
+      "description": "platform reason INTERNAL",
+      "op": "be_reason",
+      "input": {
+        "reason": "INTERNAL"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.be-token-stale",
+      "description": "platform reason TOKEN_STALE",
+      "op": "be_reason",
+      "input": {
+        "reason": "TOKEN_STALE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAUTHENTICATED",
+        "domain": "be",
+        "http": 401
+      }
+    },
+    {
+      "id": "errors.codes.be-missing-permission",
+      "description": "platform reason MISSING_PERMISSION",
+      "op": "be_reason",
+      "input": {
+        "reason": "MISSING_PERMISSION"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "PERMISSION_DENIED",
+        "domain": "be",
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.be-not-found",
+      "description": "platform reason NOT_FOUND",
+      "op": "be_reason",
+      "input": {
+        "reason": "NOT_FOUND"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "NOT_FOUND",
+        "domain": "be",
+        "http": 404
+      }
+    },
+    {
+      "id": "errors.codes.be-authz-not-ready",
+      "description": "platform reason AUTHZ_NOT_READY",
+      "op": "be_reason",
+      "input": {
+        "reason": "AUTHZ_NOT_READY"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.be-not-ready",
+      "description": "platform reason NOT_READY",
+      "op": "be_reason",
+      "input": {
+        "reason": "NOT_READY"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.be-token-invalid",
+      "description": "platform reason TOKEN_INVALID",
+      "op": "be_reason",
+      "input": {
+        "reason": "TOKEN_INVALID"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAUTHENTICATED",
+        "domain": "be",
+        "http": 401
+      }
+    },
+    {
+      "id": "errors.codes.be-unsupported-delegation",
+      "description": "platform reason UNSUPPORTED_DELEGATION",
+      "op": "be_reason",
+      "input": {
+        "reason": "UNSUPPORTED_DELEGATION"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAUTHENTICATED",
+        "domain": "be",
+        "http": 401
+      }
+    },
+    {
+      "id": "errors.codes.be-missing-caller",
+      "description": "platform reason MISSING_CALLER",
+      "op": "be_reason",
+      "input": {
+        "reason": "MISSING_CALLER"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAUTHENTICATED",
+        "domain": "be",
+        "http": 401
+      }
+    },
+    {
+      "id": "errors.codes.be-out-of-scope",
+      "description": "platform reason OUT_OF_SCOPE",
+      "op": "be_reason",
+      "input": {
+        "reason": "OUT_OF_SCOPE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "PERMISSION_DENIED",
+        "domain": "be",
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.be-field-forbidden",
+      "description": "platform reason FIELD_FORBIDDEN",
+      "op": "be_reason",
+      "input": {
+        "reason": "FIELD_FORBIDDEN"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "PERMISSION_DENIED",
+        "domain": "be",
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.be-sort-forbidden",
+      "description": "platform reason SORT_FORBIDDEN",
+      "op": "be_reason",
+      "input": {
+        "reason": "SORT_FORBIDDEN"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-share-not-allowed",
+      "description": "platform reason SHARE_NOT_ALLOWED",
+      "op": "be_reason",
+      "input": {
+        "reason": "SHARE_NOT_ALLOWED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "PERMISSION_DENIED",
+        "domain": "be",
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.be-capability-unavailable",
+      "description": "platform reason CAPABILITY_UNAVAILABLE",
+      "op": "be_reason",
+      "input": {
+        "reason": "CAPABILITY_UNAVAILABLE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNIMPLEMENTED",
+        "domain": "be",
+        "http": 501
+      }
+    },
+    {
+      "id": "errors.codes.be-idempotency-mismatch",
+      "description": "platform reason IDEMPOTENCY_MISMATCH",
+      "op": "be_reason",
+      "input": {
+        "reason": "IDEMPOTENCY_MISMATCH"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-idempotency-in-progress",
+      "description": "platform reason IDEMPOTENCY_IN_PROGRESS",
+      "op": "be_reason",
+      "input": {
+        "reason": "IDEMPOTENCY_IN_PROGRESS"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "ABORTED",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.be-cursor-invalid",
+      "description": "platform reason CURSOR_INVALID",
+      "op": "be_reason",
+      "input": {
+        "reason": "CURSOR_INVALID"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-batch-too-large",
+      "description": "platform reason BATCH_TOO_LARGE",
+      "op": "be_reason",
+      "input": {
+        "reason": "BATCH_TOO_LARGE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-lock-timeout",
+      "description": "platform reason LOCK_TIMEOUT",
+      "op": "be_reason",
+      "input": {
+        "reason": "LOCK_TIMEOUT"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "ABORTED",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.be-statement-timeout",
+      "description": "platform reason STATEMENT_TIMEOUT",
+      "op": "be_reason",
+      "input": {
+        "reason": "STATEMENT_TIMEOUT"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "DEADLINE_EXCEEDED",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.codes.be-tx-conflict",
+      "description": "platform reason TX_CONFLICT",
+      "op": "be_reason",
+      "input": {
+        "reason": "TX_CONFLICT"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "ABORTED",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.be-db-pool-exhausted",
+      "description": "platform reason DB_POOL_EXHAUSTED",
+      "op": "be_reason",
+      "input": {
+        "reason": "DB_POOL_EXHAUSTED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "RESOURCE_EXHAUSTED",
+        "domain": "be",
+        "http": 429
+      }
+    },
+    {
+      "id": "errors.codes.be-outbound-limit",
+      "description": "platform reason OUTBOUND_LIMIT",
+      "op": "be_reason",
+      "input": {
+        "reason": "OUTBOUND_LIMIT"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "RESOURCE_EXHAUSTED",
+        "domain": "be",
+        "http": 429
+      }
+    },
+    {
+      "id": "errors.codes.be-deadline-budget-exhausted",
+      "description": "platform reason DEADLINE_BUDGET_EXHAUSTED",
+      "op": "be_reason",
+      "input": {
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "DEADLINE_EXCEEDED",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.codes.be-body-too-large",
+      "description": "platform reason BODY_TOO_LARGE",
+      "op": "be_reason",
+      "input": {
+        "reason": "BODY_TOO_LARGE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "domain": "be",
+        "http": 413
+      }
+    },
+    {
+      "id": "errors.codes.be-range-cold",
+      "description": "platform reason RANGE_COLD",
+      "op": "be_reason",
+      "input": {
+        "reason": "RANGE_COLD"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "FAILED_PRECONDITION",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-unit-sealed",
+      "description": "platform reason UNIT_SEALED",
+      "op": "be_reason",
+      "input": {
+        "reason": "UNIT_SEALED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "FAILED_PRECONDITION",
+        "domain": "be",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.be-rate-limited",
+      "description": "platform reason RATE_LIMITED",
+      "op": "be_reason",
+      "input": {
+        "reason": "RATE_LIMITED"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "RESOURCE_EXHAUSTED",
+        "domain": "be",
+        "http": 429
+      }
+    },
+    {
+      "id": "errors.codes.be-upstream-unavailable",
+      "description": "platform reason UPSTREAM_UNAVAILABLE",
+      "op": "be_reason",
+      "input": {
+        "reason": "UPSTREAM_UNAVAILABLE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.be-upstream-timeout",
+      "description": "platform reason UPSTREAM_TIMEOUT",
+      "op": "be_reason",
+      "input": {
+        "reason": "UPSTREAM_TIMEOUT"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "DEADLINE_EXCEEDED",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.codes.be-network-in-tx",
+      "description": "platform reason NETWORK_IN_TX",
+      "op": "be_reason",
+      "input": {
+        "reason": "NETWORK_IN_TX"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.be-db-too-many-connections",
+      "description": "platform reason DB_TOO_MANY_CONNECTIONS",
+      "op": "be_reason",
+      "input": {
+        "reason": "DB_TOO_MANY_CONNECTIONS"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.codes.be-nested-tx",
+      "description": "platform reason NESTED_TX",
+      "op": "be_reason",
+      "input": {
+        "reason": "NESTED_TX"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "code": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.restore-problem-kept",
+      "description": "a dependency's problem+json is kept as it is",
+      "op": "restore_http",
+      "input": {
+        "status": 400,
+        "problem": {
+          "code": "FAILED_PRECONDITION",
+          "reason": "INSUFFICIENT_STOCK",
+          "domain": "erp/inventory"
+        }
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "FAILED_PRECONDITION",
+        "reason": "INSUFFICIENT_STOCK",
+        "domain": "erp/inventory",
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.restore-problem-be-kept",
+      "description": "a platform reason is kept",
+      "op": "restore_http",
+      "input": {
+        "status": 403,
+        "problem": {
+          "code": "PERMISSION_DENIED",
+          "reason": "MISSING_PERMISSION",
+          "domain": "be"
+        }
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "PERMISSION_DENIED",
+        "reason": "MISSING_PERMISSION",
+        "domain": "be",
+        "http": 403
+      }
+    },
+    {
+      "id": "errors.codes.restore-problem-413",
+      "description": "413 with its problem body",
+      "op": "restore_http",
+      "input": {
+        "status": 413,
+        "problem": {
+          "code": "INVALID_ARGUMENT",
+          "reason": "BODY_TOO_LARGE",
+          "domain": "be"
+        }
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "reason": "BODY_TOO_LARGE",
+        "domain": "be",
+        "http": 413
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-400",
+      "description": "no problem body: code from the status",
+      "op": "restore_http",
+      "input": {
+        "status": 400,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "INVALID_ARGUMENT",
+        "reason": null,
+        "domain": null,
+        "http": 400
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-409",
+      "description": "409 without a body is ABORTED",
+      "op": "restore_http",
+      "input": {
+        "status": 409,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "ABORTED",
+        "reason": null,
+        "domain": null,
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-418",
+      "description": "an unlisted 4xx",
+      "op": "restore_http",
+      "input": {
+        "status": 418,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "FAILED_PRECONDITION",
+        "reason": null,
+        "domain": null,
+        "http": 418
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-502",
+      "description": "a gateway error",
+      "op": "restore_http",
+      "input": {
+        "status": 502,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "UNAVAILABLE",
+        "reason": null,
+        "domain": null,
+        "http": 502
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-500",
+      "description": "a bare 500",
+      "op": "restore_http",
+      "input": {
+        "status": 500,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "UNKNOWN",
+        "reason": null,
+        "domain": null,
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.codes.restore-no-problem-507",
+      "description": "an unlisted 5xx",
+      "op": "restore_http",
+      "input": {
+        "status": 507,
+        "problem": null
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "UNKNOWN",
+        "reason": null,
+        "domain": null,
+        "http": 507
+      }
+    },
+    {
+      "id": "errors.codes.restore-problem-without-reason",
+      "description": "a problem body missing reason and domain",
+      "op": "restore_http",
+      "input": {
+        "status": 404,
+        "problem": {
+          "code": "NOT_FOUND"
+        }
+      },
+      "refs": [
+        "P8.2",
+        "P4.2"
+      ],
+      "expected": {
+        "code": "NOT_FOUND",
+        "reason": null,
+        "domain": null,
+        "http": 404
+      }
+    }
+  ]
+}

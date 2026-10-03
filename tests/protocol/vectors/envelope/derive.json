@@ -1,0 +1,240 @@
+{
+  "area": "envelope",
+  "topic": "derive",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.derive.request",
+      "description": "a user request or a system rpc starts a chain",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "request"
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "",
+        "hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.event",
+      "description": "first hop",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "event",
+          "handled": {
+            "id": "01a0fba0-99b0-7123-a000-000000000001",
+            "hop_count": 0
+          }
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+        "hop_count": 1
+      }
+    },
+    {
+      "id": "envelope.derive.event-deep",
+      "description": "hop 9 publishes hop 10",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "event",
+          "handled": {
+            "id": "01a0fba0-99b0-7123-a000-000000000001",
+            "hop_count": 9
+          }
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+        "hop_count": 10
+      }
+    },
+    {
+      "id": "envelope.derive.event-at-limit",
+      "description": "hop 10 publishes hop 11; publishing is never refused, the consumer dead-letters it",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "event",
+          "handled": {
+            "id": "01a0fba0-99b0-7123-a000-000000000001",
+            "hop_count": 10
+          }
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+        "hop_count": 11
+      }
+    },
+    {
+      "id": "envelope.derive.queued-job",
+      "description": "a queued job publishes with the values captured when it was enqueued",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "queued_job",
+          "job": {
+            "causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+            "hop_count": 2
+          }
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+        "hop_count": 2
+      }
+    },
+    {
+      "id": "envelope.derive.queued-job-from-request",
+      "description": "a job enqueued in a request",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "queued_job",
+          "job": {
+            "causation_id": "",
+            "hop_count": 0
+          }
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "",
+        "hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.cron",
+      "description": "a cron run starts a chain",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "cron"
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "",
+        "hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.singleton",
+      "description": "a singleton run starts a chain",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "singleton"
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "",
+        "hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.reconciler",
+      "description": "a reconciler step starts a chain",
+      "op": "derive",
+      "input": {
+        "context": {
+          "kind": "reconciler"
+        }
+      },
+      "refs": [
+        "P12.8"
+      ],
+      "expected": {
+        "causation_id": "",
+        "hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.enqueue-in-request",
+      "description": "the job row stores what an event published now would carry",
+      "op": "enqueue_context",
+      "input": {
+        "context": {
+          "kind": "request"
+        }
+      },
+      "refs": [
+        "P12.8",
+        "P14"
+      ],
+      "expected": {
+        "job_causation_id": "",
+        "job_hop_count": 0
+      }
+    },
+    {
+      "id": "envelope.derive.enqueue-in-handler",
+      "description": "inherits the handled event",
+      "op": "enqueue_context",
+      "input": {
+        "context": {
+          "kind": "event",
+          "handled": {
+            "id": "01a0fba0-99b0-7123-a000-000000000001",
+            "hop_count": 4
+          }
+        }
+      },
+      "refs": [
+        "P12.8",
+        "P14"
+      ],
+      "expected": {
+        "job_causation_id": "01a0fba0-99b0-7123-a000-000000000001",
+        "job_hop_count": 5
+      }
+    },
+    {
+      "id": "envelope.derive.enqueue-in-cron",
+      "description": "a cron run starts a chain",
+      "op": "enqueue_context",
+      "input": {
+        "context": {
+          "kind": "cron"
+        }
+      },
+      "refs": [
+        "P12.8",
+        "P14"
+      ],
+      "expected": {
+        "job_causation_id": "",
+        "job_hop_count": 0
+      }
+    }
+  ]
+}

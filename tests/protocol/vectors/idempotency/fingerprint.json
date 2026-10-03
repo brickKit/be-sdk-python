@@ -1,0 +1,1164 @@
+{
+  "area": "idempotency",
+  "topic": "fingerprint",
+  "protocol": "1.0",
+  "generated_by": "idempotency/gen/gen_idempotency.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-0000000000000000",
+      "description": "RFC 8785 number sample 0x0000000000000000 written as 0.0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":0.0}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":0}",
+        "sha256": "f3013f933b9fb80ab6d995e7ad9da36f683837ba1d81e950c943d40111eac2f0"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-8000000000000000",
+      "description": "RFC 8785 number sample 0x8000000000000000 written as -0.0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-0.0}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":0}",
+        "sha256": "f3013f933b9fb80ab6d995e7ad9da36f683837ba1d81e950c943d40111eac2f0"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-0000000000000001",
+      "description": "RFC 8785 number sample 0x0000000000000001 written as 5e-324",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":5e-324}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":5e-324}",
+        "sha256": "cf4df7d2834198d284947133d3ec7a66f3d94e8d447cac6a0783324211b36d43"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-8000000000000001",
+      "description": "RFC 8785 number sample 0x8000000000000001 written as -5e-324",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-5e-324}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":-5e-324}",
+        "sha256": "db93947692a55593072b514da386faf1a8c7dc6c49f2d037ac7d9c0f89d5956a"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-7fefffffffffffff",
+      "description": "RFC 8785 number sample 0x7fefffffffffffff written as 1.7976931348623157e+308",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1.7976931348623157e+308}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":1.7976931348623157e+308}",
+        "sha256": "9599e0f9672bfa5d654b432fa5f9b7ee04f35c607b3a3ff01ce97b070f8f2648"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-ffefffffffffffff",
+      "description": "RFC 8785 number sample 0xffefffffffffffff written as -1.7976931348623157e+308",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-1.7976931348623157e+308}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":-1.7976931348623157e+308}",
+        "sha256": "f1ab4b1ad58d11c148ebb64cc86506290ab42b198162ffd4e1d2f1772d8c3a4b"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-4340000000000000",
+      "description": "RFC 8785 number sample 0x4340000000000000 written as 9007199254740992.0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":9007199254740992.0}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":9007199254740992}",
+        "sha256": "66c87d9cb3014e05a11baa97df62282d89d425f22ee15816577c84534e2ef1bb"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-c340000000000000",
+      "description": "RFC 8785 number sample 0xc340000000000000 written as -9007199254740992.0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-9007199254740992.0}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":-9007199254740992}",
+        "sha256": "b05a958438727696a33ea9f819b69ca4ea39b5ee89f0f80a61d5f813875f9734"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-4430000000000000",
+      "description": "RFC 8785 number sample 0x4430000000000000 written as 2.9514790517935283e+20",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":2.9514790517935283e+20}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":295147905179352830000}",
+        "sha256": "325cc4ff312eeb1384e130b9072cebd2eca9ad95e621fb017b1ffcc161ebf477"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-44b52d02c7e14af5",
+      "description": "RFC 8785 number sample 0x44b52d02c7e14af5 written as 9.999999999999997e+22",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":9.999999999999997e+22}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":9.999999999999997e+22}",
+        "sha256": "491b1f5976bc87bb471c8095f795c7d51065b16440ccd6dec5c16a28db4f93dc"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-44b52d02c7e14af6",
+      "description": "RFC 8785 number sample 0x44b52d02c7e14af6 written as 1e+23",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1e+23}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":1e+23}",
+        "sha256": "f8acd93b4d43262e8d22f393b3fc172b2608154644f68bd2295239d62451edef"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-44b52d02c7e14af7",
+      "description": "RFC 8785 number sample 0x44b52d02c7e14af7 written as 1.0000000000000001e+23",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1.0000000000000001e+23}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":1.0000000000000001e+23}",
+        "sha256": "7dbb03dffbdbc82effa56050f04ba388db0e16d0084dbe69012440341b65e5a8"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-444b1ae4d6e2ef4e",
+      "description": "RFC 8785 number sample 0x444b1ae4d6e2ef4e written as 9.999999999999997e+20",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":9.999999999999997e+20}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":999999999999999700000}",
+        "sha256": "0a3c0de48065cb644319c57ce0af93c2ef88d1f8d9f228be26bb4831391d0021"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-444b1ae4d6e2ef4f",
+      "description": "RFC 8785 number sample 0x444b1ae4d6e2ef4f written as 9.999999999999999e+20",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":9.999999999999999e+20}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":999999999999999900000}",
+        "sha256": "8e51b9a1b33e4815dbf02451cf409338b6c2e4eaa3399f5fa0b72d162e48dd6e"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-444b1ae4d6e2ef50",
+      "description": "RFC 8785 number sample 0x444b1ae4d6e2ef50 written as 1e+21",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1e+21}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":1e+21}",
+        "sha256": "f1ee2b60ee95a3170fdc07a577e5f3514ced26867443d69da265acadead81007"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-3eb0c6f7a0b5ed8c",
+      "description": "RFC 8785 number sample 0x3eb0c6f7a0b5ed8c written as 9.999999999999997e-07",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":9.999999999999997e-07}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":9.999999999999997e-7}",
+        "sha256": "ea0486d765f0e78e3cfd35b0da15c67c6c5f7aefde4dd5bc17ad8b8e95880a1f"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-3eb0c6f7a0b5ed8d",
+      "description": "RFC 8785 number sample 0x3eb0c6f7a0b5ed8d written as 1e-06",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1e-06}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":0.000001}",
+        "sha256": "28343867a0be00aee19f81aa90cfd6c646878b9303fa15410d16bfd3f8894578"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-41b3de4355555553",
+      "description": "RFC 8785 number sample 0x41b3de4355555553 written as 333333333.3333332",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":333333333.3333332}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":333333333.3333332}",
+        "sha256": "1e2e5158c5181c3fdce46fb33314ecd3d0d65aa634f728cbf0263dccef9da48a"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-41b3de4355555554",
+      "description": "RFC 8785 number sample 0x41b3de4355555554 written as 333333333.33333325",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":333333333.33333325}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":333333333.33333325}",
+        "sha256": "ac4d04fb830b0f5f3c69cbabe1f395fa6461c293693aaac69e31a68d442aefd7"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-41b3de4355555555",
+      "description": "RFC 8785 number sample 0x41b3de4355555555 written as 333333333.3333333",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":333333333.3333333}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":333333333.3333333}",
+        "sha256": "8e1aa496328ac7acbd045b34464ae11d72d8b525c355b85099382ffcb499143b"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-41b3de4355555556",
+      "description": "RFC 8785 number sample 0x41b3de4355555556 written as 333333333.3333334",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":333333333.3333334}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":333333333.3333334}",
+        "sha256": "3c8fb0b18feffd17c168b36aef586b8984d28808e4ef73f3e3b467085c079972"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-41b3de4355555557",
+      "description": "RFC 8785 number sample 0x41b3de4355555557 written as 333333333.33333343",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":333333333.33333343}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":333333333.33333343}",
+        "sha256": "3bec5b8b8e554841ebdf6460208c624df5fc1674a82a8bf97e0577dbb209cae7"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-becbf647612f3696",
+      "description": "RFC 8785 number sample 0xbecbf647612f3696 written as -3.3333333333333333e-06",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-3.3333333333333333e-06}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":-0.0000033333333333333333}",
+        "sha256": "aae32db884750318e6c338f99586e0d862246d45ad53aafbd7e83dcdd037f8b3"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-number-43143ff3c1cb0959",
+      "description": "RFC 8785 number sample 0x43143ff3c1cb0959 written as 1424953923781206.2",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1424953923781206.2}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"n\":1424953923781206.2}",
+        "sha256": "c620a6071bc4870e99e38aeff2dbb0ae03cb7d525d60f0cad1b1abcb5bfafe05"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-nan",
+      "description": "rejected input: NaN is not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":NaN}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-infinity",
+      "description": "rejected input: Infinity is not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":Infinity}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.overflow-to-infinity",
+      "description": "rejected input: a number that overflows a double",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":1e400}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.negative-overflow",
+      "description": "rejected input: a negative number that overflows a double",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"n\":-1e400}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.duplicate-key",
+      "description": "rejected input: duplicate member names (I-JSON)",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":1,\"a\":2}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.trailing-comma",
+      "description": "rejected input: not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":1,}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.single-quotes",
+      "description": "rejected input: not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{'a':1}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.leading-zero",
+      "description": "rejected input: not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":01}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.hex-number",
+      "description": "rejected input: not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":0x10}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.plus-sign",
+      "description": "rejected input: not JSON",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":+1}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.empty-text",
+      "description": "rejected input: no value",
+      "op": "fingerprint",
+      "input": {
+        "json_text": ""
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected_error": {
+        "reason": "JSON_INVALID"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.int-and-float-equal",
+      "description": "numbers: 1",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":1}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":1}",
+        "sha256": "92438ddd4266b3271fcebff491a7db7f0995332bade824c704f83596b7f36f74"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.float-one",
+      "description": "numbers: 1.0 canonicalises to 1, same hash as 1",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":1.0}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":1}",
+        "sha256": "92438ddd4266b3271fcebff491a7db7f0995332bade824c704f83596b7f36f74"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.exponent-one",
+      "description": "numbers: 1E0 canonicalises to 1",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":1E0}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":1}",
+        "sha256": "92438ddd4266b3271fcebff491a7db7f0995332bade824c704f83596b7f36f74"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.hundredths",
+      "description": "numbers: 100e-2 is 1",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":100e-2}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":1}",
+        "sha256": "92438ddd4266b3271fcebff491a7db7f0995332bade824c704f83596b7f36f74"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.negative-zero",
+      "description": "numbers: -0 canonicalises to 0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":-0}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":0}",
+        "sha256": "54cd4e1f5cadb63e3e42886dd2541886dea4908fedbb94cad73932be1e81d66e"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.negative-zero-float",
+      "description": "numbers: -0.0 canonicalises to 0",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":-0.0}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":0}",
+        "sha256": "54cd4e1f5cadb63e3e42886dd2541886dea4908fedbb94cad73932be1e81d66e"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.small",
+      "description": "numbers: below 1e-6 uses the exponent form",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"x\":1e-7}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"x\":1e-7}",
+        "sha256": "43c8e92bd5552bd45030718eb9366d6d6500623793c248666d77dca01ba337c0"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.small-fixed",
+      "description": "numbers: 1e-6 is still fixed notation",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"x\":0.000001}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"x\":0.000001}",
+        "sha256": "2d6412ab0155bb89d63b73dbf83334b26b39d03e8c832cc253c6a6caceba9733"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.large-fixed",
+      "description": "numbers: 1e20 is fixed notation",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"x\":1e20}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"x\":100000000000000000000}",
+        "sha256": "356acd219b8c369fc389513fb5c3f9fc2977fff3c432bab9df5b1e3a2800b072"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.large-exponent",
+      "description": "numbers: 1e21 switches to the exponent form",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"x\":1e21}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"x\":1e+21}",
+        "sha256": "f4bcbb57bdf54b5b595d88096406c936d86bf0b6dd316d0ad2b4d2504c610403"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.beyond-2-53",
+      "description": "numbers: an integer beyond 2^53 collapses to the nearest double",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"id\":9007199254740993}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"id\":9007199254740992}",
+        "sha256": "24bb430971eb50f964e63784a7ad4f3411bc7cdb1659188e371150793e872da1"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.big-integer",
+      "description": "numbers: a 30-digit integer",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"id\":123456789012345678901234567890}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"id\":1.2345678901234568e+29}",
+        "sha256": "36f86b2eb539eed3104ba5a75ce70993646f79af1ee6f27eefdd1fe077c17997"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.string-number-differs",
+      "description": "numbers: a string is not a number: different hash from 1",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"qty\":\"1\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"qty\":\"1\"}",
+        "sha256": "a67512f204c1a781ac5673592b52f6edd8c162045ba366d01060dba425d789f8"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.money-as-string",
+      "description": "numbers: money stays a string, trailing zero kept",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"amount\":\"12.30\",\"currency\":\"CNY\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"amount\":\"12.30\",\"currency\":\"CNY\"}",
+        "sha256": "b210a10a7c6c33b2141cdca9767c35b5b53d9734347a613b7b87b01230579207"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.money-as-string-no-zero",
+      "description": "numbers: '12.3' is a different string from '12.30'",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"amount\":\"12.3\",\"currency\":\"CNY\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"amount\":\"12.3\",\"currency\":\"CNY\"}",
+        "sha256": "20b555a1ae7f0950fd687073cbc27247a0324a66c598c76a2c3dbbefe6c51588"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-example",
+      "description": "the RFC 8785 §3.2.4 example object",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"numbers\": [333333333.33333329, 1E30, 4.50, 2e-3, 0.000000000000000000000000001], \"string\": \"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\", \"literals\": [null, true, false]}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.4"
+      ],
+      "expected": {
+        "canonical": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+        "sha256": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.rfc8785-sorting",
+      "description": "the RFC 8785 §3.2.3 sorting example: UTF-16 code units, not code points",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"\\u20ac\": \"Euro Sign\", \"\\r\": \"Carriage Return\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"1\": \"One\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"}"
+      },
+      "refs": [
+        "P13.2",
+        "RFC8785-3.2.3"
+      ],
+      "expected": {
+        "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+        "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.key-order-a",
+      "description": "keys are sorted",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"b\":2,\"a\":1}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":1,\"b\":2}",
+        "sha256": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.key-order-b",
+      "description": "same hash as key-order-a",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":1,\"b\":2}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":1,\"b\":2}",
+        "sha256": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.nested-sort",
+      "description": "nested objects inside arrays are sorted too",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"z\":{\"y\":1,\"x\":[{\"b\":1,\"a\":2}]},\"a\":null}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":null,\"z\":{\"x\":[{\"a\":2,\"b\":1}],\"y\":1}}",
+        "sha256": "e33b0495e6bfd853be253c19aaa57f977ec9505335ac471806e7ee264f8cef14"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.array-order-a",
+      "description": "array order is kept",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"items\":[\"p1\",\"p2\"]}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"items\":[\"p1\",\"p2\"]}",
+        "sha256": "b7ecc139c3b86794883f5ec524085f92d5e0a19070a8ffe7a7fb0c4b5f63c49a"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.array-order-b",
+      "description": "different hash from array-order-a",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"items\":[\"p2\",\"p1\"]}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"items\":[\"p2\",\"p1\"]}",
+        "sha256": "7e7668bc7a1d2c6345551b16354b8e04dd4ac1700fa7cebc5164be2cb34af5a7"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.whitespace",
+      "description": "insignificant whitespace is dropped",
+      "op": "fingerprint",
+      "input": {
+        "json_text": " {\n  \"a\" : 1 ,\t\"b\":[ 1 , 2 ] }\r\n"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":1,\"b\":[1,2]}",
+        "sha256": "8baa73198470c7bb4c3ce142a8fd651affc0310d878bb9bd159e37a573fb4874"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.empty-object",
+      "description": "empty object",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{}",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.empty-array",
+      "description": "a top-level array",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "[]"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "[]",
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.nested-empty",
+      "description": "empty containers and string",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"a\":{},\"b\":[],\"c\":\"\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":{},\"b\":[],\"c\":\"\"}",
+        "sha256": "e052004170cc85d084722ffe760c499548014bfdbdf5275548b688255770dfc2"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.literals",
+      "description": "literals",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"t\":true,\"f\":false,\"n\":null}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"f\":false,\"n\":null,\"t\":true}",
+        "sha256": "22e00dc2f7b01420f940fbdbfbdf34fa0667cc6500186495023ba37722cbd05e"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.cjk-value",
+      "description": "CJK stays raw UTF-8",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"name\":\"华东一仓\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"name\":\"华东一仓\"}",
+        "sha256": "33801d5623af0d9e6349a2749d3bd7b0654797d960334171a882f12986eaea21"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.cjk-keys",
+      "description": "CJK keys sort after ASCII by UTF-16 unit",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"仓库\":\"1\",\"客户\":\"2\",\"a\":\"3\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"a\":\"3\",\"仓库\":\"1\",\"客户\":\"2\"}",
+        "sha256": "81b82fa35135eafd611384143dfb91aec7a028668cad17278092b2be03704842"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.nfc",
+      "description": "precomposed é (NFC)",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"name\":\"caf\\u00e9\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"name\":\"café\"}",
+        "sha256": "645fa443126a8954fc6d871912b8fc67bc2ee8feae417efe55546251962ca74d"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.nfd",
+      "description": "decomposed é (NFD): no normalisation, different hash from nfc",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"name\":\"cafe\\u0301\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"name\":\"café\"}",
+        "sha256": "4b7186ff40a64bfae3cb4bd75ac13b0de5ee693190f20812aaff208a77560ca7"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.emoji-escaped",
+      "description": "a surrogate pair escape becomes raw UTF-8",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"e\":\"\\ud83d\\ude00\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"e\":\"😀\"}",
+        "sha256": "47a47202d021be06dcb0cf0f7f943a022eb9bb434ef039969ffaa344b9280dca"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.emoji-raw",
+      "description": "same hash as emoji-escaped",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"e\":\"😀\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"e\":\"😀\"}",
+        "sha256": "47a47202d021be06dcb0cf0f7f943a022eb9bb434ef039969ffaa344b9280dca"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.astral-vs-bmp-key",
+      "description": "U+1F600 sorts before U+FFFF by UTF-16 unit",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"\\ud83d\\ude00\":1,\"\\uffff\":2}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"😀\":1,\"￿\":2}",
+        "sha256": "c6b1b96b618d8be475f379fe69c6646b44d7a5d3c01630c43509562f09d1024b"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.control-chars",
+      "description": "controls: short escapes where they exist, else \\u00xx lower case",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"s\":\"\\u0000\\u0001\\u001f\\b\\t\\n\\f\\r\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"s\":\"\\u0000\\u0001\\u001f\\b\\t\\n\\f\\r\"}",
+        "sha256": "e15f83b45a02c8e19ed48f0e01b0568eb3565bf13e6a0b31fba4608601aa2b2a"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.del-and-separators",
+      "description": "DEL, U+2028 and U+2029 are not escaped",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"s\":\"\\u007f\\u2028\\u2029\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"s\":\"  \"}",
+        "sha256": "da4cc65bdb6002dcd6eb1076f48a550e2b3fbb139844a8ad738a6be0c574f716"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.slash",
+      "description": "an escaped solidus is written as /",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"s\":\"a\\/b\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"s\":\"a/b\"}",
+        "sha256": "9c264114e98db725a30993f561fc16c317f85758d9919128ca9102281570bd83"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.quote-backslash",
+      "description": "quote and backslash are escaped",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"s\":\"\\\"\\\\\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"s\":\"\\\"\\\\\"}",
+        "sha256": "8e094918f52f9adc6a011876bcfd9ff71d867ba58357c980fce5a0d2a977be0c"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.unicode-escape-upper",
+      "description": "\\u00C9 decodes to É, written raw",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"s\":\"\\u00C9\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"s\":\"É\"}",
+        "sha256": "9d80addacba3633b50fe80f1602343cf67be79a0a063da14f09a3f1a451f8bca"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.request-create-widget",
+      "description": "a typical create request",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"name\":\"Widget A\",\"kind_code\":\"STD\",\"region\":\"east\",\"legal_entity_id\":\"LE01\",\"currency\":\"CNY\",\"price\":\"12.500000\",\"quantity\":\"2\",\"lines\":[{\"line_no\":1,\"description\":\"x\"}]}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"currency\":\"CNY\",\"kind_code\":\"STD\",\"legal_entity_id\":\"LE01\",\"lines\":[{\"description\":\"x\",\"line_no\":1}],\"name\":\"Widget A\",\"price\":\"12.500000\",\"quantity\":\"2\",\"region\":\"east\"}",
+        "sha256": "b9a3ced5c85dfb0f08621d73301adea0c6834859f3c7ba571573b1ad465ec1b0"
+      }
+    },
+    {
+      "id": "idempotency.fingerprint.request-create-widget-reordered",
+      "description": "the same request with every key reordered: same hash",
+      "op": "fingerprint",
+      "input": {
+        "json_text": "{\"lines\":[{\"description\":\"x\",\"line_no\":1}],\"quantity\":\"2\",\"price\":\"12.500000\",\"currency\":\"CNY\",\"legal_entity_id\":\"LE01\",\"region\":\"east\",\"kind_code\":\"STD\",\"name\":\"Widget A\"}"
+      },
+      "refs": [
+        "P13.2"
+      ],
+      "expected": {
+        "canonical": "{\"currency\":\"CNY\",\"kind_code\":\"STD\",\"legal_entity_id\":\"LE01\",\"lines\":[{\"description\":\"x\",\"line_no\":1}],\"name\":\"Widget A\",\"price\":\"12.500000\",\"quantity\":\"2\",\"region\":\"east\"}",
+        "sha256": "b9a3ced5c85dfb0f08621d73301adea0c6834859f3c7ba571573b1ad465ec1b0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,864 @@
+{
+  "area": "money",
+  "topic": "parse",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.parse.plain",
+      "description": "parse '12.30' as amount",
+      "op": "parse",
+      "input": {
+        "value": "12.30",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.3"
+      }
+    },
+    {
+      "id": "money.parse.integer",
+      "description": "parse '1230' as amount",
+      "op": "parse",
+      "input": {
+        "value": "1230",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1230"
+      }
+    },
+    {
+      "id": "money.parse.negative",
+      "description": "parse '-5.25' as amount",
+      "op": "parse",
+      "input": {
+        "value": "-5.25",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-5.25"
+      }
+    },
+    {
+      "id": "money.parse.negative-zero",
+      "description": "parse '-0' as amount",
+      "op": "parse",
+      "input": {
+        "value": "-0",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "money.parse.negative-zero-fraction",
+      "description": "parse '-0.000' as amount",
+      "op": "parse",
+      "input": {
+        "value": "-0.000",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "money.parse.leading-zeros",
+      "description": "parse '007.50' as amount",
+      "op": "parse",
+      "input": {
+        "value": "007.50",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "7.5"
+      }
+    },
+    {
+      "id": "money.parse.zero",
+      "description": "parse '0' as amount",
+      "op": "parse",
+      "input": {
+        "value": "0",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "money.parse.trailing-zeros-beyond-scale",
+      "description": "parse '1.2300000000' as amount",
+      "op": "parse",
+      "input": {
+        "value": "1.2300000000",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.23"
+      }
+    },
+    {
+      "id": "money.parse.amount-max",
+      "description": "parse '999999999999999.9999' as amount",
+      "op": "parse",
+      "input": {
+        "value": "999999999999999.9999",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "999999999999999.9999"
+      }
+    },
+    {
+      "id": "money.parse.amount-min",
+      "description": "parse '-999999999999999.9999' as amount",
+      "op": "parse",
+      "input": {
+        "value": "-999999999999999.9999",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-999999999999999.9999"
+      }
+    },
+    {
+      "id": "money.parse.price-six-decimals",
+      "description": "parse '0.003500' as price",
+      "op": "parse",
+      "input": {
+        "value": "0.003500",
+        "kind": "price"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.0035"
+      }
+    },
+    {
+      "id": "money.parse.price-max",
+      "description": "parse '9999999999999.999999' as price",
+      "op": "parse",
+      "input": {
+        "value": "9999999999999.999999",
+        "kind": "price"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "9999999999999.999999"
+      }
+    },
+    {
+      "id": "money.parse.cost",
+      "description": "parse '12.345678' as cost",
+      "op": "parse",
+      "input": {
+        "value": "12.345678",
+        "kind": "cost"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.345678"
+      }
+    },
+    {
+      "id": "money.parse.quantity",
+      "description": "parse '12.000001' as quantity",
+      "op": "parse",
+      "input": {
+        "value": "12.000001",
+        "kind": "quantity"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.000001"
+      }
+    },
+    {
+      "id": "money.parse.rate-ten-decimals",
+      "description": "parse '7.1234567891' as rate",
+      "op": "parse",
+      "input": {
+        "value": "7.1234567891",
+        "kind": "rate"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "7.1234567891"
+      }
+    },
+    {
+      "id": "money.parse.ratio",
+      "description": "parse '0.130000' as ratio",
+      "op": "parse",
+      "input": {
+        "value": "0.130000",
+        "kind": "ratio"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.13"
+      }
+    },
+    {
+      "id": "money.parse.ratio-max",
+      "description": "parse '999.999999' as ratio",
+      "op": "parse",
+      "input": {
+        "value": "999.999999",
+        "kind": "ratio"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "999.999999"
+      }
+    },
+    {
+      "id": "money.parse.factor-small",
+      "description": "parse '0.000001000000' as factor",
+      "op": "parse",
+      "input": {
+        "value": "0.000001000000",
+        "kind": "factor"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.000001"
+      }
+    },
+    {
+      "id": "money.parse.decimal-unbounded",
+      "description": "parse '123456789012345678901234567890.123456789' as decimal",
+      "op": "parse",
+      "input": {
+        "value": "123456789012345678901234567890.123456789",
+        "kind": "decimal"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "123456789012345678901234567890.123456789"
+      }
+    },
+    {
+      "id": "money.parse.amount-too-many-integer-digits",
+      "description": "parse '1000000000000000' as amount",
+      "op": "parse",
+      "input": {
+        "value": "1000000000000000",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    },
+    {
+      "id": "money.parse.amount-negative-overflow",
+      "description": "parse '-1000000000000000.00' as amount",
+      "op": "parse",
+      "input": {
+        "value": "-1000000000000000.00",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    },
+    {
+      "id": "money.parse.amount-five-decimals",
+      "description": "parse '1.00001' as amount",
+      "op": "parse",
+      "input": {
+        "value": "1.00001",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.parse.price-seven-decimals",
+      "description": "parse '0.0035001' as price",
+      "op": "parse",
+      "input": {
+        "value": "0.0035001",
+        "kind": "price"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.parse.price-overflow",
+      "description": "parse '10000000000000' as price",
+      "op": "parse",
+      "input": {
+        "value": "10000000000000",
+        "kind": "price"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    },
+    {
+      "id": "money.parse.rate-eleven-decimals",
+      "description": "parse '1.00000000001' as rate",
+      "op": "parse",
+      "input": {
+        "value": "1.00000000001",
+        "kind": "rate"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.parse.ratio-overflow",
+      "description": "parse '1000' as ratio",
+      "op": "parse",
+      "input": {
+        "value": "1000",
+        "kind": "ratio"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    },
+    {
+      "id": "money.parse.unknown-kind",
+      "description": "parse '1' as percent",
+      "op": "parse",
+      "input": {
+        "value": "1",
+        "kind": "percent"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "KIND_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.parse.empty",
+      "description": "'' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.space-inside",
+      "description": "'1 000' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1 000",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.leading-space",
+      "description": "' 1' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": " 1",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.trailing-space",
+      "description": "'1 ' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1 ",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.plus",
+      "description": "'+1' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "+1",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.exponent",
+      "description": "'1e5' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1e5",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.exponent-upper",
+      "description": "'1E5' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1E5",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.exponent-fraction",
+      "description": "'1.5e-3' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1.5e-3",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.nan",
+      "description": "'NaN' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "NaN",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.nan-lower",
+      "description": "'nan' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "nan",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.infinity",
+      "description": "'Infinity' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "Infinity",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.negative-infinity",
+      "description": "'-Infinity' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "-Infinity",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.inf",
+      "description": "'inf' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "inf",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.thousands-comma",
+      "description": "'1,000.00' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1,000.00",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.decimal-comma",
+      "description": "'12,30' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "12,30",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.underscore",
+      "description": "'1_000' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1_000",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.trailing-dot",
+      "description": "'1.' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1.",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.leading-dot",
+      "description": "'.5' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": ".5",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.negative-dot",
+      "description": "'-.5' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "-.5",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.two-dots",
+      "description": "'1.2.3' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "1.2.3",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.double-minus",
+      "description": "'--1' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "--1",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.minus-only",
+      "description": "'-' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "-",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.hex",
+      "description": "'0x10' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "0x10",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.fullwidth-digits",
+      "description": "'１２' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "１２",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.arabic-indic-digits",
+      "description": "'١٢' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "١٢",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.currency-sign",
+      "description": "'¥12' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "¥12",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.currency-suffix",
+      "description": "'12CNY' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "12CNY",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.newline",
+      "description": "'12\\n' is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": "12\n",
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.json-number",
+      "description": "a JSON number is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": 12.3,
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.parse.json-null",
+      "description": "null is not a decimal string",
+      "op": "parse",
+      "input": {
+        "value": null,
+        "kind": "amount"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    }
+  ]
+}

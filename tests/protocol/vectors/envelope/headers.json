@@ -1,0 +1,569 @@
+{
+  "area": "envelope",
+  "topic": "headers",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.headers.from-request",
+      "description": "published from a user request: hop 0, no causation header",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.from-handler",
+      "description": "published in an event handler",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-99b0-7123-a000-000000000001",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 7,
+          "occurred_at": "2026-10-02T08:00:01.456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "01a0fba0-9bd0-7abc-bfff-ffffffffffff",
+          "hop_count": 3,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-99b0-7123-a000-000000000001",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "7",
+          "ce-causationid": "01a0fba0-9bd0-7abc-bfff-ffffffffffff",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "3",
+          "ce-id": "01a0fba0-99b0-7123-a000-000000000001",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:01.456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.offset-time",
+      "description": "occurred_at with an offset becomes UTC Z",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T07:30:00+08:00",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-01T23:30:00Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.whole-second",
+      "description": "no fraction when the time is a whole second",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.000000Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.trailing-zeros",
+      "description": "fractional trailing zeros are removed",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.120000Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.12Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.no-traceparent",
+      "description": "no traceparent header when the row has none",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.no-legal-entity",
+      "description": "a master-data event without legal_entity_id has no ce-legalentity",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/peer",
+          "version": "1.0.0",
+          "events_file": "peer.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.owner.updated.v1",
+          "aggregate_type": "conformance.peer.owner",
+          "aggregate_id": "owner-7",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"owner_id\":\"owner-7\",\"display_name\":\"A\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.peer.owner",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/peer@1.0.0/contracts/events/peer.events.json#conformance.owner.updated.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-source": "conformance/peer",
+          "ce-specversion": "1.0",
+          "ce-subject": "owner-7",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.owner.updated.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.legal-entity-required-missing",
+      "description": "a transaction-document event must carry legal_entity_id",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "contract": {
+          "transaction_document": true
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"x\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "LEGAL_ENTITY_MISSING"
+      }
+    },
+    {
+      "id": "envelope.headers.legal-entity-required-empty",
+      "description": "an empty legal_entity_id counts as missing",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "contract": {
+          "transaction_document": true
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"x\",\"legal_entity_id\":\"\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "LEGAL_ENTITY_MISSING"
+      }
+    },
+    {
+      "id": "envelope.headers.legacy-subject",
+      "description": "a legacy first segment keeps its own stream",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "erp/sales",
+          "version": "3.0.0",
+          "events_file": "sales.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "sales.order.created.v1",
+          "aggregate_type": "erp.sales.order",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "erp.sales.order",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "erp/sales@3.0.0/contracts/events/sales.events.json#sales.order.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "erp/sales",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "sales.order.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.shell-member",
+      "description": "in a shell ce-source is the member's ID",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget-go",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected": {
+        "headers": {
+          "Nats-Msg-Id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget-go@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget-go",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        }
+      }
+    },
+    {
+      "id": "envelope.headers.bad-subject",
+      "description": "a subject that breaks the naming rule",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "Widget.Created",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "SUBJECT_INVALID"
+      }
+    },
+    {
+      "id": "envelope.headers.bad-id",
+      "description": "the outbox id must be a UUIDv7",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "0192f0c4-7b1e-4cc3-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 1,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.headers.version-zero",
+      "description": "aggregate versions start at 1",
+      "op": "envelope",
+      "input": {
+        "producer": {
+          "component_id": "conformance/widget",
+          "version": "1.0.0",
+          "events_file": "widget.events.json"
+        },
+        "row": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "aggregate_version": 0,
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "causation_id": "",
+          "hop_count": 0,
+          "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}"
+        }
+      },
+      "refs": [
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ENVELOPE_INVALID"
+      }
+    }
+  ]
+}

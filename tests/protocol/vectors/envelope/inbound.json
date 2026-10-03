@@ -1,0 +1,1101 @@
+{
+  "area": "envelope",
+  "topic": "inbound",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.inbound.valid",
+      "description": "a complete envelope is handled",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "handle",
+        "event": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "source": "conformance/widget",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "version": 1,
+          "hop_count": 0,
+          "causation_id": "",
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "legal_entity": "LE01",
+          "delivery": 1
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.valid-with-causation",
+      "description": "causation and hop count are read",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "4",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "ce-causationid": "01a0fba0-9bd0-7abc-bfff-ffffffffffff"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "handle",
+        "event": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "source": "conformance/widget",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "version": 1,
+          "hop_count": 4,
+          "causation_id": "01a0fba0-9bd0-7abc-bfff-ffffffffffff",
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "legal_entity": "LE01",
+          "delivery": 1
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.hop-10",
+      "description": "hop count 10 is still handled",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "10",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "handle",
+        "event": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "source": "conformance/widget",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "version": 1,
+          "hop_count": 10,
+          "causation_id": "",
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "legal_entity": "LE01",
+          "delivery": 1
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.hop-11",
+      "description": "hop count above 10 goes to the dead letters",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "11",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "HOP_LIMIT"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.missing-id",
+      "description": "no ce-id",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.id-not-v7",
+      "description": "ce-id is a UUIDv4",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "0192f0c4-7b1e-4cc3-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.legacy-x-headers",
+      "description": "only the old X- headers: never read",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "X-Aggregate-Id": "a",
+          "X-Version": "1",
+          "X-Trace-Id": "t",
+          "X-Causation-Id": "",
+          "X-Hop-Count": "0"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.specversion-0-3",
+      "description": "CloudEvents 0.3",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "0.3",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.missing-hopcount",
+      "description": "ce-hopcount is always set by producers",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.hopcount-negative",
+      "description": "a negative hop count",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "-1",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.hopcount-text",
+      "description": "a non-numeric hop count",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "three",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.hopcount-leading-zero",
+      "description": "a hop count with a leading zero",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "03",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.version-zero",
+      "description": "aggregate version 0",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "0",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.version-text",
+      "description": "aggregate version not an integer",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "v2",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.aggregate-type-mismatch",
+      "description": "the header's aggregate type differs from the contract",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.other",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.type-mismatch",
+      "description": "ce-type is not the subscribed subject",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.approved.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.content-type",
+      "description": "a non-JSON content type",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/protobuf",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.bad-time",
+      "description": "ce-time is not RFC 3339",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02 08:00:00",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "ENVELOPE_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.payload-not-json",
+      "description": "the payload does not parse",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{not json",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "PAYLOAD_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.payload-array",
+      "description": "the payload is not an object",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "[1,2]",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "PAYLOAD_INVALID"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.legal-entity-missing",
+      "description": "a transaction-document event without ce-legalentity",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "LEGAL_ENTITY_MISSING"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.legal-entity-disagrees",
+      "description": "header and payload legal entities differ",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE02",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "LEGAL_ENTITY_MISSING"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.legal-entity-not-required",
+      "description": "master data needs no legal entity",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": false
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "0",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"x\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "handle",
+        "event": {
+          "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "subject": "conformance.widget.created.v1",
+          "source": "conformance/widget",
+          "aggregate_type": "conformance.widget.widget",
+          "aggregate_id": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "version": 1,
+          "hop_count": 0,
+          "causation_id": "",
+          "occurred_at": "2026-10-02T08:00:00.123456Z",
+          "legal_entity": "",
+          "delivery": 1
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.redelivered",
+      "description": "the delivery count is carried to the handler and to dead letters",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/peer",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "11",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 3
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_peer__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_peer__conformance__widget__created__v1",
+          "be-dlq-delivery": "3",
+          "be-dlq-reason": "HOP_LIMIT"
+        }
+      }
+    },
+    {
+      "id": "envelope.inbound.shell-member-consumer",
+      "description": "durable and dead-letter subject use the member's ID",
+      "op": "accept",
+      "input": {
+        "subscription": {
+          "component_id": "conformance/widget-go",
+          "subject": "conformance.widget.created.v1",
+          "aggregate_type": "conformance.widget.widget",
+          "transaction_document": true
+        },
+        "headers": {
+          "ce-aggregatetype": "conformance.widget.widget",
+          "ce-aggregateversion": "1",
+          "ce-dataschema": "conformance/widget@1.0.0/contracts/events/widget.events.json#conformance.widget.created.v1",
+          "ce-hopcount": "12",
+          "ce-id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+          "ce-legalentity": "LE01",
+          "ce-source": "conformance/widget",
+          "ce-specversion": "1.0",
+          "ce-subject": "0192f0c4-0000-7000-8000-00000000aaaa",
+          "ce-time": "2026-10-02T08:00:00.123456Z",
+          "ce-type": "conformance.widget.created.v1",
+          "content-type": "application/json",
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "payload_json": "{\"widget_id\":\"0192f0c4-0000-7000-8000-00000000aaaa\",\"legal_entity_id\":\"LE01\"}",
+        "delivery": 1
+      },
+      "refs": [
+        "P12",
+        "P11.8"
+      ],
+      "expected": {
+        "action": "dlq",
+        "dlq_subject": "dlq.conformance_widget-go__conformance__widget__created__v1.conformance.widget.created.v1",
+        "added_headers": {
+          "be-dlq-consumer": "conformance_widget-go__conformance__widget__created__v1",
+          "be-dlq-delivery": "1",
+          "be-dlq-reason": "HOP_LIMIT"
+        }
+      }
+    }
+  ]
+}

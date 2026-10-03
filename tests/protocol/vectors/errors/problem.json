@@ -1,0 +1,696 @@
+{
+  "area": "errors",
+  "topic": "problem",
+  "protocol": "1.0",
+  "generated_by": "errors/gen/gen_errors.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "errors.problem.component-reason",
+      "description": "a component's own reason",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "FAILED_PRECONDITION",
+          "reason": "WIDGET_NOT_DRAFT",
+          "domain": "conformance/widget",
+          "metadata": {
+            "status": "APPROVED"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:conformance/widget:WIDGET_NOT_DRAFT",
+          "status": 400,
+          "code": "FAILED_PRECONDITION",
+          "reason": "WIDGET_NOT_DRAFT",
+          "domain": "conformance/widget",
+          "metadata": {
+            "status": "APPROVED"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.relayed-reason",
+      "description": "a dependency's reason relayed with its domain",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "FAILED_PRECONDITION",
+          "reason": "QUOTA_EXCEEDED",
+          "domain": "conformance/peer",
+          "metadata": {
+            "requested": "5",
+            "available": "2"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:conformance/peer:QUOTA_EXCEEDED",
+          "status": 400,
+          "code": "FAILED_PRECONDITION",
+          "reason": "QUOTA_EXCEEDED",
+          "domain": "conformance/peer",
+          "metadata": {
+            "requested": "5",
+            "available": "2"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.violations",
+      "description": "field violations from BadRequest",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "INVALID_ARGUMENT",
+          "reason": "WIDGET_INVALID",
+          "domain": "conformance/widget",
+          "violations": [
+            {
+              "field": "lines[0].quantity",
+              "reason": "MUST_BE_POSITIVE",
+              "description": "quantity must be > 0"
+            }
+          ]
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:conformance/widget:WIDGET_INVALID",
+          "status": 400,
+          "code": "INVALID_ARGUMENT",
+          "reason": "WIDGET_INVALID",
+          "domain": "conformance/widget",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "violations": [
+            {
+              "field": "lines[0].quantity",
+              "reason": "MUST_BE_POSITIVE",
+              "description": "quantity must be > 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "errors.problem.platform-reason",
+      "description": "a platform reason",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "PERMISSION_DENIED",
+          "reason": "MISSING_PERMISSION",
+          "domain": "be",
+          "metadata": {
+            "permission": "conformance.widget.approve"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:MISSING_PERMISSION",
+          "status": 403,
+          "code": "PERMISSION_DENIED",
+          "reason": "MISSING_PERMISSION",
+          "domain": "be",
+          "metadata": {
+            "permission": "conformance.widget.approve"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.body-too-large",
+      "description": "413",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "INVALID_ARGUMENT",
+          "reason": "BODY_TOO_LARGE",
+          "domain": "be",
+          "metadata": {
+            "limit": "1048576"
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:BODY_TOO_LARGE",
+          "status": 413,
+          "code": "INVALID_ARGUMENT",
+          "reason": "BODY_TOO_LARGE",
+          "domain": "be",
+          "metadata": {
+            "limit": "1048576"
+          },
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    {
+      "id": "errors.problem.internal-hidden",
+      "description": "INTERNAL hides reason, domain, metadata and the message",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "INTERNAL",
+          "reason": "DB_BROKE",
+          "domain": "conformance/widget",
+          "metadata": {
+            "table": "widgets"
+          },
+          "internal_message": "ERROR: permission denied for table widgets (SQLSTATE 42501)"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "INTERNAL",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "ERROR: permission denied for table widgets (SQLSTATE 42501)"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.unknown-hidden",
+      "description": "UNKNOWN is answered like INTERNAL",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "UNKNOWN",
+          "internal_message": "panic: runtime error: index out of range"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "UNKNOWN",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "panic: runtime error: index out of range"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.data-loss-hidden",
+      "description": "DATA_LOSS is answered like INTERNAL",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "DATA_LOSS",
+          "reason": "X",
+          "domain": "conformance/widget",
+          "internal_message": "checksum mismatch"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "DATA_LOSS",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "checksum mismatch"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.network-in-tx-hidden",
+      "description": "NETWORK_IN_TX is a reason of code INTERNAL: the caller sees only the generic INTERNAL body",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "INTERNAL",
+          "reason": "NETWORK_IN_TX",
+          "domain": "be",
+          "internal_message": "outbound call conformance.peer.v1.PeerService/Reserve inside a transaction"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "INTERNAL",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "outbound call conformance.peer.v1.PeerService/Reserve inside a transaction"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.unclassified",
+      "description": "an error with no code and no reason becomes INTERNAL",
+      "op": "problem",
+      "input": {
+        "error": {
+          "internal_message": "dial tcp 10.0.0.7:5432: connect: connection refused"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "INTERNAL",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "dial tcp 10.0.0.7:5432: connect: connection refused"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.reason-without-domain",
+      "description": "a reason without a domain is not trusted: INTERNAL",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "NOT_FOUND",
+          "reason": "WIDGET_GONE",
+          "internal_message": "row missing"
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected": {
+        "content_type": "application/problem+json",
+        "body": {
+          "type": "urn:be:be:INTERNAL",
+          "status": 500,
+          "code": "INTERNAL",
+          "reason": "INTERNAL",
+          "domain": "be",
+          "metadata": {},
+          "instance": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        },
+        "detail_must_not_contain": [
+          "row missing"
+        ]
+      }
+    },
+    {
+      "id": "errors.problem.metadata-number",
+      "description": "metadata values are strings only",
+      "op": "problem",
+      "input": {
+        "error": {
+          "code": "FAILED_PRECONDITION",
+          "reason": "WIDGET_NOT_DRAFT",
+          "domain": "conformance/widget",
+          "metadata": {
+            "version": 3
+          }
+        },
+        "request": {
+          "path": "/conformance/widget/widgets/0192f0c5-1111-7000-8000-000000000001/approve",
+          "request_id": "r-1",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      },
+      "refs": [
+        "P4.1",
+        "P4.3"
+      ],
+      "expected_error": {
+        "reason": "METADATA_NOT_STRING"
+      }
+    },
+    {
+      "id": "errors.problem.retry-429",
+      "description": "rounded up to whole seconds",
+      "op": "retry_after",
+      "input": {
+        "code": "RESOURCE_EXHAUSTED",
+        "retry_delay_ms": 1500
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "header": "2"
+      }
+    },
+    {
+      "id": "errors.problem.retry-503",
+      "description": "less than a second is 1",
+      "op": "retry_after",
+      "input": {
+        "code": "UNAVAILABLE",
+        "retry_delay_ms": 100
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "header": "1"
+      }
+    },
+    {
+      "id": "errors.problem.retry-503-exact",
+      "description": "exactly 3 s",
+      "op": "retry_after",
+      "input": {
+        "code": "UNAVAILABLE",
+        "retry_delay_ms": 3000
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "header": "3"
+      }
+    },
+    {
+      "id": "errors.problem.retry-none",
+      "description": "no delay, no header",
+      "op": "retry_after",
+      "input": {
+        "code": "UNAVAILABLE"
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "header": null
+      }
+    },
+    {
+      "id": "errors.problem.retry-400",
+      "description": "only with 429 and 503",
+      "op": "retry_after",
+      "input": {
+        "code": "INVALID_ARGUMENT",
+        "retry_delay_ms": 1000
+      },
+      "refs": [
+        "P4"
+      ],
+      "expected": {
+        "header": null
+      }
+    },
+    {
+      "id": "errors.problem.name-ok",
+      "description": "UPPER_SNAKE",
+      "op": "reason_name",
+      "input": {
+        "reason": "INSUFFICIENT_STOCK",
+        "domain": "erp/inventory"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "errors.problem.name-digits",
+      "description": "digits allowed",
+      "op": "reason_name",
+      "input": {
+        "reason": "PHASE2_FAILED",
+        "domain": "erp/inventory"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "errors.problem.name-lower",
+      "description": "lower case",
+      "op": "reason_name",
+      "input": {
+        "reason": "insufficient_stock",
+        "domain": "erp/inventory"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_NAME_INVALID"
+      }
+    },
+    {
+      "id": "errors.problem.name-leading-digit",
+      "description": "leading digit",
+      "op": "reason_name",
+      "input": {
+        "reason": "2FA_REQUIRED",
+        "domain": "infra/iam"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_NAME_INVALID"
+      }
+    },
+    {
+      "id": "errors.problem.name-double-underscore",
+      "description": "empty word",
+      "op": "reason_name",
+      "input": {
+        "reason": "A__B",
+        "domain": "erp/inventory"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_NAME_INVALID"
+      }
+    },
+    {
+      "id": "errors.problem.name-trailing-underscore",
+      "description": "trailing underscore",
+      "op": "reason_name",
+      "input": {
+        "reason": "NOT_DRAFT_",
+        "domain": "erp/sales"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_NAME_INVALID"
+      }
+    },
+    {
+      "id": "errors.problem.name-hyphen",
+      "description": "hyphen",
+      "op": "reason_name",
+      "input": {
+        "reason": "NOT-DRAFT",
+        "domain": "erp/sales"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_NAME_INVALID"
+      }
+    },
+    {
+      "id": "errors.problem.reserved-in-component",
+      "description": "a platform name raised in a component's domain",
+      "op": "reason_name",
+      "input": {
+        "reason": "NOT_FOUND",
+        "domain": "erp/sales"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected_error": {
+        "reason": "REASON_RESERVED"
+      }
+    },
+    {
+      "id": "errors.problem.reserved-in-be",
+      "description": "the platform raises its own names",
+      "op": "reason_name",
+      "input": {
+        "reason": "NOT_FOUND",
+        "domain": "be"
+      },
+      "refs": [
+        "P4.1",
+        "P4.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    }
+  ]
+}

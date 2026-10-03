@@ -1,0 +1,70 @@
+# Protocol configuration keys (be-protocol P2), protocol version 1.0.
+# A component declares in its configSchema every key that a profile it uses requires
+# (gate protocol-config-scan). `type` is the brickKit configSchema type to declare; `format` is how
+# the runtime parses the value (P2.3); `default` is injected as written (null = no default);
+# `shared` keys are written once in config/vars.yaml and referenced as $var:NAME. A key with an empty
+# `profiles` list states `applies_when` instead (family addresses and family keys, P2.10, P2.11).
+# A `secret: true` key is delivered as a file: `mount: file`, its name ends in `_FILE`, its value is the
+# file's path (P2.7, P2.9, P2.12). be-ops generates the protocol block of every component's configSchema
+# from this file, by profile (P2.8). Format: schemas/config-keys.schema.json.
+protocol: "1.0"
+keys:
+  - { name: PG_HOST, type: string, format: string, required: true, default: null, secret: false, shared: true, profiles: [db], ref: P10.1, description: "shared database host" }
+  - { name: PG_PORT, type: integer, format: int, required: false, default: "5432", secret: false, shared: true, profiles: [db], ref: P10.1, description: "shared database port" }
+  - { name: PG_DATABASE, type: string, format: string, required: true, default: null, secret: false, shared: true, profiles: [db], ref: P10.1, description: "shared database name" }
+  - { name: PG_USER, type: string, format: string, required: true, default: null, secret: false, shared: false, profiles: [db], ref: P10.1, description: "the runtime role (DML only): the service's login role; every runtime transaction switches to it with SET LOCAL ROLE" }
+  - { name: PG_PASSWORD_FILE, type: string, format: string, required: true, default: null, secret: true, mount: file, shared: false, profiles: [db], ref: P10.1, description: "path of the file holding PG_USER's password; re-read when it changes, a new value applies to new connections" }
+  - { name: PG_OWNER_USER, type: string, format: string, required: true, default: null, secret: false, shared: false, profiles: [db], ref: P10.12, description: "the owner role: owns the tables, runs migrations and the platform migration; the running service never uses it" }
+  - { name: PG_OWNER_PASSWORD_FILE, type: string, format: string, required: true, default: null, secret: true, mount: file, shared: false, profiles: [db], ref: P11.1, description: "path of the file holding the owner's password, read by the migration step only" }
+  - { name: PG_SCHEMA, type: string, format: string, required: true, default: null, secret: false, shared: false, profiles: [db], ref: P10.1, description: "the component's schema; never derived, never defaulted in code" }
+  - { name: PG_POOL_MAX, type: integer, format: int, required: false, default: "10", shell_default: "40", secret: false, shared: false, profiles: [db], ref: P10.5, description: "standalone: pool maximum; in a shell: the member's budget in the shared pool; a shell's own value is the physical pool size" }
+  - { name: PG_POOL_MIN_IDLE, type: integer, format: int, required: false, default: "2", secret: false, shared: false, profiles: [db], ref: P10.5, description: "idle connections kept open" }
+  - { name: PG_POOL_ACQUIRE_TIMEOUT, type: string, format: duration, required: false, default: "5s", secret: false, shared: false, profiles: [db], ref: P10.5, description: "longest wait for a connection, capped by the remaining deadline" }
+  - { name: PG_CONN_MAX_LIFETIME, type: string, format: duration, required: false, default: "30m", secret: false, shared: false, profiles: [db], ref: P10.5, description: "a connection is replaced after this long" }
+  - { name: PG_CONN_MAX_IDLE_TIME, type: string, format: duration, required: false, default: "5m", secret: false, shared: false, profiles: [db], ref: P10.5, description: "an idle connection is closed after this long" }
+  - { name: PG_MIGRATION_HOST, type: string, format: string, required: false, default: null, default_from: PG_HOST, secret: false, shared: true, profiles: [db], ref: P11.1, description: "where the migration step connects, directly to PostgreSQL; set when PG_HOST is a transaction-mode pooler; absent = PG_HOST" }
+  - { name: PG_MIGRATION_PORT, type: integer, format: int, required: false, default: null, default_from: PG_PORT, secret: false, shared: true, profiles: [db], ref: P11.1, description: "the migration step's port; absent = PG_PORT" }
+  - { name: EVENT_BUS_URL, type: string, format: url, required: false, one_of: [EVENT_BUS_URL, NATS_URL], default: null, default_from: NATS_URL, schemes: ["nats", "postgres", "kafka"], secret: false, shared: true, profiles: [events-pub, events-sub], ref: P12.12, description: "the scheme picks the bus adapter: nats:// (JetStream), postgres://…?schema=be_bus; kafka:// reserved" }
+  - { name: NATS_URL, type: string, format: url, required: false, one_of: [EVENT_BUS_URL, NATS_URL], default: null, secret: false, shared: true, profiles: [events-pub, events-sub], ref: P12.12, description: "shared NATS address, used when EVENT_BUS_URL is absent" }
+  - { name: EVENTS_MAX_DELIVER, type: integer, format: int, required: false, default: "8", secret: false, shared: false, profiles: [events-sub], ref: P12.5, description: "deliveries before dead-lettering, counted by the runtime from the broker's delivery count; overrides a subscription's own value" }
+  - { name: EVENTS_BACKOFF, type: string, format: durations, required: false, default: "1s,10s,1m,5m,15m,30m,1h", secret: false, shared: false, profiles: [events-sub], ref: P12.5, description: "the runtime's redelivery delays (nak with delay; no broker-side backoff), comma-separated; overrides a subscription's own value" }
+  - { name: AUTHZ_URL, type: string, format: url, required: true, default: null, secret: false, shared: true, profiles: [auth], ref: P2.10, description: "REST base of the installed authorization member: config/vars.yaml AUTHZ_URL: $endpoint:<member ID>" }
+  - { name: AUTHZ_GRPC_URL, type: string, format: url, required: true, default: null, secret: false, shared: true, profiles: [], applies_when: "the component calls infra.authz.v2.AuthzProvider: an owner of a shareable resource type (WriteTuples), a caller of Check or ListObjects, an identity member (ResolveClaims)", ref: P2.10, description: "gRPC address of the installed authorization member: AUTHZ_GRPC_URL: $endpoint:<member ID>:grpc; the dial target is the value without http://" }
+  - { name: IAM_URL, type: string, format: url, required: true, default: null, secret: false, shared: true, profiles: [auth], ref: P2.10, description: "REST base of the installed identity member: IAM_URL: $endpoint:<member ID>; the JWKS is {IAM_URL}/.well-known/jwks.json (P5.4)" }
+  - { name: IAM_GRPC_URL, type: string, format: url, required: false, default: null, secret: false, shared: true, profiles: [], applies_when: "the component calls infra.iam.v1.IamProvider (BatchGetUsers, ListUsers, ListDepartments, ListMemberships); absent = the reads degrade", ref: P2.10, description: "gRPC address of the installed identity member: IAM_GRPC_URL: $endpoint:<member ID>:grpc" }
+  - { name: IAM_ISSUER, type: string, format: string, required: true, default: null, secret: false, shared: true, profiles: [auth], ref: P5.3, description: "the expected iss: a stable name, recommended urn:be:<TENANT_ID>:iam; not an address" }
+  - { name: TENANT_ID, type: string, format: string, required: true, default: null, secret: false, shared: true, profiles: [auth], ref: P5.3, description: "the expected aud; one deployment is one tenant" }
+  - { name: BOOTSTRAP_ADMIN_LOGIN, type: string, format: string, required: false, default: null, secret: false, shared: true, profiles: [], applies_when: "the component is an authorization or identity member (family key, never declared by other components)", ref: P2.11, description: "the IdP login name or e-mail address of the first administrator; bound to a platform sub at that first login" }
+  - { name: BUSINESS_TIMEZONE, type: string, format: zone, required: false, default: "Asia/Shanghai", secret: false, shared: true, profiles: [jobs], ref: P14.6, description: "the deployment's default IANA zone; cron schedules evaluate in it" }
+  - { name: DATA_LIFECYCLE, type: string, format: json, json_schema: data-lifecycle-config.schema.json, required: false, default: "{\"mode\":\"on\"}", secret: false, shared: true, profiles: [lifecycle], ref: P16.9, description: "lifecycle mode and adapters; JSON object or YAML mapping; a component-level value replaces the shared one" }
+  - { name: JOBS_OVERRIDES, type: string, format: json, json_schema: jobs-overrides.schema.json, required: false, default: "", secret: false, shared: false, profiles: [jobs], ref: P14.5, description: "per-job overrides of interval, cron, enabled" }
+  - { name: S3_URL, type: string, format: url, required: true, default: null, secret: false, shared: true, profiles: [blob], ref: P17.1, description: "object storage API address inside the project network" }
+  - { name: S3_PUBLIC_URL, type: string, format: url, required: false, default: null, default_from: S3_URL, secret: false, shared: true, profiles: [blob], ref: P17.2, description: "the address browsers use; presigned URLs are signed for it" }
+  - { name: S3_REGION, type: string, format: string, required: false, default: "us-east-1", secret: false, shared: true, profiles: [blob], ref: P17.1, description: "the signing region" }
+  - { name: S3_FORCE_PATH_STYLE, type: boolean, format: bool, required: false, default: "false", secret: false, shared: true, profiles: [blob], ref: P17.1, description: "path-style addressing (true for RustFS and MinIO)" }
+  - { name: S3_BUCKET, type: string, format: string, required: true, default: null, secret: false, shared: false, profiles: [blob], ref: P17.1, description: "the component's own bucket" }
+  - { name: S3_ACCESS_KEY_ID_FILE, type: string, format: string, required: true, default: null, secret: true, mount: file, shared: false, profiles: [blob], ref: P17.1, description: "path of the file holding the component's own access key ID; re-read with the secret key, so a credential pair rotates together" }
+  - { name: S3_SECRET_ACCESS_KEY_FILE, type: string, format: string, required: true, default: null, secret: true, mount: file, shared: false, profiles: [blob], ref: P17.1, description: "path of the file holding the component's own secret access key" }
+  - { name: OTEL_BASE_URL, type: string, format: url, required: false, default: "", secret: false, shared: true, profiles: [obs], ref: P18.1, description: "OTLP/HTTP base address; empty = no export" }
+  - { name: DEFAULT_LOCALE, type: string, format: locale, required: false, default: "zh-CN", secret: false, shared: true, profiles: [err], ref: P4.1, description: "the deployment's default language: title and detail of problem bodies" }
+  - { name: LOG_LEVEL, type: string, format: enum, enum: [debug, info, warn, error], required: false, default: "info", secret: false, shared: false, profiles: [obs], ref: P18.2, description: "minimum level written" }
+  - { name: HTTP_DEFAULT_TIMEOUT, type: string, format: duration, required: false, default: "10s", secret: false, shared: false, profiles: [core], ref: P3.4, description: "default route deadline" }
+  - { name: GRPC_MAX_CONNECTION_AGE, type: string, format: duration, required: false, default: "5m", secret: false, shared: false, profiles: [grpc], ref: P7.5, description: "server connection age" }
+  - { name: SHUTDOWN_GRACE, type: string, format: duration, required: false, default: "25s", secret: false, shared: false, profiles: [core], ref: P1.6, description: "in-flight work allowed after SIGTERM; at least 5 s below deployment.stopGracePeriodSeconds (default 30, P1.12)" }
+patterns:
+  - { pattern: "^[A-Z][A-Z0-9_]*_NO_FORMAT$", type: string, format: string, ref: P11.10, description: "format of a document-number series, placeholders {le} {yyyy} {yy} {mm} {seq:N}" }
+reserved:
+  exact: [COMPONENT_ID, COMPONENT_VERSION, PORT, BRICKKIT_SERVED_MEMBERS, BRICKKIT_SERVED_MEMBERS_CONFIG]
+  suffix: [_ENDPOINT]
+secrets:
+  mount: file                    # every secret: true key, protocol or component-defined (P2.12)
+  suffix: _FILE                  # secret: true <=> mount: file <=> the name ends in _FILE
+  root: /run/brickkit/secrets    # where brickKit mounts them: <root>/<versioned service name>/<KEY>
+  reread_seconds: 30             # the runtime notices a replaced file within this many seconds (P2.9)
+retired:
+  - { name: AUTHZ_BUNDLE_URL, replaced_by: AUTHZ_URL, note: "not a protocol key; never declared" }
+  - { name: IAM_JWKS_URL, replaced_by: IAM_URL, note: "the JWKS is {IAM_URL}/.well-known/jwks.json" }
+  - { name: PG_PASSWORD, replaced_by: PG_PASSWORD_FILE, note: "secrets are delivered as files" }
+  - { name: PG_OWNER_PASSWORD, replaced_by: PG_OWNER_PASSWORD_FILE, note: "secrets are delivered as files" }
+  - { name: S3_ACCESS_KEY_ID, replaced_by: S3_ACCESS_KEY_ID_FILE, note: "secrets are delivered as files" }
+  - { name: S3_SECRET_ACCESS_KEY, replaced_by: S3_SECRET_ACCESS_KEY_FILE, note: "secrets are delivered as files" }

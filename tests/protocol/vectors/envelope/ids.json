@@ -1,0 +1,321 @@
+{
+  "area": "envelope",
+  "topic": "ids",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.ids.valid",
+      "description": "a UUIDv7; IDTime gives created_at to the millisecond",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+        "unix_ms": 1790928000123,
+        "created_at": "2026-10-02T08:00:00.123Z"
+      }
+    },
+    {
+      "id": "envelope.ids.valid-2",
+      "description": "another UUIDv7",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-99b0-7123-a000-000000000001"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "01a0fba0-99b0-7123-a000-000000000001",
+        "unix_ms": 1790928001456,
+        "created_at": "2026-10-02T08:00:01.456Z"
+      }
+    },
+    {
+      "id": "envelope.ids.valid-whole-second",
+      "description": "created_at without a fraction",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-9bd0-7abc-bfff-ffffffffffff"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "01a0fba0-9bd0-7abc-bfff-ffffffffffff",
+        "unix_ms": 1790928002000,
+        "created_at": "2026-10-02T08:00:02Z"
+      }
+    },
+    {
+      "id": "envelope.ids.epoch",
+      "description": "the smallest v7 timestamp",
+      "op": "uuid7",
+      "input": {
+        "id": "00000000-0000-7000-8000-000000000000"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "00000000-0000-7000-8000-000000000000",
+        "unix_ms": 0,
+        "created_at": "1970-01-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "envelope.ids.far-future",
+      "description": "a timestamp in 2199",
+      "op": "uuid7",
+      "input": {
+        "id": "0699e991-a7ff-7fff-bfff-ffffffffffff"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "0699e991-a7ff-7fff-bfff-ffffffffffff",
+        "unix_ms": 7258118399999,
+        "created_at": "2199-12-31T23:59:59.999Z"
+      }
+    },
+    {
+      "id": "envelope.ids.upper-case",
+      "description": "upper-case hex is accepted on input and normalised (RFC 9562)",
+      "op": "uuid7",
+      "input": {
+        "id": "01A0FBA0-947B-77CC-9A52-3F1D2E4B5A60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected": {
+        "canonical": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60",
+        "unix_ms": 1790928000123,
+        "created_at": "2026-10-02T08:00:00.123Z"
+      }
+    },
+    {
+      "id": "envelope.ids.version-4",
+      "description": "a UUIDv4 is not a v7",
+      "op": "uuid7",
+      "input": {
+        "id": "0192f0c4-7b1e-4cc3-9a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.version-1",
+      "description": "a UUIDv1 is not a v7",
+      "op": "uuid7",
+      "input": {
+        "id": "0192f0c4-7b1e-1cc3-9a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.variant-ncs",
+      "description": "variant bits 0xxx",
+      "op": "uuid7",
+      "input": {
+        "id": "0192f0c4-7b1e-7cc3-1a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.variant-microsoft",
+      "description": "variant bits 110x",
+      "op": "uuid7",
+      "input": {
+        "id": "0192f0c4-7b1e-7cc3-ca52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.nil",
+      "description": "the nil UUID",
+      "op": "uuid7",
+      "input": {
+        "id": "00000000-0000-0000-0000-000000000000"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.max",
+      "description": "the max UUID",
+      "op": "uuid7",
+      "input": {
+        "id": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.braces",
+      "description": "braces are not the canonical form",
+      "op": "uuid7",
+      "input": {
+        "id": "{01a0fba0-947b-77cc-9a52-3f1d2e4b5a60}"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.urn",
+      "description": "the urn:uuid: form is not accepted",
+      "op": "uuid7",
+      "input": {
+        "id": "urn:uuid:01a0fba0-947b-77cc-9a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.no-hyphens",
+      "description": "32 hex digits without hyphens",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0947b77cc9a523f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.whitespace",
+      "description": "surrounding whitespace",
+      "op": "uuid7",
+      "input": {
+        "id": " 01a0fba0-947b-77cc-9a52-3f1d2e4b5a60"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.trailing-newline",
+      "description": "a trailing newline",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a60\n"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.short",
+      "description": "35 characters",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a6"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.non-hex",
+      "description": "a non-hex digit",
+      "op": "uuid7",
+      "input": {
+        "id": "01a0fba0-947b-77cc-9a52-3f1d2e4b5a6g"
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    },
+    {
+      "id": "envelope.ids.empty",
+      "description": "empty",
+      "op": "uuid7",
+      "input": {
+        "id": ""
+      },
+      "refs": [
+        "P11.5",
+        "P12"
+      ],
+      "expected_error": {
+        "reason": "ID_INVALID"
+      }
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+{
+  "area": "errors",
+  "topic": "sqlstate",
+  "protocol": "1.0",
+  "generated_by": "errors/gen/gen_errors.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "errors.sqlstate.serialization-1",
+      "description": "first attempt: retry after 10 ms (+ jitter)",
+      "op": "classify",
+      "input": {
+        "sqlstate": "40001",
+        "attempt": 1
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "retry",
+        "base_delay_ms": 10
+      }
+    },
+    {
+      "id": "errors.sqlstate.serialization-2",
+      "description": "second attempt: retry after 20 ms (+ jitter)",
+      "op": "classify",
+      "input": {
+        "sqlstate": "40001",
+        "attempt": 2
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "retry",
+        "base_delay_ms": 20
+      }
+    },
+    {
+      "id": "errors.sqlstate.serialization-3",
+      "description": "third attempt fails: TX_CONFLICT",
+      "op": "classify",
+      "input": {
+        "sqlstate": "40001",
+        "attempt": 3
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "ABORTED",
+        "reason": "TX_CONFLICT",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.sqlstate.deadlock-1",
+      "description": "a deadlock is retried like 40001",
+      "op": "classify",
+      "input": {
+        "sqlstate": "40P01",
+        "attempt": 1
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "retry",
+        "base_delay_ms": 10
+      }
+    },
+    {
+      "id": "errors.sqlstate.deadlock-3",
+      "description": "attempts exhausted",
+      "op": "classify",
+      "input": {
+        "sqlstate": "40P01",
+        "attempt": 3
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "ABORTED",
+        "reason": "TX_CONFLICT",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.sqlstate.lock-timeout",
+      "description": "lock_timeout: not retried",
+      "op": "classify",
+      "input": {
+        "sqlstate": "55P03"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "ABORTED",
+        "reason": "LOCK_TIMEOUT",
+        "domain": "be",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.sqlstate.statement-timeout",
+      "description": "statement_timeout",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57014",
+        "context": "none"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "DEADLINE_EXCEEDED",
+        "reason": "STATEMENT_TIMEOUT",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.sqlstate.statement-timeout-deadline",
+      "description": "the request deadline cancelled the statement",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57014",
+        "context": "deadline_exceeded"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "DEADLINE_EXCEEDED",
+        "reason": "STATEMENT_TIMEOUT",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.sqlstate.query-cancelled",
+      "description": "the caller went away: CANCELLED, not a timeout",
+      "op": "classify",
+      "input": {
+        "sqlstate": "57014",
+        "context": "cancelled"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "CANCELLED",
+        "reason": null,
+        "domain": null,
+        "http": 499
+      }
+    },
+    {
+      "id": "errors.sqlstate.transaction-timeout",
+      "description": "transaction_timeout (PostgreSQL 17+)",
+      "op": "classify",
+      "input": {
+        "sqlstate": "25P04"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "DEADLINE_EXCEEDED",
+        "reason": "STATEMENT_TIMEOUT",
+        "domain": "be",
+        "http": 504
+      }
+    },
+    {
+      "id": "errors.sqlstate.idle-in-transaction",
+      "description": "idle_in_transaction_session_timeout: a component bug",
+      "op": "classify",
+      "input": {
+        "sqlstate": "25P03"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "INTERNAL",
+        "reason": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.sqlstate.too-many-connections",
+      "description": "the server refused a connection",
+      "op": "classify",
+      "input": {
+        "sqlstate": "53300"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "UNAVAILABLE",
+        "reason": "DB_TOO_MANY_CONNECTIONS",
+        "domain": "be",
+        "http": 503
+      }
+    },
+    {
+      "id": "errors.sqlstate.unique-unmapped",
+      "description": "a unique violation the component did not map",
+      "op": "classify",
+      "input": {
+        "sqlstate": "23505"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "INTERNAL",
+        "reason": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.sqlstate.unique-mapped",
+      "description": "a unique violation the component maps to its own reason",
+      "op": "classify",
+      "input": {
+        "sqlstate": "23505",
+        "component_mapping": {
+          "code": "ALREADY_EXISTS",
+          "reason": "WIDGET_ALREADY_EXISTS",
+          "domain": "conformance/widget"
+        }
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "ALREADY_EXISTS",
+        "reason": "WIDGET_ALREADY_EXISTS",
+        "domain": "conformance/widget",
+        "http": 409
+      }
+    },
+    {
+      "id": "errors.sqlstate.insufficient-privilege",
+      "description": "a revoked grant: generic INTERNAL, no SQL text",
+      "op": "classify",
+      "input": {
+        "sqlstate": "42501"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "INTERNAL",
+        "reason": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.sqlstate.undefined-table",
+      "description": "a missing table",
+      "op": "classify",
+      "input": {
+        "sqlstate": "42P01"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "INTERNAL",
+        "reason": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    },
+    {
+      "id": "errors.sqlstate.invalid-text",
+      "description": "invalid input syntax reached the database",
+      "op": "classify",
+      "input": {
+        "sqlstate": "22P02"
+      },
+      "refs": [
+        "P10.4"
+      ],
+      "expected": {
+        "action": "fail",
+        "code": "INTERNAL",
+        "reason": "INTERNAL",
+        "domain": "be",
+        "http": 500
+      }
+    }
+  ]
+}

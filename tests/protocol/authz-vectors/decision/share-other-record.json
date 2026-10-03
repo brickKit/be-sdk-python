@@ -1,0 +1,166 @@
+{
+  "contract": "authz/2.0",
+  "expected": {
+    "bundle": "accepted",
+    "decision": {
+      "allowed": false,
+      "reason": "NOT_FOUND",
+      "visible": false
+    },
+    "degraded": [],
+    "explain": {
+      "missing": [
+        {
+          "detail": "erp.sales.view",
+          "kind": "role_key",
+          "source": ""
+        }
+      ],
+      "reasons": []
+    },
+    "fields": {
+      "masked": [
+        "discount",
+        "unit_price"
+      ],
+      "read_only": []
+    },
+    "has_key": false,
+    "level": "none",
+    "scope_params": {
+      "s_acl": true,
+      "s_all": false,
+      "s_dept_exact": [],
+      "s_dept_prefix": [],
+      "s_dims": {},
+      "s_graph_ids": [],
+      "s_owners": [],
+      "s_relations": [
+        "editor",
+        "viewer"
+      ],
+      "s_subjects": [
+        "dept:/1/12/",
+        "dept_tree:/",
+        "dept_tree:/1/",
+        "dept_tree:/1/12/",
+        "user:u_me"
+      ]
+    },
+    "token": "OK"
+  },
+  "id": "share-other-record",
+  "input": {
+    "acl": [
+      {
+        "relation": "viewer",
+        "rid": "o2",
+        "rtype": "erp.sales.order",
+        "subject": "user:u_me"
+      }
+    ],
+    "bundle": {
+      "capabilities": {
+        "access_review": true,
+        "admin_write": true,
+        "agents": false,
+        "check": true,
+        "conditions": false,
+        "core": true,
+        "delegation": true,
+        "explain_paths": true,
+        "graph": false,
+        "impersonation": false,
+        "list_objects": {
+          "max_results": 1000
+        },
+        "relation_sync": true,
+        "sharing": true
+      },
+      "catalog_digest": "sha256:abababababababababababababababababababababababababababababababab",
+      "contract": "authz/2.0",
+      "delegations": [],
+      "grants": {},
+      "profiles": {},
+      "revision": "100",
+      "revoked_grants": {},
+      "roles": {},
+      "stale_since": {}
+    },
+    "claims": {
+      "dept_path": "/1/12/",
+      "iat": 1759999940,
+      "roles": [],
+      "sub": "u_me",
+      "tenant_id": "t1"
+    },
+    "key": "erp.sales.view",
+    "now": 1760000000,
+    "resource_type": {
+      "derivation": "direct",
+      "dimensions": [
+        "owner",
+        "org"
+      ],
+      "fields": [
+        {
+          "columns": [
+            "discount",
+            "unit_price"
+          ],
+          "edit": "erp.sales.pricing.edit",
+          "read": "erp.sales.pricing.read",
+          "set": "erp.sales.pricing"
+        }
+      ],
+      "keys": [
+        "erp.sales.view",
+        "erp.sales.confirm",
+        "erp.sales.cancel",
+        "erp.sales.ship",
+        "erp.sales.share"
+      ],
+      "owner_component": "erp/sales",
+      "relations": {
+        "editor": {
+          "grants": [
+            "erp.sales.ship"
+          ],
+          "includes": [
+            "viewer"
+          ]
+        },
+        "viewer": {
+          "grants": [
+            "erp.sales.view"
+          ]
+        }
+      },
+      "share": {
+        "key": "erp.sales.share",
+        "relations": [
+          "viewer",
+          "editor"
+        ],
+        "subjects": [
+          "user",
+          "role",
+          "dept",
+          "dept_tree"
+        ]
+      },
+      "type": "erp.sales.order",
+      "view_key": "erp.sales.view"
+    },
+    "row": {
+      "dept_path": "/1/12/",
+      "id": "o1",
+      "owner": "u_other",
+      "values": {}
+    }
+  },
+  "tags": [
+    "sharing"
+  ],
+  "title": "A share on another record does not count"
+}

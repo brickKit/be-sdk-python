@@ -1,0 +1,629 @@
+{
+  "area": "money",
+  "topic": "arithmetic",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.arithmetic.add-same",
+      "description": "add {'value': '12.30', 'currency': 'CNY'} and {'value': '0.70', 'currency': 'CNY'}",
+      "op": "add",
+      "input": {
+        "a": {
+          "value": "12.30",
+          "currency": "CNY"
+        },
+        "b": {
+          "value": "0.70",
+          "currency": "CNY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "13.00",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.sub-same",
+      "description": "sub {'value': '12.30', 'currency': 'CNY'} and {'value': '20.00', 'currency': 'CNY'}",
+      "op": "sub",
+      "input": {
+        "a": {
+          "value": "12.30",
+          "currency": "CNY"
+        },
+        "b": {
+          "value": "20.00",
+          "currency": "CNY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-7.70",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.add-jpy",
+      "description": "add {'value': '100', 'currency': 'JPY'} and {'value': '23', 'currency': 'JPY'}",
+      "op": "add",
+      "input": {
+        "a": {
+          "value": "100",
+          "currency": "JPY"
+        },
+        "b": {
+          "value": "23",
+          "currency": "JPY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "123",
+        "currency": "JPY"
+      }
+    },
+    {
+      "id": "money.arithmetic.add-mismatch",
+      "description": "add {'value': '1.00', 'currency': 'CNY'} and {'value': '1.00', 'currency': 'USD'}",
+      "op": "add",
+      "input": {
+        "a": {
+          "value": "1.00",
+          "currency": "CNY"
+        },
+        "b": {
+          "value": "1.00",
+          "currency": "USD"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "money.arithmetic.sub-mismatch",
+      "description": "sub {'value': '1', 'currency': 'JPY'} and {'value': '1.00', 'currency': 'CNY'}",
+      "op": "sub",
+      "input": {
+        "a": {
+          "value": "1",
+          "currency": "JPY"
+        },
+        "b": {
+          "value": "1.00",
+          "currency": "CNY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "money.arithmetic.add-overflow",
+      "description": "add {'value': '999999999999999.99', 'currency': 'CNY'} and {'value': '0.01', 'currency': 'CNY'}",
+      "op": "add",
+      "input": {
+        "a": {
+          "value": "999999999999999.99",
+          "currency": "CNY"
+        },
+        "b": {
+          "value": "0.01",
+          "currency": "CNY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    },
+    {
+      "id": "money.arithmetic.add-too-fine",
+      "description": "add {'value': '1.001', 'currency': 'CNY'} and {'value': '1', 'currency': 'CNY'}",
+      "op": "add",
+      "input": {
+        "a": {
+          "value": "1.001",
+          "currency": "CNY"
+        },
+        "b": {
+          "value": "1",
+          "currency": "CNY"
+        }
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.arithmetic.usd-to-cny",
+      "description": "convert 100.00 USD at 7.1234567891 to CNY, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "100.00",
+          "currency": "USD"
+        },
+        "rate": "7.1234567891",
+        "to": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "712.35",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.jpy-to-cny",
+      "description": "convert 12345 JPY at 0.0478123456 to CNY, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "12345",
+          "currency": "JPY"
+        },
+        "rate": "0.0478123456",
+        "to": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "590.24",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.cny-to-jpy-tie",
+      "description": "convert 10.00 CNY at 20.05 to JPY, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "10.00",
+          "currency": "CNY"
+        },
+        "rate": "20.05",
+        "to": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "201",
+        "currency": "JPY"
+      }
+    },
+    {
+      "id": "money.arithmetic.cny-to-jpy-tie-even",
+      "description": "convert 10.00 CNY at 20.05 to JPY, HALF_EVEN",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "10.00",
+          "currency": "CNY"
+        },
+        "rate": "20.05",
+        "to": "JPY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "200",
+        "currency": "JPY"
+      }
+    },
+    {
+      "id": "money.arithmetic.cny-to-kwd",
+      "description": "convert 1000.00 CNY at 0.0428765432 to KWD, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "1000.00",
+          "currency": "CNY"
+        },
+        "rate": "0.0428765432",
+        "to": "KWD",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "42.877",
+        "currency": "KWD"
+      }
+    },
+    {
+      "id": "money.arithmetic.negative",
+      "description": "convert -100.00 USD at 7.12345 to CNY, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "-100.00",
+          "currency": "USD"
+        },
+        "rate": "7.12345",
+        "to": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-712.35",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.same-currency",
+      "description": "convert 12.34 CNY at 1 to CNY, HALF_AWAY_FROM_ZERO",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "12.34",
+          "currency": "CNY"
+        },
+        "rate": "1",
+        "to": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.34",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.rate-zero",
+      "description": "convert 1.00 USD at 0 to CNY, HALF_EVEN",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "1.00",
+          "currency": "USD"
+        },
+        "rate": "0",
+        "to": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATE_INVALID"
+      }
+    },
+    {
+      "id": "money.arithmetic.rate-negative",
+      "description": "convert 1.00 USD at -7.1 to CNY, HALF_EVEN",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "1.00",
+          "currency": "USD"
+        },
+        "rate": "-7.1",
+        "to": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATE_INVALID"
+      }
+    },
+    {
+      "id": "money.arithmetic.rate-too-fine",
+      "description": "convert 1.00 USD at 7.12345678901 to CNY, HALF_EVEN",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "1.00",
+          "currency": "USD"
+        },
+        "rate": "7.12345678901",
+        "to": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.arithmetic.same-currency-rate",
+      "description": "convert 1.00 CNY at 1.1 to CNY, HALF_EVEN",
+      "op": "convert",
+      "input": {
+        "amount": {
+          "value": "1.00",
+          "currency": "CNY"
+        },
+        "rate": "1.1",
+        "to": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATE_INVALID"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-simple",
+      "description": "line amount 3 x 19.99 less 0 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "3",
+        "price": "19.99",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "59.97",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-fine-price",
+      "description": "line amount 1000 x 0.0035 less 0 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1000",
+        "price": "0.0035",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "3.50",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-fine-price-tie",
+      "description": "line amount 1 x 0.005 less 0 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1",
+        "price": "0.005",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.01",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-fine-price-tie-even",
+      "description": "line amount 1 x 0.005 less 0 in CNY, HALF_EVEN, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1",
+        "price": "0.005",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.00",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-discount",
+      "description": "line amount 3 x 19.99 less 0.15 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "3",
+        "price": "19.99",
+        "discount": "0.15",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "50.97",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-fractional-qty",
+      "description": "line amount 2.5 x 3.333333 less 0.1 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "2.5",
+        "price": "3.333333",
+        "discount": "0.1",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "7.50",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-jpy",
+      "description": "line amount 7 x 123.4567 less 0.05 in JPY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "7",
+        "price": "123.4567",
+        "discount": "0.05",
+        "currency": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "821",
+        "currency": "JPY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-negative-qty-return",
+      "description": "line amount -2 x 10.005 less 0 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "-2",
+        "price": "10.005",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-20.01",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-full-discount",
+      "description": "line amount 5 x 10 less 1 in CNY, HALF_AWAY_FROM_ZERO, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "5",
+        "price": "10",
+        "discount": "1",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.00",
+        "currency": "CNY"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-discount-negative",
+      "description": "line amount 1 x 1 less -0.1 in CNY, HALF_EVEN, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1",
+        "price": "1",
+        "discount": "-0.1",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATIO_INVALID"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-discount-above-one",
+      "description": "line amount 1 x 1 less 1.01 in CNY, HALF_EVEN, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1",
+        "price": "1",
+        "discount": "1.01",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "RATIO_INVALID"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-price-too-fine",
+      "description": "line amount 1 x 0.0000001 less 0 in CNY, HALF_EVEN, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "1",
+        "price": "0.0000001",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.arithmetic.line-overflow",
+      "description": "line amount 9999999999999 x 9999999999999 less 0 in CNY, HALF_EVEN, rounded once",
+      "op": "line_amount",
+      "input": {
+        "quantity": "9999999999999",
+        "price": "9999999999999",
+        "discount": "0",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    }
+  ]
+}

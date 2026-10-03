@@ -1,0 +1,294 @@
+{
+  "area": "money",
+  "topic": "format",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.format.cny",
+      "description": "format '12.3' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "12.3",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.30"
+      }
+    },
+    {
+      "id": "money.format.cny-integer",
+      "description": "format '12' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "12",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.00"
+      }
+    },
+    {
+      "id": "money.format.cny-exact",
+      "description": "format '12.30' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "12.30",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.30"
+      }
+    },
+    {
+      "id": "money.format.jpy",
+      "description": "format '1230' in JPY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1230",
+        "currency": "JPY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1230"
+      }
+    },
+    {
+      "id": "money.format.jpy-zero-decimals",
+      "description": "format '1230.00' in JPY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1230.00",
+        "currency": "JPY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1230"
+      }
+    },
+    {
+      "id": "money.format.kwd",
+      "description": "format '1.234' in KWD (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1.234",
+        "currency": "KWD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.234"
+      }
+    },
+    {
+      "id": "money.format.kwd-pad",
+      "description": "format '1.2' in KWD (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1.2",
+        "currency": "KWD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.200"
+      }
+    },
+    {
+      "id": "money.format.clf-four",
+      "description": "format '0.0001' in CLF (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "0.0001",
+        "currency": "CLF"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.0001"
+      }
+    },
+    {
+      "id": "money.format.negative",
+      "description": "format '-0.5' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "-0.5",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-0.50"
+      }
+    },
+    {
+      "id": "money.format.negative-zero",
+      "description": "format '-0.00' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "-0.00",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.00"
+      }
+    },
+    {
+      "id": "money.format.zero-jpy",
+      "description": "format '0' in JPY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "0",
+        "currency": "JPY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "money.format.large",
+      "description": "format '999999999999999.99' in USD (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "999999999999999.99",
+        "currency": "USD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "999999999999999.99"
+      }
+    },
+    {
+      "id": "money.format.cny-three-decimals",
+      "description": "format '12.345' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "12.345",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.format.jpy-decimals",
+      "description": "format '1230.5' in JPY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1230.5",
+        "currency": "JPY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.format.kwd-four-decimals",
+      "description": "format '1.2345' in KWD (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1.2345",
+        "currency": "KWD"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.format.bad-syntax",
+      "description": "format '1e3' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1e3",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.format.unknown-currency",
+      "description": "format '1' in XYZ (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1",
+        "currency": "XYZ"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.format.invalid-currency",
+      "description": "format '1' in cny (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1",
+        "currency": "cny"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_INVALID"
+      }
+    },
+    {
+      "id": "money.format.overflow",
+      "description": "format '1000000000000000' in CNY (format never rounds)",
+      "op": "format",
+      "input": {
+        "value": "1000000000000000",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_OVERFLOW"
+      }
+    }
+  ]
+}

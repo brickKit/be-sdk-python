@@ -1,41 +1,58 @@
-# be-sdk-python 不是 brickKit 组件，但仍按总纲 §I 的 9 个门禁目标写——
-# 一致性帮 AI：新开会话看到一份陌生 Makefile，不用先猜它和组件仓库的
-# Makefile 是不是同一套规矩。对照 be-sdk-go 的 Makefile 逐条抄。
-.PHONY: check-version test image migrate-idempotent dag-check contract-check \
-        import-scan smoke module-check all
+# be-sdk-python: the official Python implementation of be-protocol 1.0.
+#   make venv            create .venv (CPython 3.14) with the pinned dependencies
+#   make test            unit tests + protocol vectors (no containers)
+#   make itest           integration tests against throwaway PostgreSQL 16 / 14 and NATS 2.12 containers
+#   make sync-protocol   copy be-protocol (ddl, schemas, vectors) and the authz decision vectors from their pinned tags
+#   make gen-limits      regenerate be/v1/limits_pb2.py from be-protocol's proto/be/v1/limits.proto
+.PHONY: venv test vectors itest itest-up itest-down sync-protocol gen-limits dag-check import-scan all help
 
-check-version: ## N/A：非组件仓库
-	@echo "N/A：非组件仓库，没有 component.yaml"
+PY       ?= .venv/bin/python
+PREFIX   ?= sdkb-py
+PG16     := $(PREFIX)-pg16
+PG14     := $(PREFIX)-pg14
+NATS     := $(PREFIX)-nats
+PROTO_TAG ?= v1.0.0-rc.1
 
-test: ## pytest -v（含 asyncio 测试）
-	python -m pytest -v
+venv: ## create .venv with Python 3.14 and the exact pins
+	uv venv --clear -p python3.14 .venv
+	uv pip install -p $(PY) -e '.[dev]'
 
-image: ## N/A：纯横切库
-	@echo "N/A：纯横切库，没有可执行文件，不产出部署镜像"
+test: ## unit tests and protocol vectors
+	$(PY) -m pytest -q tests/unit
 
-migrate-idempotent: ## N/A：非组件仓库
-	@echo "N/A：非组件仓库，没有迁移"
+vectors: ## only the protocol vectors
+	$(PY) -m pytest -q tests/unit/vectors
 
-dag-check: ## 包依赖图无环（Python 没有编译期强制，用 import 探测循环 import）
-	@python -c "import besdk" && echo "✓ besdk 包本身无循环 import"
+itest-up: ## start the throwaway containers (unique prefix, tmpfs, random host ports)
+	@df -h / | awk 'NR==2 {print "free on /: " $$4}'
+	docker run -d --rm --name $(PG16) -e POSTGRES_PASSWORD=x --tmpfs /var/lib/postgresql/data -p 127.0.0.1::5432 postgres:16-alpine >/dev/null
+	docker run -d --rm --name $(PG14) -e POSTGRES_PASSWORD=x --tmpfs /var/lib/postgresql/data -p 127.0.0.1::5432 postgres:14-alpine >/dev/null
+	docker run -d --rm --name $(NATS) -p 127.0.0.1::4222 nats:2.12-alpine -js >/dev/null
+	@for c in $(PG16) $(PG14); do for i in $$(seq 1 60); do docker exec $$c pg_isready -U postgres -q && break; sleep 1; done; done; sleep 1
 
-contract-check: ## N/A：非组件仓库
-	@echo "N/A：非组件仓库，没有 contracts/"
+itest-down: ## remove the throwaway containers
+	-docker rm -f $(PG16) $(PG14) $(NATS) >/dev/null 2>&1
 
-import-scan: ## ⚠️ 铁律六白名单本体：不许依赖任何组件仓库
-	@bad=$$(grep -rlE "from (mdm|erp|crm|infra|integration|hrm|prj|ana)[_.]" besdk/ 2>/dev/null || true); \
-	if [ -n "$$bad" ]; then \
-		echo "✗ be-sdk-python 不许依赖任何组件仓库：$$bad"; exit 1; \
-	fi; \
-	echo "✓ 零组件依赖"
+itest: ## integration tests (starts and removes the containers)
+	$(MAKE) itest-up
+	BESDK_IT_PG16=$$(docker port $(PG16) 5432 | head -1) BESDK_IT_PG14=$$(docker port $(PG14) 5432 | head -1) \
+	BESDK_IT_NATS=$$(docker port $(NATS) 4222 | head -1) $(PY) -m pytest -q tests/integration; rc=$$?; \
+	$(MAKE) itest-down; exit $$rc
 
-smoke: ## N/A：非组件仓库
-	@echo "N/A：非组件仓库，没有 brickkit up 的对象"
+sync-protocol: ## copy the pinned protocol data (BE_PROTOCOL_REPO / AUTHZ_REPO may point at local clones)
+	scripts/sync_protocol.sh
 
-module-check: ## N/A：非组件仓库
-	@echo "N/A：非组件仓库，没有 module.new 契约"
+gen-limits: ## regenerate the shipped be.v1.limits_pb2 (needs grpcio-tools; P7.10)
+	scripts/gen_limits.sh $(PROTO_TAG)
 
-all: check-version test image migrate-idempotent dag-check contract-check import-scan smoke module-check
+dag-check: ## the package imports without cycles
+	@$(PY) -c "import besdk, be.v1.limits_pb2" && echo "besdk imports cleanly"
 
-help: ## 列出全部目标
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+import-scan: ## the SDK depends on no component repository
+	@bad=$$(grep -rlE "^(from|import) (mdm|erp|crm|infra|integration|hrm|prj|ana)[_.]" besdk/ 2>/dev/null || true); \
+	if [ -n "$$bad" ]; then echo "be-sdk-python must not import a component: $$bad"; exit 1; fi; echo "no component imports"
+
+all: test dag-check import-scan
+
+help: ## list the targets
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'

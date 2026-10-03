@@ -1,0 +1,135 @@
+{
+  "contract": "authz/2.0",
+  "expected": {
+    "bundle": "accepted",
+    "decision": {
+      "allowed": true,
+      "reason": "",
+      "visible": true
+    },
+    "degraded": [],
+    "explain": {
+      "missing": [],
+      "reasons": [
+        {
+          "detail": "Z",
+          "kind": "dimension",
+          "source": "warehouse"
+        },
+        {
+          "detail": "erp.inventory.view",
+          "kind": "role_key",
+          "source": "wh"
+        }
+      ]
+    },
+    "has_key": true,
+    "level": "own",
+    "scope_params": {
+      "s_acl": false,
+      "s_all": false,
+      "s_dept_exact": [],
+      "s_dept_prefix": [],
+      "s_dims": {
+        "warehouse": {
+          "all": true,
+          "ids": []
+        }
+      },
+      "s_graph_ids": [],
+      "s_owners": [
+        "u_me"
+      ],
+      "s_relations": [],
+      "s_subjects": [
+        "dept:/1/12/",
+        "dept_tree:/",
+        "dept_tree:/1/",
+        "dept_tree:/1/12/",
+        "role:wh",
+        "user:u_me"
+      ]
+    },
+    "token": "OK"
+  },
+  "id": "values-star",
+  "input": {
+    "bundle": {
+      "capabilities": {
+        "access_review": true,
+        "admin_write": true,
+        "agents": false,
+        "check": true,
+        "conditions": false,
+        "core": true,
+        "delegation": true,
+        "explain_paths": true,
+        "graph": false,
+        "impersonation": false,
+        "list_objects": {
+          "max_results": 1000
+        },
+        "relation_sync": true,
+        "sharing": true
+      },
+      "catalog_digest": "sha256:abababababababababababababababababababababababababababababababab",
+      "contract": "authz/2.0",
+      "delegations": [],
+      "grants": {
+        "wh": {
+          "values": {
+            "warehouse": [
+              "*"
+            ]
+          }
+        }
+      },
+      "profiles": {},
+      "revision": "100",
+      "revoked_grants": {},
+      "roles": {
+        "wh": [
+          "erp.inventory.view"
+        ]
+      },
+      "stale_since": {}
+    },
+    "claims": {
+      "dept_path": "/1/12/",
+      "iat": 1759999940,
+      "roles": [
+        "wh"
+      ],
+      "sub": "u_me",
+      "tenant_id": "t1"
+    },
+    "key": "erp.inventory.view",
+    "now": 1760000000,
+    "resource_type": {
+      "derivation": "direct",
+      "dimensions": [
+        "warehouse"
+      ],
+      "keys": [
+        "erp.inventory.view",
+        "erp.inventory.adjust"
+      ],
+      "owner_component": "erp/inventory",
+      "relations": {},
+      "type": "erp.inventory.balance",
+      "view_key": "erp.inventory.view"
+    },
+    "row": {
+      "dept_path": "/1/12/",
+      "id": "b1",
+      "owner": "u_other",
+      "values": {
+        "warehouse": "Z"
+      }
+    }
+  },
+  "tags": [
+    "values"
+  ],
+  "title": "* grants every value of the dimension"
+}

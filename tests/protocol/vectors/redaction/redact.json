@@ -1,0 +1,953 @@
+{
+  "area": "redaction",
+  "topic": "redact",
+  "protocol": "1.0",
+  "generated_by": "redaction/gen/gen_redaction.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "redaction.redact.each-name",
+      "description": "every protected name",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone": "v-phone",
+          "mobile": "v-mobile",
+          "id_card": "v-id_card",
+          "password": "v-password",
+          "bank_card": "v-bank_card",
+          "email": "v-email",
+          "token": "v-token",
+          "secret": "v-secret",
+          "authorization": "v-authorization",
+          "cookie": "v-cookie",
+          "set_cookie": "v-set_cookie",
+          "api_key": "v-api_key"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone": "[REDACTED]",
+          "mobile": "[REDACTED]",
+          "id_card": "[REDACTED]",
+          "password": "[REDACTED]",
+          "bank_card": "[REDACTED]",
+          "email": "[REDACTED]",
+          "token": "[REDACTED]",
+          "secret": "[REDACTED]",
+          "authorization": "[REDACTED]",
+          "cookie": "[REDACTED]",
+          "set_cookie": "[REDACTED]",
+          "api_key": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.non-string-values",
+      "description": "numbers, booleans, null, objects and arrays are replaced too",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone": 13800138000,
+          "token": null,
+          "secret": {
+            "a": 1
+          },
+          "email": [
+            "a@x.cn",
+            "b@x.cn"
+          ],
+          "password": true
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone": "[REDACTED]",
+          "token": "[REDACTED]",
+          "secret": "[REDACTED]",
+          "email": "[REDACTED]",
+          "password": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.suffix",
+      "description": "a protected name as the last word",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "contact_phone": "1",
+          "access_token": "2",
+          "client_secret": "3",
+          "new_password": "4",
+          "user_email": "5"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "contact_phone": "[REDACTED]",
+          "access_token": "[REDACTED]",
+          "client_secret": "[REDACTED]",
+          "new_password": "[REDACTED]",
+          "user_email": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.prefix",
+      "description": "a protected name as the first word",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone_number": "1",
+          "email_address": "2",
+          "token_type": "Bearer",
+          "password_hash": "x",
+          "id_card_no": "y"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "phone_number": "[REDACTED]",
+          "email_address": "[REDACTED]",
+          "token_type": "[REDACTED]",
+          "password_hash": "[REDACTED]",
+          "id_card_no": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.middle",
+      "description": "a protected name in the middle",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "primary_email_address": "1",
+          "old_bank_card_tail": "2"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "primary_email_address": "[REDACTED]",
+          "old_bank_card_tail": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.plural",
+      "description": "a plural last word",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "emails": [
+            "a@x.cn"
+          ],
+          "tokens": 2,
+          "phones": []
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "emails": "[REDACTED]",
+          "tokens": "[REDACTED]",
+          "phones": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.camel-case",
+      "description": "camelCase keys",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "contactPhone": "1",
+          "accessToken": "2",
+          "idCard": "3",
+          "bankCard": "4",
+          "IDCard": "5",
+          "userEMail": "6"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "contactPhone": "[REDACTED]",
+          "accessToken": "[REDACTED]",
+          "idCard": "[REDACTED]",
+          "bankCard": "[REDACTED]",
+          "IDCard": "[REDACTED]",
+          "userEMail": "6"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.kebab-and-dots",
+      "description": "kebab-case and dotted (OTel-style) keys",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "x-api-token": "1",
+          "user.email": "2",
+          "user.phone.number": "3"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "x-api-token": "[REDACTED]",
+          "user.email": "[REDACTED]",
+          "user.phone.number": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.upper-case",
+      "description": "case does not matter",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "PHONE": "1",
+          "Email": "2",
+          "SECRET_KEY": "3"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "PHONE": "[REDACTED]",
+          "Email": "[REDACTED]",
+          "SECRET_KEY": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.not-a-word",
+      "description": "the name inside a longer word does not match",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "telephone": "1",
+          "emailer_count": 2,
+          "tokenizer": "x",
+          "secretary": "y",
+          "mobilephone": "z",
+          "passwordless": "p"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "telephone": "1",
+          "emailer_count": 2,
+          "tokenizer": "x",
+          "secretary": "y",
+          "mobilephone": "z",
+          "passwordless": "p"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.half-of-two-words",
+      "description": "id or card alone is not id_card",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "id": "0192",
+          "card": "visa",
+          "bank": "ICBC",
+          "card_bank": "x",
+          "id_number_card": "y"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "id": "0192",
+          "card": "visa",
+          "bank": "ICBC",
+          "card_bank": "x",
+          "id_number_card": "y"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.nested",
+      "description": "nested objects and arrays are walked",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "user": {
+            "name": "A",
+            "mobile": "1",
+            "contacts": [
+              {
+                "email": "a@x.cn",
+                "label": "work"
+              },
+              {
+                "phone": "2"
+              }
+            ]
+          },
+          "items": [
+            [
+              {
+                "token": "t"
+              }
+            ]
+          ]
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "user": {
+            "name": "A",
+            "mobile": "[REDACTED]",
+            "contacts": [
+              {
+                "email": "[REDACTED]",
+                "label": "work"
+              },
+              {
+                "phone": "[REDACTED]"
+              }
+            ]
+          },
+          "items": [
+            [
+              {
+                "token": "[REDACTED]"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.protected-object",
+      "description": "a protected key's whole object is replaced, not walked",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "secret": {
+            "name": "visible?",
+            "inner": {
+              "x": 1
+            }
+          }
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "secret": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.envelope-untouched",
+      "description": "envelope fields are never redacted, even when the message mentions a name",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "phone 13800138000 changed",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "phone 13800138000 changed",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.values-not-scanned",
+      "description": "values are not scanned for personal data",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "note": "call 13800138000 or a@x.cn"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "note": "call 13800138000 or a@x.cn"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.error-field",
+      "description": "the error text is not scanned; error.* sub-keys follow the rule",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "error": "token expired for a@x.cn",
+          "error.code": "UNAUTHENTICATED",
+          "error.reason": "TOKEN_INVALID"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "error": "token expired for a@x.cn",
+          "error.code": "UNAUTHENTICATED",
+          "error.reason": "TOKEN_INVALID"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.transport-secrets",
+      "description": "authorization, cookie, set-cookie and api_key in their usual spellings",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "authorization": "Bearer eyJ",
+          "Cookie": "sid=1",
+          "set-cookie": "sid=2; HttpOnly",
+          "x-api-key": "k1",
+          "apiKey": "k2",
+          "API_KEY": "k3",
+          "proxy_authorization": "Basic x"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "authorization": "[REDACTED]",
+          "Cookie": "[REDACTED]",
+          "set-cookie": "[REDACTED]",
+          "x-api-key": "[REDACTED]",
+          "apiKey": "[REDACTED]",
+          "API_KEY": "[REDACTED]",
+          "proxy_authorization": "[REDACTED]"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.transport-near-misses",
+      "description": "api or key alone and cookie inside a longer word (cookiejar) do not match; cookies_count does, by the plural rule (accepted over-redaction)",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "api": "v2",
+          "key": "conformance.widget.view",
+          "cookies_count": 2,
+          "cookiejar": "x",
+          "authorized": true
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1",
+          "api": "v2",
+          "key": "conformance.widget.view",
+          "cookies_count": "[REDACTED]",
+          "cookiejar": "x",
+          "authorized": true
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.empty",
+      "description": "nothing to redact",
+      "op": "redact",
+      "input": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1"
+        }
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "record": {
+          "time": "2026-10-02T08:00:00.123456789Z",
+          "level": "info",
+          "msg": "owner_profile_updated",
+          "component_id": "conformance/widget",
+          "component_version": "1.0.0",
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "00f067aa0ba902b7",
+          "request_id": "r-1"
+        }
+      }
+    },
+    {
+      "id": "redaction.redact.key-phone-verified",
+      "description": "is 'phone_verified' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "phone_verified"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-next-page-token",
+      "description": "is 'next_page_token' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "next_page_token"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-password-reset-at",
+      "description": "is 'password_reset_at' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "password_reset_at"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-tokens-used",
+      "description": "is 'tokens_used' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "tokens_used"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-authorization",
+      "description": "is 'authorization' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "authorization"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-cookie",
+      "description": "is 'cookie' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "cookie"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-api-key",
+      "description": "is 'api_key' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "api_key"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-set-cookie",
+      "description": "is 'Set-Cookie' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "Set-Cookie"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-api-key-header",
+      "description": "is 'X-Api-Key' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "X-Api-Key"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": true
+      }
+    },
+    {
+      "id": "redaction.redact.key-api-version",
+      "description": "is 'api_version' protected?",
+      "op": "protected_key",
+      "input": {
+        "key": "api_version"
+      },
+      "refs": [
+        "P18.2"
+      ],
+      "expected": {
+        "protected": false
+      }
+    }
+  ]
+}

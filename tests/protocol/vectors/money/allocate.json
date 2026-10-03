@@ -1,0 +1,472 @@
+{
+  "area": "money",
+  "topic": "allocate",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.allocate.thirds",
+      "description": "allocate 100.00 CNY by ['1', '1', '1']: the documented example",
+      "op": "allocate",
+      "input": {
+        "total": "100.00",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "33.34",
+          "33.33",
+          "33.33"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.thirds-jpy",
+      "description": "allocate 100 JPY by ['1', '1', '1']: no decimals",
+      "op": "allocate",
+      "input": {
+        "total": "100",
+        "currency": "JPY",
+        "weights": [
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "34",
+          "33",
+          "33"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.by-amounts",
+      "description": "allocate 10.00 CNY by ['30.00', '50.00', '20.00']: weights are line amounts",
+      "op": "allocate",
+      "input": {
+        "total": "10.00",
+        "currency": "CNY",
+        "weights": [
+          "30.00",
+          "50.00",
+          "20.00"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "3.00",
+          "5.00",
+          "2.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.remainders-largest-first",
+      "description": "allocate 1.00 CNY by ['1', '2', '4']: largest remainders get the cents",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "2",
+          "4"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.14",
+          "0.29",
+          "0.57"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.tie-earlier-line",
+      "description": "allocate 0.02 CNY by ['1', '1', '1']: equal remainders: earlier lines first",
+      "op": "allocate",
+      "input": {
+        "total": "0.02",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.01",
+          "0.01",
+          "0.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.single",
+      "description": "allocate 12.34 CNY by ['5']: one line takes everything",
+      "op": "allocate",
+      "input": {
+        "total": "12.34",
+        "currency": "CNY",
+        "weights": [
+          "5"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "12.34"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.zero-total",
+      "description": "allocate 0.00 CNY by ['1', '2']: nothing to allocate",
+      "op": "allocate",
+      "input": {
+        "total": "0.00",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "2"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.00",
+          "0.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.zero-weight-line",
+      "description": "allocate 10.00 CNY by ['0', '1', '1']: a zero weight gets zero",
+      "op": "allocate",
+      "input": {
+        "total": "10.00",
+        "currency": "CNY",
+        "weights": [
+          "0",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.00",
+          "5.00",
+          "5.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.negative-total",
+      "description": "allocate -100.00 CNY by ['1', '1', '1']: a credit: allocate |total| then negate",
+      "op": "allocate",
+      "input": {
+        "total": "-100.00",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "-33.34",
+          "-33.33",
+          "-33.33"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.negative-small",
+      "description": "allocate -0.01 CNY by ['1', '1']: one cent of credit",
+      "op": "allocate",
+      "input": {
+        "total": "-0.01",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "-0.01",
+          "0.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.kwd",
+      "description": "allocate 1.000 KWD by ['1', '1', '1']: three-decimal currency",
+      "op": "allocate",
+      "input": {
+        "total": "1.000",
+        "currency": "KWD",
+        "weights": [
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.334",
+          "0.333",
+          "0.333"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.decimal-weights",
+      "description": "allocate 99.99 USD by ['0.333', '0.333', '0.334']: fractional weights",
+      "op": "allocate",
+      "input": {
+        "total": "99.99",
+        "currency": "USD",
+        "weights": [
+          "0.333",
+          "0.333",
+          "0.334"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "33.30",
+          "33.30",
+          "33.39"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.seven-lines",
+      "description": "allocate 1.00 CNY by ['1', '1', '1', '1', '1', '1', '1']: 1/7 each",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.15",
+          "0.15",
+          "0.14",
+          "0.14",
+          "0.14",
+          "0.14",
+          "0.14"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.big",
+      "description": "allocate 999999999999999.99 CNY by ['1', '2']: the largest CNY amount",
+      "op": "allocate",
+      "input": {
+        "total": "999999999999999.99",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "2"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "333333333333333.33",
+          "666666666666666.66"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.cents-to-many",
+      "description": "allocate 0.05 CNY by ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1']: fewer cents than lines",
+      "op": "allocate",
+      "input": {
+        "total": "0.05",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "parts": [
+          "0.01",
+          "0.01",
+          "0.01",
+          "0.01",
+          "0.01",
+          "0.00",
+          "0.00",
+          "0.00",
+          "0.00",
+          "0.00"
+        ]
+      }
+    },
+    {
+      "id": "money.allocate.no-weights",
+      "description": "allocate 1.00 CNY by []: no lines",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": []
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ALLOCATION_INVALID"
+      }
+    },
+    {
+      "id": "money.allocate.all-zero",
+      "description": "allocate 1.00 CNY by ['0', '0']: weights sum to zero",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": [
+          "0",
+          "0"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ALLOCATION_INVALID"
+      }
+    },
+    {
+      "id": "money.allocate.negative-weight",
+      "description": "allocate 1.00 CNY by ['2', '-1']: a negative weight",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": [
+          "2",
+          "-1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ALLOCATION_INVALID"
+      }
+    },
+    {
+      "id": "money.allocate.total-too-fine",
+      "description": "allocate 1.005 CNY by ['1', '1']: total not at minor units",
+      "op": "allocate",
+      "input": {
+        "total": "1.005",
+        "currency": "CNY",
+        "weights": [
+          "1",
+          "1"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SCALE"
+      }
+    },
+    {
+      "id": "money.allocate.bad-weight",
+      "description": "allocate 1.00 CNY by ['1e2']: a weight that is not a decimal string",
+      "op": "allocate",
+      "input": {
+        "total": "1.00",
+        "currency": "CNY",
+        "weights": [
+          "1e2"
+        ]
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    }
+  ]
+}

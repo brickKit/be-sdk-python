@@ -1,0 +1,247 @@
+{
+  "area": "errors",
+  "topic": "levels",
+  "protocol": "1.0",
+  "generated_by": "errors/gen/gen_errors.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "errors.levels.ok",
+      "description": "log level of OK",
+      "op": "log_level",
+      "input": {
+        "code": "OK"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "none"
+      }
+    },
+    {
+      "id": "errors.levels.cancelled",
+      "description": "log level of CANCELLED",
+      "op": "log_level",
+      "input": {
+        "code": "CANCELLED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "none"
+      }
+    },
+    {
+      "id": "errors.levels.unknown",
+      "description": "log level of UNKNOWN",
+      "op": "log_level",
+      "input": {
+        "code": "UNKNOWN"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "error"
+      }
+    },
+    {
+      "id": "errors.levels.invalid-argument",
+      "description": "log level of INVALID_ARGUMENT",
+      "op": "log_level",
+      "input": {
+        "code": "INVALID_ARGUMENT"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.deadline-exceeded",
+      "description": "log level of DEADLINE_EXCEEDED",
+      "op": "log_level",
+      "input": {
+        "code": "DEADLINE_EXCEEDED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "warn"
+      }
+    },
+    {
+      "id": "errors.levels.not-found",
+      "description": "log level of NOT_FOUND",
+      "op": "log_level",
+      "input": {
+        "code": "NOT_FOUND"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.already-exists",
+      "description": "log level of ALREADY_EXISTS",
+      "op": "log_level",
+      "input": {
+        "code": "ALREADY_EXISTS"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.permission-denied",
+      "description": "log level of PERMISSION_DENIED",
+      "op": "log_level",
+      "input": {
+        "code": "PERMISSION_DENIED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.resource-exhausted",
+      "description": "log level of RESOURCE_EXHAUSTED",
+      "op": "log_level",
+      "input": {
+        "code": "RESOURCE_EXHAUSTED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.failed-precondition",
+      "description": "log level of FAILED_PRECONDITION",
+      "op": "log_level",
+      "input": {
+        "code": "FAILED_PRECONDITION"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.aborted",
+      "description": "log level of ABORTED",
+      "op": "log_level",
+      "input": {
+        "code": "ABORTED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.out-of-range",
+      "description": "log level of OUT_OF_RANGE",
+      "op": "log_level",
+      "input": {
+        "code": "OUT_OF_RANGE"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.unimplemented",
+      "description": "log level of UNIMPLEMENTED",
+      "op": "log_level",
+      "input": {
+        "code": "UNIMPLEMENTED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    },
+    {
+      "id": "errors.levels.internal",
+      "description": "log level of INTERNAL",
+      "op": "log_level",
+      "input": {
+        "code": "INTERNAL"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "error"
+      }
+    },
+    {
+      "id": "errors.levels.unavailable",
+      "description": "log level of UNAVAILABLE",
+      "op": "log_level",
+      "input": {
+        "code": "UNAVAILABLE"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "warn"
+      }
+    },
+    {
+      "id": "errors.levels.data-loss",
+      "description": "log level of DATA_LOSS",
+      "op": "log_level",
+      "input": {
+        "code": "DATA_LOSS"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "error"
+      }
+    },
+    {
+      "id": "errors.levels.unauthenticated",
+      "description": "log level of UNAUTHENTICATED",
+      "op": "log_level",
+      "input": {
+        "code": "UNAUTHENTICATED"
+      },
+      "refs": [
+        "P4.6"
+      ],
+      "expected": {
+        "level": "info"
+      }
+    }
+  ]
+}

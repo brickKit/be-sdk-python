@@ -1,0 +1,625 @@
+{
+  "area": "idempotency",
+  "topic": "decide",
+  "protocol": "1.0",
+  "generated_by": "idempotency/gen/gen_idempotency.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "idempotency.decide.first-use",
+      "description": "no row for (caller, key): claim and execute",
+      "op": "decide",
+      "input": {
+        "rows": [],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "EXECUTE"
+      }
+    },
+    {
+      "id": "idempotency.decide.replay-done",
+      "description": "same caller, key, command, target and body: replay the stored result",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REPLAY",
+        "result": {
+          "http": 201,
+          "body": {
+            "id": "0192f0c5-1111-7000-8000-000000000001"
+          }
+        }
+      }
+    },
+    {
+      "id": "idempotency.decide.replay-reordered-body",
+      "description": "the body differs only in key order: same fingerprint, replay",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"price\":\"12.50\",\"name\":\"Widget A\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REPLAY",
+        "result": {
+          "http": 201,
+          "body": {
+            "id": "0192f0c5-1111-7000-8000-000000000001"
+          }
+        }
+      }
+    },
+    {
+      "id": "idempotency.decide.mismatch-body",
+      "description": "a different body under the same key",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.60\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REJECT",
+        "code": "INVALID_ARGUMENT",
+        "http": 400,
+        "reason": "IDEMPOTENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "idempotency.decide.mismatch-command",
+      "description": "a different command",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.approve",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REJECT",
+        "code": "INVALID_ARGUMENT",
+        "http": 400,
+        "reason": "IDEMPOTENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "idempotency.decide.mismatch-target",
+      "description": "a different target",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "0192f0c5-1111-7000-8000-000000000002",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REJECT",
+        "code": "INVALID_ARGUMENT",
+        "http": 400,
+        "reason": "IDEMPOTENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "idempotency.decide.in-progress",
+      "description": "the first use is still CLAIMED (two-step command)",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.approve",
+            "target": "0192f0c5-1111-7000-8000-000000000001",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "CLAIMED",
+            "result": null,
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.approve",
+          "target": "0192f0c5-1111-7000-8000-000000000001",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REJECT",
+        "code": "ABORTED",
+        "http": 409,
+        "reason": "IDEMPOTENCY_IN_PROGRESS"
+      }
+    },
+    {
+      "id": "idempotency.decide.in-progress-mismatch",
+      "description": "CLAIMED and a different body: the mismatch is reported first",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.approve",
+            "target": "0192f0c5-1111-7000-8000-000000000001",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "CLAIMED",
+            "result": null,
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.approve",
+          "target": "0192f0c5-1111-7000-8000-000000000001",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.60\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REJECT",
+        "code": "INVALID_ARGUMENT",
+        "http": 400,
+        "reason": "IDEMPOTENCY_MISMATCH"
+      }
+    },
+    {
+      "id": "idempotency.decide.other-user-same-key",
+      "description": "another user's key is, for me, an unused key",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a61"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a61",
+        "outcome": "EXECUTE"
+      }
+    },
+    {
+      "id": "idempotency.decide.service-same-key",
+      "description": "the svc: namespace is separate from user:",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "system_call",
+            "be_caller": "erp/sales"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "svc:erp/sales",
+        "outcome": "EXECUTE"
+      }
+    },
+    {
+      "id": "idempotency.decide.system-same-key",
+      "description": "the system namespace is separate from user:",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-02T08:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "background"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "system",
+        "outcome": "EXECUTE"
+      }
+    },
+    {
+      "id": "idempotency.decide.expired",
+      "description": "at expires_at the key is new again",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-31T00:00:00Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "EXECUTE"
+      }
+    },
+    {
+      "id": "idempotency.decide.just-before-expiry",
+      "description": "one millisecond before expiry: replay",
+      "op": "decide",
+      "input": {
+        "rows": [
+          {
+            "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+            "idempotency_key": "0192f0c5-0000-7000-8000-000000000001",
+            "command": "conformance.widget.create",
+            "target": "",
+            "request_hash": "27a49d59b3c1bcad66d3645034cf11770ae584ff2e03ff2280cf936dceb17fa7",
+            "status": "DONE",
+            "result": {
+              "http": 201,
+              "body": {
+                "id": "0192f0c5-1111-7000-8000-000000000001"
+              }
+            },
+            "created_at": "2026-10-01T00:00:00Z",
+            "expires_at": "2026-10-31T00:00:00Z"
+          }
+        ],
+        "now": "2026-10-30T23:59:59.999Z",
+        "incoming": {
+          "caller": {
+            "kind": "user",
+            "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+          },
+          "key": "0192f0c5-0000-7000-8000-000000000001",
+          "command": "conformance.widget.create",
+          "target": "",
+          "request": "{\"name\":\"Widget A\",\"price\":\"12.50\"}"
+        }
+      },
+      "refs": [
+        "P13.1",
+        "P13.2",
+        "P13.3",
+        "P13.4",
+        "P13.7"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60",
+        "outcome": "REPLAY",
+        "result": {
+          "http": 201,
+          "body": {
+            "id": "0192f0c5-1111-7000-8000-000000000001"
+          }
+        }
+      }
+    }
+  ]
+}

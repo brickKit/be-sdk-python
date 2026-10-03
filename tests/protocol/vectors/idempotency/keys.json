@@ -1,0 +1,195 @@
+{
+  "area": "idempotency",
+  "topic": "keys",
+  "protocol": "1.0",
+  "generated_by": "idempotency/gen/gen_idempotency.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "idempotency.keys.header-only",
+      "description": "Idempotency-Key header only",
+      "op": "resolve_key",
+      "input": {
+        "header": "0192f0c5-0000-7000-8000-000000000001",
+        "body": null
+      },
+      "refs": [
+        "P3.7"
+      ],
+      "expected": {
+        "key": "0192f0c5-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "id": "idempotency.keys.body-only",
+      "description": "idempotency_key body field only",
+      "op": "resolve_key",
+      "input": {
+        "header": null,
+        "body": "0192f0c5-0000-7000-8000-000000000001"
+      },
+      "refs": [
+        "P3.7"
+      ],
+      "expected": {
+        "key": "0192f0c5-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "id": "idempotency.keys.both-equal",
+      "description": "both present and equal",
+      "op": "resolve_key",
+      "input": {
+        "header": "0192f0c5-0000-7000-8000-000000000001",
+        "body": "0192f0c5-0000-7000-8000-000000000001"
+      },
+      "refs": [
+        "P3.7"
+      ],
+      "expected": {
+        "key": "0192f0c5-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "id": "idempotency.keys.both-differ",
+      "description": "both present and different: 400",
+      "op": "resolve_key",
+      "input": {
+        "header": "0192f0c5-0000-7000-8000-000000000001",
+        "body": "0192f0c5-0000-7000-8000-000000000002"
+      },
+      "refs": [
+        "P3.7"
+      ],
+      "expected_error": {
+        "reason": "IDEMPOTENCY_MISMATCH",
+        "code": "INVALID_ARGUMENT",
+        "http": 400
+      }
+    },
+    {
+      "id": "idempotency.keys.neither",
+      "description": "no key: the command runs without idempotency",
+      "op": "resolve_key",
+      "input": {
+        "header": null,
+        "body": null
+      },
+      "refs": [
+        "P3.7"
+      ],
+      "expected": {
+        "key": null
+      }
+    },
+    {
+      "id": "idempotency.keys.ns-user",
+      "description": "caller namespace for a user request",
+      "op": "caller_namespace",
+      "input": {
+        "caller": {
+          "kind": "user",
+          "sub": "0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+        }
+      },
+      "refs": [
+        "P13.1"
+      ],
+      "expected": {
+        "caller": "user:0192f0c4-7b1e-7cc3-9a52-3f1d2e4b5a60"
+      }
+    },
+    {
+      "id": "idempotency.keys.ns-system-call",
+      "description": "caller namespace for a gRPC system call from erp/sales",
+      "op": "caller_namespace",
+      "input": {
+        "caller": {
+          "kind": "system_call",
+          "be_caller": "erp/sales"
+        }
+      },
+      "refs": [
+        "P13.1"
+      ],
+      "expected": {
+        "caller": "svc:erp/sales"
+      }
+    },
+    {
+      "id": "idempotency.keys.ns-shell-member",
+      "description": "caller namespace for be-caller is the member's ID",
+      "op": "caller_namespace",
+      "input": {
+        "caller": {
+          "kind": "system_call",
+          "be_caller": "conformance/widget-go"
+        }
+      },
+      "refs": [
+        "P13.1"
+      ],
+      "expected": {
+        "caller": "svc:conformance/widget-go"
+      }
+    },
+    {
+      "id": "idempotency.keys.ns-background",
+      "description": "caller namespace for the component's own job or event handler",
+      "op": "caller_namespace",
+      "input": {
+        "caller": {
+          "kind": "background"
+        }
+      },
+      "refs": [
+        "P13.1"
+      ],
+      "expected": {
+        "caller": "system"
+      }
+    },
+    {
+      "id": "idempotency.keys.expiry",
+      "description": "a key expires exactly 30 days (720 h) after it was claimed",
+      "op": "expires_at",
+      "input": {
+        "created_at": "2026-10-02T08:00:00Z"
+      },
+      "refs": [
+        "P13.7"
+      ],
+      "expected": {
+        "expires_at": "2026-11-01T08:00:00Z"
+      }
+    },
+    {
+      "id": "idempotency.keys.expiry-leap",
+      "description": "a key expires exactly 30 days (720 h) after it was claimed",
+      "op": "expires_at",
+      "input": {
+        "created_at": "2028-02-15T23:30:00.123456Z"
+      },
+      "refs": [
+        "P13.7"
+      ],
+      "expected": {
+        "expires_at": "2028-03-16T23:30:00.123456Z"
+      }
+    },
+    {
+      "id": "idempotency.keys.expiry-month-end",
+      "description": "a key expires exactly 30 days (720 h) after it was claimed",
+      "op": "expires_at",
+      "input": {
+        "created_at": "2026-01-31T00:00:00Z"
+      },
+      "refs": [
+        "P13.7"
+      ],
+      "expected": {
+        "expires_at": "2026-03-02T00:00:00Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,745 @@
+{
+  "area": "numbering",
+  "topic": "series",
+  "protocol": "1.0",
+  "generated_by": "numbering/gen/gen_numbering.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "numbering.series.gapless-sequential",
+      "description": "consecutive commits get 1, 2, 3",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          },
+          {
+            "tx": "t3",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t3",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          },
+          {
+            "tx": "t3",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 3
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapless-rollback-returns",
+      "description": "a rolled-back number is handed out again: no gap",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t2",
+            "op": "rollback"
+          },
+          {
+            "tx": "t3",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t3",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t3",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapless-per-period",
+      "description": "each period counts from 1",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-11"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          },
+          {
+            "tx": "t3",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t3",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-11",
+            "number": 1
+          },
+          {
+            "tx": "t3",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 3
+          },
+          {
+            "scope": "LE01",
+            "period": "2026-11",
+            "next_value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapless-per-legal-entity",
+      "description": "each legal entity counts separately",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE02",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          },
+          {
+            "tx": "t3",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t3",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE02",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t3",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 3
+          },
+          {
+            "scope": "LE02",
+            "period": "2026-10",
+            "next_value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapless-two-in-one-tx",
+      "description": "two vouchers in one transaction",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 3
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapless-fiscal-period-key",
+      "description": "a voucher series keyed by fiscal period",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapless",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-P07"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-P07"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          }
+        ]
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-P07",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-P07",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-P07",
+            "next_value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapped-block",
+      "description": "numbers come from the process's block",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapped",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          }
+        ],
+        "block_size": 10
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapped-rollback-gap",
+      "description": "a rollback leaves a gap: 1 is lost, 2 is used",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapped",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "rollback"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          }
+        ],
+        "block_size": 10
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapped-two-processes",
+      "description": "two replicas: unique, increasing within a process, not across",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapped",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p2"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          },
+          {
+            "tx": "t3",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t3",
+            "op": "commit"
+          }
+        ],
+        "block_size": 10
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 11
+          },
+          {
+            "tx": "t3",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 21
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapped-block-exhausted",
+      "description": "the third number reserves a new block",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapped",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          }
+        ],
+        "block_size": 2
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 2
+          },
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 3
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "numbering.series.gapped-crash",
+      "description": "after a crash the rest of the block is lost",
+      "op": "series_sim",
+      "input": {
+        "mode": "gapped",
+        "steps": [
+          {
+            "tx": "t1",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t1",
+            "op": "commit"
+          },
+          {
+            "tx": "-",
+            "op": "crash",
+            "process": "p1"
+          },
+          {
+            "tx": "t2",
+            "op": "alloc",
+            "scope": "LE01",
+            "period": "2026-10",
+            "process": "p1"
+          },
+          {
+            "tx": "t2",
+            "op": "commit"
+          }
+        ],
+        "block_size": 10
+      },
+      "refs": [
+        "P11.10"
+      ],
+      "expected": {
+        "committed": [
+          {
+            "tx": "t1",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 1
+          },
+          {
+            "tx": "t2",
+            "scope": "LE01",
+            "period": "2026-10",
+            "number": 11
+          }
+        ],
+        "series_rows": [
+          {
+            "scope": "LE01",
+            "period": "2026-10",
+            "next_value": 21
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,515 @@
+{
+  "area": "envelope",
+  "topic": "cursor",
+  "protocol": "1.0",
+  "generated_by": "envelope/gen/gen_envelope.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "envelope.cursor.in-order",
+      "description": "in order, every version applied",
+      "op": "cursor_sequence",
+      "input": {
+        "start": null,
+        "versions": [
+          1,
+          2,
+          3
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          1,
+          2,
+          3
+        ],
+        "final": 3
+      }
+    },
+    {
+      "id": "envelope.cursor.duplicate",
+      "description": "duplicates are skipped",
+      "op": "cursor_sequence",
+      "input": {
+        "start": null,
+        "versions": [
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          1,
+          2
+        ],
+        "final": 2
+      }
+    },
+    {
+      "id": "envelope.cursor.out-of-order",
+      "description": "v3 first: v2 and v1 are older and skipped",
+      "op": "cursor_sequence",
+      "input": {
+        "start": null,
+        "versions": [
+          3,
+          2,
+          1
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          3
+        ],
+        "final": 3
+      }
+    },
+    {
+      "id": "envelope.cursor.gap",
+      "description": "gaps are fine in state mode",
+      "op": "cursor_sequence",
+      "input": {
+        "start": null,
+        "versions": [
+          1,
+          4
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          1,
+          4
+        ],
+        "final": 4
+      }
+    },
+    {
+      "id": "envelope.cursor.shuffled-with-duplicates",
+      "description": "the final state equals one in-order delivery",
+      "op": "cursor_sequence",
+      "input": {
+        "start": null,
+        "versions": [
+          2,
+          5,
+          1,
+          5,
+          3,
+          4,
+          5,
+          2
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          2,
+          5
+        ],
+        "final": 5
+      }
+    },
+    {
+      "id": "envelope.cursor.existing-cursor",
+      "description": "the cursor already at 4",
+      "op": "cursor_sequence",
+      "input": {
+        "start": 4,
+        "versions": [
+          3,
+          4,
+          5
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [
+          5
+        ],
+        "final": 5
+      }
+    },
+    {
+      "id": "envelope.cursor.equal-is-skip",
+      "description": "an equal version is a duplicate",
+      "op": "cursor_sequence",
+      "input": {
+        "start": 7,
+        "versions": [
+          7
+        ]
+      },
+      "refs": [
+        "P12.6"
+      ],
+      "expected": {
+        "applied": [],
+        "final": 7
+      }
+    },
+    {
+      "id": "envelope.cursor.ok",
+      "description": "a successful handler acks",
+      "op": "redelivery",
+      "input": {
+        "delivery": 1,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "ok",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 41
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "ack",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.first-failure",
+      "description": "first failure: wait the first backoff",
+      "op": "redelivery",
+      "input": {
+        "delivery": 1,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 41
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "1s",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.third-failure",
+      "description": "third failure: the third backoff",
+      "op": "redelivery",
+      "input": {
+        "delivery": 3,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 43
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "1m",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.seventh-failure",
+      "description": "seventh failure: the last backoff",
+      "op": "redelivery",
+      "input": {
+        "delivery": 7,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 47
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "1h",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.last-allowed-failure",
+      "description": "the last allowed delivery fails: nak; the next delivery is dead-lettered on receipt",
+      "op": "redelivery",
+      "input": {
+        "delivery": 8,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 48
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "1h",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.over-max-deliver",
+      "description": "a delivery above max_deliver is dead-lettered on receipt; the handler does not run",
+      "op": "redelivery",
+      "input": {
+        "delivery": 9,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 49
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "dlq",
+        "reason": "MAX_DELIVER",
+        "handled": false,
+        "dlq_msg_id": "dlq:conformance_widget-go__conformance__owner__updated__v1:49"
+      }
+    },
+    {
+      "id": "envelope.cursor.permanent",
+      "description": "a permanent error goes straight to the dead letters",
+      "op": "redelivery",
+      "input": {
+        "delivery": 1,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "permanent",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 41
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "dlq",
+        "reason": "PERMANENT",
+        "handled": true,
+        "dlq_msg_id": "dlq:conformance_widget-go__conformance__owner__updated__v1:41"
+      }
+    },
+    {
+      "id": "envelope.cursor.short-list",
+      "description": "a backoff list shorter than max_deliver repeats its last value",
+      "op": "redelivery",
+      "input": {
+        "delivery": 5,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 45
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "10s",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.conformance-tuning",
+      "description": "the compconf tuning EVENTS_BACKOFF=200ms,500ms,1s",
+      "op": "redelivery",
+      "input": {
+        "delivery": 2,
+        "max_deliver": 3,
+        "backoff": [
+          "200ms",
+          "500ms",
+          "1s"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 42
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "500ms",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.conformance-last-allowed",
+      "description": "EVENTS_MAX_DELIVER=3: the third failure still naks",
+      "op": "redelivery",
+      "input": {
+        "delivery": 3,
+        "max_deliver": 3,
+        "backoff": [
+          "200ms",
+          "500ms",
+          "1s"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 43
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "nak",
+        "delay": "1s",
+        "handled": true
+      }
+    },
+    {
+      "id": "envelope.cursor.conformance-over",
+      "description": "EVENTS_MAX_DELIVER=3: the fourth delivery goes to the dead letters",
+      "op": "redelivery",
+      "input": {
+        "delivery": 4,
+        "max_deliver": 3,
+        "backoff": [
+          "200ms",
+          "500ms",
+          "1s"
+        ],
+        "outcome": "error",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 44
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "dlq",
+        "reason": "MAX_DELIVER",
+        "handled": false,
+        "dlq_msg_id": "dlq:conformance_widget-go__conformance__owner__updated__v1:44"
+      }
+    },
+    {
+      "id": "envelope.cursor.permanent-msg-id",
+      "description": "the dead-letter message ID is dlq:<durable>:<stream sequence>, so a crash never duplicates it",
+      "op": "redelivery",
+      "input": {
+        "delivery": 2,
+        "max_deliver": 8,
+        "backoff": [
+          "1s",
+          "10s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h"
+        ],
+        "outcome": "permanent",
+        "durable": "conformance_widget-go__conformance__owner__updated__v1",
+        "stream_seq": 42
+      },
+      "refs": [
+        "P12.5",
+        "P12.7"
+      ],
+      "expected": {
+        "action": "dlq",
+        "reason": "PERMANENT",
+        "handled": true,
+        "dlq_msg_id": "dlq:conformance_widget-go__conformance__owner__updated__v1:42"
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "contract": "authz/2.0",
+  "expected": {
+    "bundle": "accepted",
+    "decision": {
+      "allowed": true,
+      "reason": "",
+      "visible": true
+    },
+    "degraded": [],
+    "explain": {
+      "missing": [],
+      "reasons": [
+        {
+          "detail": "user:u_me",
+          "kind": "relation",
+          "source": "member"
+        }
+      ]
+    },
+    "has_key": false,
+    "level": "none",
+    "scope_params": {
+      "s_acl": true,
+      "s_all": false,
+      "s_dept_exact": [],
+      "s_dept_prefix": [],
+      "s_dims": {},
+      "s_graph_ids": [],
+      "s_owners": [],
+      "s_relations": [
+        "member"
+      ],
+      "s_subjects": [
+        "dept:/1/12/",
+        "dept_tree:/",
+        "dept_tree:/1/",
+        "dept_tree:/1/12/",
+        "user:u_me"
+      ]
+    },
+    "token": "OK"
+  },
+  "id": "component-relation-member",
+  "input": {
+    "acl": [
+      {
+        "relation": "member",
+        "rid": "p1",
+        "rtype": "crm.opportunity.opportunity",
+        "subject": "user:u_me"
+      }
+    ],
+    "bundle": {
+      "capabilities": {
+        "access_review": true,
+        "admin_write": true,
+        "agents": false,
+        "check": true,
+        "conditions": false,
+        "core": true,
+        "delegation": true,
+        "explain_paths": true,
+        "graph": false,
+        "impersonation": false,
+        "list_objects": {
+          "max_results": 1000
+        },
+        "relation_sync": true,
+        "sharing": true
+      },
+      "catalog_digest": "sha256:abababababababababababababababababababababababababababababababab",
+      "contract": "authz/2.0",
+      "delegations": [],
+      "grants": {},
+      "profiles": {},
+      "revision": "100",
+      "revoked_grants": {},
+      "roles": {},
+      "stale_since": {}
+    },
+    "claims": {
+      "dept_path": "/1/12/",
+      "iat": 1759999940,
+      "roles": [],
+      "sub": "u_me",
+      "tenant_id": "t1"
+    },
+    "key": "crm.opportunity.edit",
+    "now": 1760000000,
+    "resource_type": {
+      "derivation": "direct",
+      "dimensions": [
+        "owner",
+        "org"
+      ],
+      "keys": [
+        "crm.opportunity.view",
+        "crm.opportunity.edit"
+      ],
+      "owner_component": "crm/opportunity",
+      "relations": {
+        "member": {
+          "grants": [
+            "crm.opportunity.edit"
+          ],
+          "includes": [
+            "viewer"
+          ],
+          "owned_by": "component"
+        },
+        "viewer": {
+          "grants": [
+            "crm.opportunity.view"
+          ]
+        }
+      },
+      "type": "crm.opportunity.opportunity",
+      "view_key": "crm.opportunity.view"
+    },
+    "row": {
+      "dept_path": "/1/12/",
+      "id": "p1",
+      "owner": "u_other",
+      "values": {}
+    }
+  },
+  "tags": [
+    "relation_sync"
+  ],
+  "title": "A component-owned member relation gives edit"
+}

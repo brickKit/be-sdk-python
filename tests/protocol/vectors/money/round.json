@@ -1,0 +1,752 @@
+{
+  "area": "money",
+  "topic": "round",
+  "protocol": "1.0",
+  "generated_by": "money/gen/gen_money.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "money.round.cny-tie",
+      "description": "round '2.345' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "2.345",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.35"
+      }
+    },
+    {
+      "id": "money.round.cny-tie-even-down",
+      "description": "round '2.345' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "2.345",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.34"
+      }
+    },
+    {
+      "id": "money.round.cny-tie-even-up",
+      "description": "round '2.355' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "2.355",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.36"
+      }
+    },
+    {
+      "id": "money.round.cny-below-tie",
+      "description": "round '2.3449999' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "2.3449999",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.34"
+      }
+    },
+    {
+      "id": "money.round.cny-above-tie-even",
+      "description": "round '2.3450001' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "2.3450001",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.35"
+      }
+    },
+    {
+      "id": "money.round.cny-negative-tie",
+      "description": "round '-2.345' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "-2.345",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-2.35"
+      }
+    },
+    {
+      "id": "money.round.cny-negative-tie-even",
+      "description": "round '-2.345' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "-2.345",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-2.34"
+      }
+    },
+    {
+      "id": "money.round.cny-negative-to-zero",
+      "description": "round '-0.004' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "-0.004",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.00"
+      }
+    },
+    {
+      "id": "money.round.cny-negative-tie-to-zero-even",
+      "description": "round '-0.005' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "-0.005",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.00"
+      }
+    },
+    {
+      "id": "money.round.cny-already-rounded",
+      "description": "round '2.30' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "2.30",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2.30"
+      }
+    },
+    {
+      "id": "money.round.jpy-tie",
+      "description": "round '1230.5' to the minor units of JPY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "1230.5",
+        "currency": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1231"
+      }
+    },
+    {
+      "id": "money.round.jpy-tie-even",
+      "description": "round '1230.5' to the minor units of JPY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "1230.5",
+        "currency": "JPY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1230"
+      }
+    },
+    {
+      "id": "money.round.jpy-tie-even-odd",
+      "description": "round '1231.5' to the minor units of JPY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "1231.5",
+        "currency": "JPY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1232"
+      }
+    },
+    {
+      "id": "money.round.kwd-tie",
+      "description": "round '1.2345' to the minor units of KWD, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "1.2345",
+        "currency": "KWD",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.235"
+      }
+    },
+    {
+      "id": "money.round.kwd-tie-even",
+      "description": "round '1.2345' to the minor units of KWD, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "1.2345",
+        "currency": "KWD",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.234"
+      }
+    },
+    {
+      "id": "money.round.clf",
+      "description": "round '1.23455' to the minor units of CLF, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "1.23455",
+        "currency": "CLF",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.2346"
+      }
+    },
+    {
+      "id": "money.round.carry",
+      "description": "round '9.995' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "9.995",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "10.00"
+      }
+    },
+    {
+      "id": "money.round.carry-integer",
+      "description": "round '999999.5' to the minor units of JPY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "999999.5",
+        "currency": "JPY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1000000"
+      }
+    },
+    {
+      "id": "money.round.long-fraction",
+      "description": "round '0.1249999999999999999999999' to the minor units of CNY, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "0.1249999999999999999999999",
+        "currency": "CNY",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.12"
+      }
+    },
+    {
+      "id": "money.round.unknown-mode",
+      "description": "round '1.005' to the minor units of CNY, HALF_UP",
+      "op": "round",
+      "input": {
+        "value": "1.005",
+        "currency": "CNY",
+        "mode": "HALF_UP"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "MODE_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.round.mode-lower-case",
+      "description": "round '1.005' to the minor units of CNY, half_even",
+      "op": "round",
+      "input": {
+        "value": "1.005",
+        "currency": "CNY",
+        "mode": "half_even"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "MODE_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.round.bad-value",
+      "description": "round '1,005' to the minor units of CNY, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "1,005",
+        "currency": "CNY",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "DECIMAL_SYNTAX"
+      }
+    },
+    {
+      "id": "money.round.unknown-currency",
+      "description": "round '1.005' to the minor units of XXX, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "1.005",
+        "currency": "XXX",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "CURRENCY_UNKNOWN"
+      }
+    },
+    {
+      "id": "money.round.default-mode",
+      "description": "mode omitted means HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "0.125",
+        "currency": "CNY"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.13"
+      }
+    },
+    {
+      "id": "money.round.scale-6-price",
+      "description": "round 0.00349951 to scale 6, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "0.00349951",
+        "scale": 6,
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "0.003500"
+      }
+    },
+    {
+      "id": "money.round.scale-10-rate",
+      "description": "round 7.12345678905 to scale 10, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "7.12345678905",
+        "scale": 10,
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "7.1234567890"
+      }
+    },
+    {
+      "id": "money.round.scale-0",
+      "description": "round 2.5 to scale 0, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "2.5",
+        "scale": 0,
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "3"
+      }
+    },
+    {
+      "id": "money.round.scale-0-even",
+      "description": "round 2.5 to scale 0, HALF_EVEN",
+      "op": "round",
+      "input": {
+        "value": "2.5",
+        "scale": 0,
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "2"
+      }
+    },
+    {
+      "id": "money.round.scale-4",
+      "description": "round -1.00005 to scale 4, HALF_AWAY_FROM_ZERO",
+      "op": "round",
+      "input": {
+        "value": "-1.00005",
+        "scale": 4,
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-1.0001"
+      }
+    },
+    {
+      "id": "money.round.chf-cash-up",
+      "description": "cash rounding of 1.03 CHF to a multiple of 0.05, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "1.03",
+        "currency": "CHF",
+        "increment": "0.05",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.05"
+      }
+    },
+    {
+      "id": "money.round.chf-cash-tie",
+      "description": "cash rounding of 1.025 CHF to a multiple of 0.05, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "1.025",
+        "currency": "CHF",
+        "increment": "0.05",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.05"
+      }
+    },
+    {
+      "id": "money.round.chf-cash-tie-even",
+      "description": "cash rounding of 1.025 CHF to a multiple of 0.05, HALF_EVEN",
+      "op": "round_cash",
+      "input": {
+        "value": "1.025",
+        "currency": "CHF",
+        "increment": "0.05",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.00"
+      }
+    },
+    {
+      "id": "money.round.chf-cash-down",
+      "description": "cash rounding of 1.02 CHF to a multiple of 0.05, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "1.02",
+        "currency": "CHF",
+        "increment": "0.05",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.00"
+      }
+    },
+    {
+      "id": "money.round.chf-cash-negative",
+      "description": "cash rounding of -1.075 CHF to a multiple of 0.05, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "-1.075",
+        "currency": "CHF",
+        "increment": "0.05",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-1.10"
+      }
+    },
+    {
+      "id": "money.round.cny-cash-jiao",
+      "description": "cash rounding of 12.35 CNY to a multiple of 0.1, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "12.35",
+        "currency": "CNY",
+        "increment": "0.1",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "12.40"
+      }
+    },
+    {
+      "id": "money.round.cash-increment-finer-than-currency",
+      "description": "cash rounding of 1.0 JPY to a multiple of 0.5, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "1.0",
+        "currency": "JPY",
+        "increment": "0.5",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ROUNDING_INVALID"
+      }
+    },
+    {
+      "id": "money.round.cash-increment-zero",
+      "description": "cash rounding of 1.0 CHF to a multiple of 0, HALF_AWAY_FROM_ZERO",
+      "op": "round_cash",
+      "input": {
+        "value": "1.0",
+        "currency": "CHF",
+        "increment": "0",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ROUNDING_INVALID"
+      }
+    },
+    {
+      "id": "money.round.qty-milli",
+      "description": "round quantity 1.23456 by unit rounding 0.001, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "1.23456",
+        "rounding": "0.001",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.235"
+      }
+    },
+    {
+      "id": "money.round.qty-milli-tie",
+      "description": "round quantity 1.2345 by unit rounding 0.001, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "1.2345",
+        "rounding": "0.001",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.235"
+      }
+    },
+    {
+      "id": "money.round.qty-milli-tie-even",
+      "description": "round quantity 1.2345 by unit rounding 0.001, HALF_EVEN",
+      "op": "round_qty",
+      "input": {
+        "value": "1.2345",
+        "rounding": "0.001",
+        "mode": "HALF_EVEN"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.234"
+      }
+    },
+    {
+      "id": "money.round.qty-unit",
+      "description": "round quantity 2.5 by unit rounding 1, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "2.5",
+        "rounding": "1",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "3"
+      }
+    },
+    {
+      "id": "money.round.qty-serial-integer",
+      "description": "round quantity 3.0 by unit rounding 1, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "3.0",
+        "rounding": "1",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "3"
+      }
+    },
+    {
+      "id": "money.round.qty-half-step",
+      "description": "round quantity 1.26 by unit rounding 0.5, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "1.26",
+        "rounding": "0.5",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "1.5"
+      }
+    },
+    {
+      "id": "money.round.qty-negative",
+      "description": "round quantity -1.2345 by unit rounding 0.01, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "-1.2345",
+        "rounding": "0.01",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected": {
+        "value": "-1.23"
+      }
+    },
+    {
+      "id": "money.round.qty-rounding-zero",
+      "description": "round quantity 1 by unit rounding 0, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "1",
+        "rounding": "0",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ROUNDING_INVALID"
+      }
+    },
+    {
+      "id": "money.round.qty-rounding-negative",
+      "description": "round quantity 1 by unit rounding -0.01, HALF_AWAY_FROM_ZERO",
+      "op": "round_qty",
+      "input": {
+        "value": "1",
+        "rounding": "-0.01",
+        "mode": "HALF_AWAY_FROM_ZERO"
+      },
+      "refs": [
+        "P11.6"
+      ],
+      "expected_error": {
+        "reason": "ROUNDING_INVALID"
+      }
+    }
+  ]
+}

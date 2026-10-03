@@ -1,0 +1,439 @@
+{
+  "area": "config",
+  "topic": "keys",
+  "protocol": "1.0",
+  "generated_by": "config/gen/gen_config.py",
+  "note": "Generated file: do not edit by hand; change the generator and re-run it (make -C vectors gen).",
+  "cases": [
+    {
+      "id": "config.keys.pg-host",
+      "description": "may a component declare 'PG_HOST'?",
+      "op": "key_name",
+      "input": {
+        "key": "PG_HOST"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.events-backoff",
+      "description": "may a component declare 'EVENTS_BACKOFF'?",
+      "op": "key_name",
+      "input": {
+        "key": "EVENTS_BACKOFF"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.number-format",
+      "description": "may a component declare 'SALES_ORDER_NO_FORMAT'?",
+      "op": "key_name",
+      "input": {
+        "key": "SALES_ORDER_NO_FORMAT"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.s3-url",
+      "description": "may a component declare 'S3_URL'?",
+      "op": "key_name",
+      "input": {
+        "key": "S3_URL"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.one-letter",
+      "description": "may a component declare 'A'?",
+      "op": "key_name",
+      "input": {
+        "key": "A"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.letter-digit",
+      "description": "may a component declare 'X1'?",
+      "op": "key_name",
+      "input": {
+        "key": "X1"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.component-id",
+      "description": "may a component declare 'COMPONENT_ID'?",
+      "op": "key_name",
+      "input": {
+        "key": "COMPONENT_ID"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.component-version",
+      "description": "may a component declare 'COMPONENT_VERSION'?",
+      "op": "key_name",
+      "input": {
+        "key": "COMPONENT_VERSION"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.port",
+      "description": "may a component declare 'PORT'?",
+      "op": "key_name",
+      "input": {
+        "key": "PORT"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.endpoint-suffix",
+      "description": "may a component declare 'UPSTREAM_ENDPOINT'?",
+      "op": "key_name",
+      "input": {
+        "key": "UPSTREAM_ENDPOINT"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.dependency-endpoint",
+      "description": "may a component declare 'ERP_INVENTORY_GRPC_ENDPOINT'?",
+      "op": "key_name",
+      "input": {
+        "key": "ERP_INVENTORY_GRPC_ENDPOINT"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.served-members",
+      "description": "may a component declare 'BRICKKIT_SERVED_MEMBERS'?",
+      "op": "key_name",
+      "input": {
+        "key": "BRICKKIT_SERVED_MEMBERS"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.served-members-config",
+      "description": "may a component declare 'BRICKKIT_SERVED_MEMBERS_CONFIG'?",
+      "op": "key_name",
+      "input": {
+        "key": "BRICKKIT_SERVED_MEMBERS_CONFIG"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.lower-case",
+      "description": "may a component declare 'pg_host'?",
+      "op": "key_name",
+      "input": {
+        "key": "pg_host"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.hyphen",
+      "description": "may a component declare 'PG-HOST'?",
+      "op": "key_name",
+      "input": {
+        "key": "PG-HOST"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.leading-digit",
+      "description": "may a component declare '1PG'?",
+      "op": "key_name",
+      "input": {
+        "key": "1PG"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.leading-underscore",
+      "description": "may a component declare '_PG'?",
+      "op": "key_name",
+      "input": {
+        "key": "_PG"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.space",
+      "description": "may a component declare 'PG HOST'?",
+      "op": "key_name",
+      "input": {
+        "key": "PG HOST"
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.empty",
+      "description": "may a component declare ''?",
+      "op": "key_name",
+      "input": {
+        "key": ""
+      },
+      "refs": [
+        "P2.4"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.decl-secret-file",
+      "description": "a secret key: secret, mount: file, name ending in _FILE",
+      "op": "key_declaration",
+      "input": {
+        "key": "PG_PASSWORD_FILE",
+        "secret": true,
+        "mount": "file"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.decl-plain",
+      "description": "a plain key",
+      "op": "key_declaration",
+      "input": {
+        "key": "PG_USER"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "config.keys.decl-secret-env",
+      "description": "a secret that would travel in the environment",
+      "op": "key_declaration",
+      "input": {
+        "key": "PG_PASSWORD",
+        "secret": true
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "SECRET_NOT_FILE"
+      }
+    },
+    {
+      "id": "config.keys.decl-secret-env-file-name",
+      "description": "the _FILE name without mount: file would carry the value, not a path",
+      "op": "key_declaration",
+      "input": {
+        "key": "PG_PASSWORD_FILE",
+        "secret": true
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "SECRET_NOT_FILE"
+      }
+    },
+    {
+      "id": "config.keys.decl-mount-no-suffix",
+      "description": "a file-delivered key is named ..._FILE",
+      "op": "key_declaration",
+      "input": {
+        "key": "SIGNING_KEY",
+        "secret": true,
+        "mount": "file"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "FILE_SUFFIX_REQUIRED"
+      }
+    },
+    {
+      "id": "config.keys.decl-plain-file-suffix",
+      "description": "_FILE is reserved for file-delivered secrets",
+      "op": "key_declaration",
+      "input": {
+        "key": "RULES_FILE"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "FILE_SUFFIX_RESERVED"
+      }
+    },
+    {
+      "id": "config.keys.decl-mount-not-secret",
+      "description": "brickKit: mount: file only together with secret: true",
+      "op": "key_declaration",
+      "input": {
+        "key": "RULES_FILE",
+        "mount": "file"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "MOUNT_NEEDS_SECRET"
+      }
+    },
+    {
+      "id": "config.keys.decl-mount-integer",
+      "description": "brickKit: a mounted item is a string",
+      "op": "key_declaration",
+      "input": {
+        "key": "PORT_FILE",
+        "secret": true,
+        "mount": "file",
+        "type": "integer"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "MOUNT_NEEDS_STRING"
+      }
+    },
+    {
+      "id": "config.keys.decl-mount-unknown",
+      "description": "file is the only mount",
+      "op": "key_declaration",
+      "input": {
+        "key": "KEY_FILE",
+        "secret": true,
+        "mount": "volume"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "MOUNT_INVALID"
+      }
+    },
+    {
+      "id": "config.keys.decl-reserved-still",
+      "description": "reserved names stay reserved",
+      "op": "key_declaration",
+      "input": {
+        "key": "UPSTREAM_ENDPOINT",
+        "secret": true,
+        "mount": "file"
+      },
+      "refs": [
+        "P2.4",
+        "P2.12"
+      ],
+      "expected_error": {
+        "reason": "CONFIG_KEY_RESERVED"
+      }
+    }
+  ]
+}
