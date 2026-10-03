@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, disable_created_metrics
 from prometheus_client.metrics_core import Metric
+
+disable_created_metrics()  # no *_created series: they double the series count and nobody reads them
 
 _RPC_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30)
 

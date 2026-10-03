@@ -53,7 +53,7 @@ class Fakes:
 
 def build(tmp_path: Path, create, *, doc=None, environ=None, fakes=None, log=None) -> tuple[Runtime, Fakes, io.StringIO]:
     fakes = fakes or Fakes()
-    (tmp_path / "contracts").mkdir(exist_ok=True)
+    (tmp_path / "contracts").mkdir(parents=True, exist_ok=True)
     (tmp_path / "migrations").mkdir(exist_ok=True)
     (tmp_path / "component.yaml").write_text(yaml.safe_dump(doc or manifest()))
     spec = Spec(id=(doc or manifest())["metadata"]["id"], migrations=tmp_path / "migrations",

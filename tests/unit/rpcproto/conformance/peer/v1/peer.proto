@@ -1,0 +1,33 @@
+// Test-only service for the gRPC runtime tests (generated code committed; regenerate with
+// tests/unit/rpcproto/gen.sh).
+syntax = "proto3";
+
+package conformance.peer.v1;
+
+import "be/v1/limits.proto";
+
+message Filter {
+  repeated string sku_ids = 1 [(be.v1.max_items) = 2];
+}
+
+message BatchGetRequest {
+  repeated string ids = 1 [(be.v1.max_items) = 3];
+  repeated string tags = 2;
+  Filter filter = 3;
+}
+
+message Item { string id = 1; }
+
+message BatchGetResponse {
+  repeated Item items = 1;
+  map<string, string> seen_metadata = 2;
+}
+
+message ReserveRequest { string idempotency_key = 1; string mode = 2; }
+message ReserveResponse { int32 attempts = 1; map<string, string> seen_metadata = 2; }
+
+service PeerService {
+  rpc BatchGet(BatchGetRequest) returns (BatchGetResponse) { option idempotency_level = NO_SIDE_EFFECTS; }
+  rpc Reserve(ReserveRequest) returns (ReserveResponse) { option idempotency_level = IDEMPOTENT; }
+  rpc Notify(ReserveRequest) returns (ReserveResponse);
+}
