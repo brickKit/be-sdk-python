@@ -36,7 +36,8 @@ class Supervisor:
                 self.failures[name] += 1
                 if self.on_failure:
                     self.on_failure(name)
-                self.logger.error("background_work_failed", extra={"work": name, "error": f"{type(e).__name__}: {e}",
+                detail = getattr(e, "internal_message", "") or f"{type(e).__name__}: {e}"
+                self.logger.error("background_work_failed", extra={"work": name, "error": detail,
                                                                    "retry_in_s": round(delay, 3)})
                 await asyncio.sleep(delay * (0.8 + 0.4 * random.random()))
                 delay = min(delay * 2, self.maximum)

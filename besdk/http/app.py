@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 from besdk import context, errors
+from besdk.auth.access import PermKey
 from besdk.http.router import Router
 
 if TYPE_CHECKING:
@@ -105,7 +106,7 @@ def _info(rt: "Runtime", module: "Module") -> dict:
         "sdk": {"name": "be-sdk-python", "version": _sdk_version()},
         "language": {"name": "python", "version": f"{v.major}.{v.minor}.{v.micro}"},
         "profiles": rt.profiles(module), "ports": ports,
-        "migrations": rt.migration_info(), "capabilities": [], "tzdata": _tzdata(), "members": None,
+        "migrations": rt.migration_info(), "capabilities": ["job_run"], "tzdata": _tzdata(), "members": None,
     }
 
 
@@ -125,12 +126,38 @@ def _tzdata() -> str:
         return ""
 
 
+def ops_key(component_id: str) -> PermKey:
+    """``<domain>.<name>.ops`` (P14.4), registered by the project's tooling."""
+    return PermKey(component_id.replace("/", ".") + ".ops")
+
+
+def _mount_ops(router: Router, rt: "Runtime") -> None:
+    """``GET /{d}/{n}/_ops/jobs`` (P14.4): read-only state of every job, from this replica's view."""
+
+    @router.get("/_ops/jobs", guard=ops_key(rt.id))
+    async def ops_jobs() -> dict:
+        out = []
+        for name, p in sorted(rt.jobs.plan.items()):
+            st = rt.jobs.status.get(name, {})
+            out.append({"name": name, "kind": p.job.kind.value, "enabled": p.enabled,
+                        "schedule": p.schedule.text if p.schedule else None, "interval_seconds": p.interval,
+                        "last_success": st.get("last_success"), "last_error": st.get("last_error", "")})
+        for kind in ("worker", "reconciler"):
+            for name in sorted(getattr(rt.jobs, kind + "s")):
+                st = rt.jobs.status.get(name, {})
+                out.append({"name": name, "kind": "queue" if kind == "worker" else kind, "enabled": rt.jobs.enabled(name),
+                            "last_success": st.get("last_success"), "last_error": st.get("last_error", "")})
+        return {"jobs": out}
+
+
 def build_app(rt: "Runtime", module: "Module") -> FastAPI:
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
     app.state.rt = rt
     router = Router(rt.id)
     if module.http:
         module.http(router)
+    if rt.jobs is not None and rt.shared.verifier is not None:
+        _mount_ops(router, rt)
     rt.protected_routes = router.protected
     app.include_router(router.api)
 

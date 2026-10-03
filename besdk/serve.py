@@ -12,10 +12,11 @@ from typing import Any
 from besdk import logs
 from besdk.config import SECRET_POLL, Config, Manifest
 from besdk.http.server import HttpServer, listen
+from besdk.jobs.model import JobsConfigError
 from besdk.runtime import Module, Runtime, Shared, Spec
 
 START_TIMEOUT = 30.0
-EX_OK, EX_FATAL, EX_USAGE = 0, 1, 64
+EX_OK, EX_FATAL, EX_USAGE, EX_CONFIG = 0, 1, 64, 78
 
 
 class Fatal(Exception):
@@ -43,18 +44,65 @@ def migrate(spec: Spec, manifest: Manifest, config: Config, cmd: tuple) -> int:
     return EX_OK
 
 
+def _jobs(rt: Runtime, module: Module, **kw: Any) -> Any:
+    """The member's job plan; an invalid declaration or JOBS_OVERRIDES is a configuration error (78)."""
+    from besdk.jobs.runner import JobsRuntime
+
+    try:
+        rt.jobs = JobsRuntime(rt, module, **kw)
+    except JobsConfigError as e:
+        rt.logger.error("config_invalid", extra={"key": "JOBS_OVERRIDES", "reason": "CONFIG_INVALID", "error": str(e)})
+        return None
+    return rt.jobs
+
+
 async def job_run(spec: Spec, env: dict[str, str], manifest: Manifest, config: Config, name: str) -> int:
-    """``job run <name>`` (P14.8). Jobs arrive with the jobs task; until then every name is unknown (64)."""
-    rt = Runtime(spec, env, Shared.standalone(spec_id=spec.id), manifest=manifest, config=config)
-    module = await spec.create(rt)
-    names = {getattr(j, "name", None) for j in module.jobs}
-    if name not in names:
-        rt.logger.error("job_unknown", extra={"job": name})
+    """``job run <name>`` (P14.8): no server and no other background work; one run through the same tables;
+    0 ok or no-op, 1 failed, 64 unknown name, 78 configuration error."""
+    rt = Runtime(spec, env, Shared.standalone(spec_id=spec.id, otel_base_url=_otel(config)), manifest=manifest,
+                 config=config)
+    try:
+        return await _job_run(rt, name)
+    finally:
+        if rt._store is not None:  # noqa: SLF001
+            await rt._store.close()  # noqa: SLF001
+        rt.telemetry.shutdown()
         await rt.shared.close()
+
+
+async def _job_run(rt: Runtime, name: str) -> int:
+    try:
+        module = await asyncio.wait_for(rt.spec.create(rt), START_TIMEOUT)
+    except Exception as e:  # noqa: BLE001
+        rt.logger.error("create_failed", extra={"error": f"{type(e).__name__}: {e}"})
+        return EX_FATAL
+    jobs = _jobs(rt, module, holder_suffix=f"job-run:{rt.instance}")
+    if jobs is None:
+        return EX_CONFIG
+    if name not in jobs.names():
+        rt.logger.error("job_unknown", extra={"job": name})
         return EX_USAGE
-    rt.logger.error("job_run_unavailable", extra={"job": name, "error": "job run is not implemented in this SDK version"})
-    await rt.shared.close()
-    return EX_FATAL
+    if "PG_SCHEMA" in rt.config.declared() and not await _schema_current(rt):
+        return EX_FATAL
+    try:
+        outcome = await jobs.run_once(name)
+    except Exception:  # noqa: BLE001 - execute logged it
+        return EX_FATAL
+    rt.logger.info("job_run_finished", extra={"job": name, "outcome": outcome})
+    return EX_OK
+
+
+async def _schema_current(rt: Runtime) -> bool:
+    """P1.8 for a one-shot run: the schema is migrated and not newer than the image."""
+    try:
+        behind, newer = await _migration_state(rt)
+    except Exception as e:  # noqa: BLE001
+        rt.logger.error("database_unreachable", extra={"error": getattr(e, "internal_message", "") or str(e)})
+        return False
+    if newer or behind:
+        rt.logger.error("schema_version_mismatch", extra={"pending": ",".join(behind), "newer": ",".join(newer)})
+        return False
+    return True
 
 
 def _otel(config: Config) -> str:
@@ -73,6 +121,9 @@ async def serve(spec: Spec, env: dict[str, str], manifest: Manifest, config: Con
         rt.logger.error("create_failed", extra={"error": f"{type(e).__name__}: {e}"})
         await shared.close()
         return EX_FATAL
+    if _jobs(rt, module) is None:
+        await shared.close()
+        return EX_CONFIG
     servers = await _open_ports(rt, module)
     _background(rt, module, stop, fatal)
     if module.start is not None:
@@ -122,6 +173,8 @@ def _background(rt: Runtime, module: Module, stop: asyncio.Event, fatal: list[st
         rt.readiness.need("db_identity")
         rt.readiness.need("migrations")
         rt.supervisor.start("be.db", lambda: _db_ready(rt, stop, fatal))
+    else:
+        asyncio.get_running_loop().create_task(rt.jobs.start())
     asyncio.get_running_loop().create_task(rt.start_events(module))
 
 
@@ -164,6 +217,7 @@ async def _db_ready(rt: Runtime, stop: asyncio.Event, fatal: list[str]) -> None:
         if not behind:
             rt.readiness.mark("migrations")
         if not problems and not behind:
+            await rt.jobs.start()  # background work runs on a migrated schema only
             return
         await asyncio.sleep(2.0)
 
@@ -192,6 +246,8 @@ async def _shutdown(rt: Runtime, module: Module, servers: list[Any]) -> None:
     await asyncio.gather(*(s.stop(rt.shutdown_grace) for s in servers), return_exceptions=True)
     await rt.stop_events()
     await rt.supervisor.stop(timeout=5.0)
+    if rt.jobs is not None and "PG_SCHEMA" in rt.config.declared():
+        await rt.jobs.stop()
     if module.stop is not None:
         try:
             await asyncio.wait_for(module.stop(), 10.0)

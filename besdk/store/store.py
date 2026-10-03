@@ -86,6 +86,7 @@ class Store:
         self.logger, self.metrics = logger, metrics
         self._opener = opener
         self.publisher: Any = None  # besdk.events.outbox.Publisher, set when the member declares events
+        self.jobs: Any = None  # besdk.jobs.runner.JobsRuntime: the worker kinds tx.enqueue accepts
 
     @classmethod
     def for_runtime(cls, rt: "Runtime") -> "Store":

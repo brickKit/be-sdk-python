@@ -53,6 +53,12 @@ class Tx:
     async def try_lock(self, name: str, *parts: str) -> bool:
         return bool(await self._run("fetchval", _TRY_SQL, name, "|".join(parts)))
 
+    async def enqueue(self, kind: str, args: Any, *, run_at: Any = None, unique_key: str | None = None) -> bool:
+        """Queue a job in this transaction (P14 queue); False when ``unique_key`` already has a live job."""
+        from besdk.jobs.queue import enqueue
+
+        return await enqueue(self, kind, args, run_at=run_at, unique_key=unique_key)
+
     async def publish(self, ev: "Event") -> None:
         """Write the event to the outbox in this transaction (P12.1); the pump publishes it after commit."""
         from besdk.events.outbox import write

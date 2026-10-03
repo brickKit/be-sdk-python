@@ -22,6 +22,7 @@ from besdk.auth.jwt import JwksCache, Verifier
 from besdk.auth.source import BundleSource
 from besdk.config import Config, Manifest
 from besdk.events.model import Events
+from besdk.ids import new_id
 from besdk.supervise import Supervisor
 
 if TYPE_CHECKING:
@@ -141,6 +142,8 @@ class Runtime:
         self.shutdown_grace = self._seconds("SHUTDOWN_GRACE", 25.0)
         self.port = port if port is not None else int(env.get("PORT") or self.manifest.port)
         self.extra_ports = dict(extra_ports if extra_ports is not None else self.manifest.extra_ports)
+        self.instance = str(new_id())  # holder suffix of leases and slots (P14)
+        self.jobs: Any = None  # besdk.jobs.runner.JobsRuntime
         self.supervisor = Supervisor(self.logger)
         self.readiness = Readiness()
         self.protected_routes = False

@@ -210,10 +210,37 @@ async def test_be_info(setup):
     assert info["component_id"] == "conformance/widget-py" and info["protocol"] == "1.0"
     assert info["sdk"]["name"] == "be-sdk-python" and info["language"]["name"] == "python"
     assert {"core", "obs", "err", "auth", "grpc"} <= set(info["profiles"])
-    assert info["members"] is None and info["capabilities"] == []  # job_run once P14.8 is implemented
+    assert info["members"] is None and info["capabilities"] == ["job_run"]  # P14.8
 
 
 def test_route_without_guard_is_a_programming_error():
     r = besdk.Router("conformance/widget-py")
     with pytest.raises(TypeError):
         r.get("/x")
+
+
+async def test_ops_jobs_endpoint(tmp_path):
+    """P14.4: GET /{d}/{n}/_ops/jobs, guarded by <domain>.<name>.ops; kinds, last success and last error."""
+    from besdk.jobs.runner import JobsRuntime
+
+    async def tick():
+        return None
+
+    async def create(rt):
+        return Module(http=routes, jobs=[besdk.Job("widget.tick", besdk.JobKind.EVERY, timeout=1, interval=60, run=tick)])
+
+    rt, fakes, _, = build(tmp_path, create)
+    fakes.bundle = {**fakes.bundle, "roles": {**fakes.bundle["roles"], "ops": ["conformance.widget-py.ops"]}}
+    module = await rt.spec.create(rt)
+    rt.jobs = JobsRuntime(rt, module)
+    await rt.jobs.execute("widget.tick", tick, 1)
+    app = rt.http_app(module)
+    await rt.shared.bundle_source.fetch()
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://w") as c:
+        r = await c.get(f"{BASE}/_ops/jobs", headers={"Authorization": "Bearer " + fakes.iam.token(roles=["rep"])})
+        assert r.status_code == 403
+        r = await c.get(f"{BASE}/_ops/jobs", headers={"Authorization": "Bearer " + fakes.iam.token(roles=["ops"])})
+        assert r.status_code == 200
+        jobs = {j["name"]: j for j in r.json()["jobs"]}
+        assert jobs["widget.tick"]["kind"] == "every" and jobs["widget.tick"]["last_success"]
+        assert jobs["be.outbox"]["kind"] == "every"

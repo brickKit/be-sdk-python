@@ -47,6 +47,39 @@ def test_job_run_unknown_job_exits_64(capsys):
     assert ei.value.code == 64
 
 
+def test_job_run_runs_the_job_once_and_exits_0(capsys):
+    from tests.unit import fixture_component as fc
+
+    fc.PINGS.clear()
+    with pytest.raises(SystemExit) as ei:
+        main(spec, argv=["job", "run", "tiny.ping"], env={"TINY_NAME": "x"})
+    assert ei.value.code == 0 and fc.PINGS == ["tiny.ping"]
+
+
+def test_job_run_failure_exits_1(capsys):
+    with pytest.raises(SystemExit) as ei:
+        main(spec, argv=["job", "run", "tiny.fail"], env={"TINY_NAME": "x"})
+    assert ei.value.code == 1
+
+
+def test_job_run_ignores_enabled_false(capsys):
+    from tests.unit import fixture_component as fc
+
+    fc.PINGS.clear()
+    with pytest.raises(SystemExit) as ei:
+        main(spec, argv=["job", "run", "tiny.ping"],
+             env={"TINY_NAME": "x", "JOBS_OVERRIDES": '{"tiny.ping": {"enabled": false}}'})
+    assert ei.value.code == 0 and fc.PINGS == ["tiny.ping"]
+
+
+@pytest.mark.parametrize("argv", [[], ["job", "run", "tiny.ping"]])
+def test_invalid_jobs_overrides_exit_78(argv, capsys):
+    with pytest.raises(SystemExit) as ei:
+        main(spec, argv=argv, env={"TINY_NAME": "x", "JOBS_OVERRIDES": '{"tiny.ping": {"interval": "soon"}}'})
+    assert ei.value.code == 78
+    assert any(json.loads(x).get("key") == "JOBS_OVERRIDES" for x in capsys.readouterr().out.splitlines())
+
+
 def _free_port() -> int:
     s = socket.socket()
     s.bind(("127.0.0.1", 0))

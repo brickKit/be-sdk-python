@@ -105,8 +105,10 @@ async def write(tx: "Tx", ev: Event) -> None:
 class OutboxPump:
     """Claims, publishes with PubAck, marks; backs off failed rows from 1 s to 1 min (P12.1)."""
 
-    def __init__(self, store: "Store", bus: "Bus", pub: Publisher, metrics: "BeMetrics", logger: logging.Logger):
+    def __init__(self, store: "Store", bus: "Bus", pub: Publisher, metrics: "BeMetrics", logger: logging.Logger,
+                 idle: float = IDLE):
         self.store, self.bus, self.pub, self.metrics, self.logger = store, bus, pub, metrics, logger
+        self.idle = idle  # the longest wait between rounds: JOBS_OVERRIDES["be.outbox"].interval
         self._kick = asyncio.Event()
 
     def kick(self) -> None:
@@ -116,7 +118,7 @@ class OutboxPump:
         idle = BUSY
         while True:
             n = await self.round()
-            idle = BUSY if n else min(IDLE, idle * 2)
+            idle = min(BUSY, self.idle) if n else min(self.idle, idle * 2)
             try:
                 await asyncio.wait_for(self._kick.wait(), idle)
             except TimeoutError:

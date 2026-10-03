@@ -36,6 +36,7 @@ class Unit:
     tx: Any = None  # the open Tx, if any (P8.4, P10.6)
     event: HandledEvent | None = None
     job: str = ""
+    job_epoch: int = 0  # the singleton lease's fencing token while a singleton run holds it (P14)
     member: str = ""  # component ID of the member doing the work
     req: dict | None = None  # mutable facts of the current HTTP request, read by the access log
 

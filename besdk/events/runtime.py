@@ -12,7 +12,7 @@ from besdk.config_values import parse_duration_ns
 from besdk.events.bus import Bus
 from besdk.events.consumer import Consumer
 from besdk.events.contract import Contract
-from besdk.events.outbox import OutboxPump, Publisher
+from besdk.events.outbox import IDLE, OutboxPump, Publisher
 
 if TYPE_CHECKING:
     from besdk.runtime import Module, Runtime
@@ -89,8 +89,10 @@ class EventsRuntime:
 
             await bus.nc.subscribe("infra.authz.changed.v1", cb=poke)
         store = rt.store()
-        if self.module.events.publishes:
-            self.pump = OutboxPump(store, bus, self.publisher, rt.metrics, rt.logger)
+        jobs = rt.jobs
+        if self.module.events.publishes and (jobs is None or jobs.enabled("be.outbox")):
+            idle = jobs.interval("be.outbox", IDLE) if jobs is not None else IDLE
+            self.pump = OutboxPump(store, bus, self.publisher, rt.metrics, rt.logger, idle=idle)
             rt.supervisor.start("be.outbox", self.pump.run)
         for sub in self.module.events.subscribe:
             md, bo = self._settings(sub)
