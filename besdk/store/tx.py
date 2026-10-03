@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:
     from besdk.events.model import Event
+    from besdk.idem import Command, Prior
     from besdk.store.store import Store
 
 _LOCK_SQL = "SELECT pg_advisory_xact_lock(hashtext(current_schema() || ':' || $1), hashtext($2))"
@@ -57,3 +58,25 @@ class Tx:
         from besdk.events.outbox import write
 
         await write(self, ev)
+
+    # --- idempotency (P13): the same statements as besdk.idempotent, step by step -------------------
+
+    async def idem_lookup(self, cmd: "Command") -> "Prior":
+        from besdk import idem
+
+        return await idem.lookup(self, cmd)
+
+    async def idem_claim(self, cmd: "Command") -> "Prior":
+        from besdk import idem
+
+        return await idem.claim(self, cmd)
+
+    async def idem_complete(self, cmd: "Command", result: Any) -> None:
+        from besdk import idem
+
+        await idem.complete(self, cmd, result)
+
+    async def idem_release(self, cmd: "Command") -> None:
+        from besdk import idem
+
+        await idem.release(self, cmd)
