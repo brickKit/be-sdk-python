@@ -2,7 +2,7 @@
 
 # be-sdk-python
 
-The official Python implementation of the BrickEnterprise component protocol, **be-protocol 1.0** (pinned at `v1.0.0-rc.1`). A component written with it is a complete brickKit component: one image, one entry point, the protocol's HTTP, gRPC, database, event and observability behaviour, standalone or inside a Python shell. Package `besdk`, version **0.6.0** (in progress on branch `stage-b`); `/_be/info` reports `sdk: be-sdk-python`, `protocol: "1.0"`.
+The official Python implementation of the BrickEnterprise component protocol, **be-protocol 1.0** (pinned at `v1.0.0-rc.2`; authorization decisions from contract-infra-authz `v2.0.0-rc.2`). A component written with it is a complete brickKit component: one image, one entry point, the protocol's HTTP, gRPC, database, event and observability behaviour, standalone or inside a Python shell. Package `besdk`, version **0.6.0** (in progress on branch `stage-b`); `/_be/info` reports `sdk: be-sdk-python`, `protocol: "1.0"`.
 
 The protocol text is the source of truth: [be-protocol](https://github.com/brickKit/be-protocol) `spec/`. This README says how to use the SDK and which requirements it implements so far.
 
@@ -37,16 +37,20 @@ besdk.main(spec)
 - Configuration only through `rt.config` (`require`, `string`, `int`, `bool`, `duration`, `durations`, `json`, `secret`); a key not declared in `configSchema` is refused.
 - A transaction is a function: `await rt.store().tx(fn)`; `fn(tx)` may be re-run on 40001 / 40P01, so it touches only `tx`.
 - Errors: `raise besdk.Error(besdk.Code.FAILED_PRECONDITION, "TEMPLATE_ARCHIVED", {"id": tid})`; every reason is in `contracts/errors.yaml`.
+- Idempotent commands: `res, replayed = await store.tx(lambda tx: besdk.idempotent(tx, besdk.Command(key=besdk.resolve_key(header, body.idempotency_key), name=KEY, request=fields, target=id), lambda: do(tx)))`; two-step commands use `tx.idem_claim` / `idem_complete` / `idem_release`.
+- Background work is declared, never a loop of your own: `Module(jobs=[besdk.Job("x.daily", besdk.JobKind.CRON, timeout=60, cron="0 3 * * *", run=fn)], workers=[besdk.Worker(kind, run, timeout=30)], reconcilers=[besdk.Reconciler(…)])`; queue with `await tx.enqueue(kind, args, unique_key=…)`.
+- Data scopes over declared `resources` (assembly.yaml): `sql, args = besdk.access().scope(TYPE).predicate("o", start=n)` for lists, `d = await besdk.access().can(KEY, TYPE, besdk.Row(id, owner, dept_path, values))` then `raise d.err()` (404 when invisible), `mask` / `check_sortable` / `check_writable` for field keys, `check_dimension` for a dimension parameter. `Module(sharing=[besdk.SharingLoader(TYPE, load)])` lets `_authz/*` and `_shares/*` read a record.
+- `migrations/lifecycle.yaml` v1 declares every table; partitioned tables get their window from the SDK; `await tx.seal(table, unit)` makes a unit immutable.
 
 ## Entry point
 
 | Command | Does | Exit |
 |---|---|---|
 | *(none)* | serve: ports first, dependencies in the background, `SIGTERM` drains within `SHUTDOWN_GRACE` | 0; 1 fatal |
-| `migrate up` | component migrations, then the platform migration, as `PG_OWNER_USER` | 0; 1 failed |
+| `migrate up` | component migrations, then the platform migration and the partition windows, as `PG_OWNER_USER`; stops before a `-- be:contract after=<v>` file while a session of version ≤ v is connected (P11.4) | 0; 1 failed or blocked |
 | `migrate down <n>` | roll back the last `n` component migrations | 0 / 1 |
 | `migrate status` | one JSON line: applied, pending, platform version | 0 / 1 |
-| `job run <name>` | run one declared job once (P14.8): **not available yet**, every name is unknown | 64 |
+| `job run <name>` | run one declared job, worker kind or reconciler once through the same tables (P14.8); `JOBS_OVERRIDES` `enabled: false` does not stop it | 0 ok or no-op; 1 failed; 64 unknown name; 78 bad configuration |
 | anything else | usage error, before the configuration is read | 64 |
 | bad configuration | one JSON log line per key | 78 |
 
@@ -59,17 +63,22 @@ besdk.main(spec)
 | HTTP surface | P3.1–P3.6, P3.10, P3.12, P3.13 | `besdk.http` |
 | Errors, problem+json, gRPC details | P4.1–P4.3, P4.6–P4.8 | `besdk.errors`, `besdk.rpc.status` |
 | Token verification | P5.1–P5.6, P5.8, P5.9 | `besdk.auth.jwt` |
-| Bundle and the route decision (keys, levels) | P6.1, P6.2, P1.5 | `besdk.auth` |
+| Bundle, the route decision, evaluation E1–E12 (all 62 decision vectors) | P6.1–P6.4, P1.5 | `besdk.auth.bundle`, `besdk.auth.evaluate` |
+| Canonical list predicate, single-record decisions (404 invisible), field masks, row access | P6.5–P6.9 | `besdk.auth.scope`, `besdk.auth.access` |
+| Resource contract `_authz/check`, `_authz/explain`, `_shares`; ACL projection from the changefeed; consistency token | P6.10–P6.12, P6.14 | `besdk.auth.contract`, `besdk.auth.projection`, `besdk.auth.provider` |
 | System plane (gRPC) | P7.2–P7.10, P7.12 | `besdk.rpc` |
 | Outbound HTTP, no network in a transaction | P8.1–P8.4 | `besdk.outbound` |
 | Deadlines, retries, bulkheads | P9 | (all of the above) |
-| Database store | P10.1–P10.8, P10.12 | `besdk.store` |
-| Migrations and the platform migration | P11.1–P11.3, P11.5 (ids), P16.6 (outbox window) | `besdk.migrate` |
+| Database store, versioned sessions and the presence session | P10.1–P10.8, P10.12 | `besdk.store` |
+| Migrations, the platform migration, `be:contract` gating | P11.1–P11.5 | `besdk.migrate` |
+| Command idempotency (RFC 8785 fingerprints, atomic claim, replay per caller) | P3.7, P13.1–P13.7 | `besdk.idem` |
+| Jobs (every, singleton, cron incl. `@every`), queues, reconcilers, `JOBS_OVERRIDES`, `job run`, `_ops/jobs`, cleanup | P14.1–P14.8 | `besdk.jobs` |
+| Lifecycle P0: `lifecycle.yaml`, partition windows, seals, `_lifecycle/*` mounted | P16.1, P16.2 (hot/warm), P16.4–P16.6, P16.8–P16.10 | `besdk.lifecycle` |
 | Events: outbox, pump, consumers, dead letters | P12.1–P12.10, P12.13, P12.14 | `besdk.events` |
 | Logs, metrics, traces per member | P18.1–P18.4 | `besdk.logs`, `besdk.metrics`, `besdk.telemetry` |
 | Self-description | P20.3, P20.4 | `besdk.http.app` |
 
-Not yet (later tasks): command idempotency (P13), jobs, queues and reconcilers (P14, and `job run`), Access scopes, resource contract and projection (P6.3–P6.15), the lifecycle engine and business partition windows (P16), calendar, money, numbering, search, blob, caches, snapshots (P11.6–P11.10, P15, P17), the test package `besdk.testing`, the shell launcher (P19), the PostgreSQL bus adapter (P12.12), the `examples/widget` fixture.
+Not yet (later tasks): graph types' `ListObjects` and the provider `Check` fallback of a lagging consistency token (P6.11, P6.15: graph ids stay empty and lists say `X-Authz-Degraded: graph`; a lagging token answers `X-Authz-Consistency: stale`), the lifecycle events (P16.7), cold tiers and the `be.lifecycle.v1` gRPC service, RANGE_COLD (nothing is frozen in 1.0), the user-facing-rpc check over gRPC (P7.3), calendar, money, numbering, search, blob, caches, snapshots (P11.6–P11.10, P15, P17), the test package `besdk.testing`, the shell launcher (P19), the PostgreSQL bus adapter (P12.12), the `examples/widget` fixture.
 
 ## Internal guarantees (INTERNAL rows)
 
@@ -78,6 +87,9 @@ Not yet (later tasks): command idempotency (P13), jobs, queues and reconcilers (
 - The raw token lives only in the request's context and is forwarded only by `rt.user_http`.
 - Each member has its own logger (never the root logger), metrics registry, tracer provider and meter provider; the exporter is shared and closed last (repro r1-01).
 - Durables are created only when absent: `consumer_info` first, `add_consumer` only on not-found, never an update (repro r1-07).
+- Connections are named `<component ID>@<version>` at connect; one idle presence session of that name stays open while the pool is open; the pool keeps no other idle minimum (`PG_POOL_MIN_IDLE` is retired) and closes idle connections after `PG_CONN_MAX_IDLE_TIME`.
+- Leases, slots, queue rows, reconciler rows, the idempotency claim and the projection cursor are each taken in one atomic statement (`ON CONFLICT`, `SKIP LOCKED`, `FOR UPDATE`); a given-up reconciler item keeps a row with `next_at = infinity` so a stale replica cannot pick it up again.
+- The provider's messages (WriteTuples) come from a descriptor set loaded into a private descriptor pool, so a component importing the authz contract's own generated code never meets a duplicate symbol.
 
 ## Stack (exact pins)
 

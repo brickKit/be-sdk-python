@@ -2,7 +2,7 @@
 
 # be-sdk-python
 
-BrickEnterprise 组件协议 **be-protocol 1.0**（钉在 `v1.0.0-rc.1`）的官方 Python 实现。用它写的组件就是一个完整的 brickKit 组件：一个镜像、一个入口，协议规定的 HTTP、gRPC、数据库、事件和可观测行为都在，单跑和进 Python 外壳一样。包名 `besdk`，版本 **0.6.0**（在 `stage-b` 分支上进行中）；`/_be/info` 报 `sdk: be-sdk-python`、`protocol: "1.0"`。
+BrickEnterprise 组件协议 **be-protocol 1.0**（钉在 `v1.0.0-rc.2`；授权判定按 contract-infra-authz `v2.0.0-rc.2`）的官方 Python 实现。用它写的组件就是一个完整的 brickKit 组件：一个镜像、一个入口，协议规定的 HTTP、gRPC、数据库、事件和可观测行为都在，单跑和进 Python 外壳一样。包名 `besdk`，版本 **0.6.0**（在 `stage-b` 分支上进行中）；`/_be/info` 报 `sdk: be-sdk-python`、`protocol: "1.0"`。
 
 以协议正文为准：[be-protocol](https://github.com/brickKit/be-protocol) 的 `spec/`。本文件只讲怎么用这个 SDK，以及目前实现了哪些条款。
 
@@ -37,16 +37,20 @@ besdk.main(spec)
 - 配置只经 `rt.config` 读（`require`、`string`、`int`、`bool`、`duration`、`durations`、`json`、`secret`）；`configSchema` 没声明的键一律拒读。
 - 事务是一个函数：`await rt.store().tx(fn)`；遇到 40001 / 40P01 时 `fn(tx)` 会被重跑，所以里面只碰 `tx`。
 - 错误：`raise besdk.Error(besdk.Code.FAILED_PRECONDITION, "TEMPLATE_ARCHIVED", {"id": tid})`；每个 reason 都要在 `contracts/errors.yaml` 里。
+- 幂等命令：`res, replayed = await store.tx(lambda tx: besdk.idempotent(tx, besdk.Command(key=besdk.resolve_key(header, body.idempotency_key), name=KEY, request=fields, target=id), lambda: do(tx)))`；两步式命令用 `tx.idem_claim` / `idem_complete` / `idem_release`。
+- 后台工作只声明、不自己写循环：`Module(jobs=[besdk.Job("x.daily", besdk.JobKind.CRON, timeout=60, cron="0 3 * * *", run=fn)], workers=[besdk.Worker(kind, run, timeout=30)], reconcilers=[besdk.Reconciler(…)])`；入队用 `await tx.enqueue(kind, args, unique_key=…)`。
+- 声明了 `resources`（assembly.yaml）就有数据范围：列表用 `sql, args = besdk.access().scope(TYPE).predicate("o", start=n)`；单条用 `d = await besdk.access().can(KEY, TYPE, besdk.Row(id, owner, dept_path, values))`，再 `raise d.err()`（看不见是 404）；字段键用 `mask` / `check_sortable` / `check_writable`；维度参数用 `check_dimension`。`Module(sharing=[besdk.SharingLoader(TYPE, load)])` 让 `_authz/*`、`_shares/*` 能读一条记录。
+- `migrations/lifecycle.yaml` v1 声明每一张表；分区表的窗口由 SDK 建；`await tx.seal(table, unit)` 把一个单元封存。
 
 ## Entry point
 
 | 命令 | 做什么 | 退出码 |
 |---|---|---|
 | （无参数） | 服务：先开端口，依赖在后台连接，`SIGTERM` 后在 `SHUTDOWN_GRACE` 内处理完 | 0；致命错误 1 |
-| `migrate up` | 组件迁移，然后平台迁移，以 `PG_OWNER_USER` 登录 | 0；失败 1 |
+| `migrate up` | 组件迁移，然后平台迁移和分区窗口，以 `PG_OWNER_USER` 登录；遇到 `-- be:contract after=<v>` 的文件、而版本 ≤ v 的会话还连着时，停在它之前（P11.4） | 0；失败或被挡 1 |
 | `migrate down <n>` | 回滚最近 `n` 个组件迁移 | 0 / 1 |
 | `migrate status` | 一行 JSON：已应用、待应用、平台版本 | 0 / 1 |
-| `job run <name>` | 把声明过的一个任务跑一次（P14.8）：**本版还没有**，任何名字都按不存在处理 | 64 |
+| `job run <name>` | 经同一批表把声明过的一个任务、worker 种类或 reconciler 跑一次（P14.8）；`JOBS_OVERRIDES` 的 `enabled: false` 不影响它 | 成功或无事可做 0；失败 1；名字不存在 64；配置错误 78 |
 | 其它参数 | 用法错误，在读配置之前 | 64 |
 | 配置错误 | 每个键一行 JSON 日志 | 78 |
 
@@ -59,17 +63,22 @@ besdk.main(spec)
 | HTTP 面 | P3.1–P3.6、P3.10、P3.12、P3.13 | `besdk.http` |
 | 错误、problem+json、gRPC 详情 | P4.1–P4.3、P4.6–P4.8 | `besdk.errors`、`besdk.rpc.status` |
 | 令牌校验 | P5.1–P5.6、P5.8、P5.9 | `besdk.auth.jwt` |
-| bundle 与路由判定（键、档位） | P6.1、P6.2、P1.5 | `besdk.auth` |
+| bundle、路由判定、求值 E1–E12（全部 62 条判定向量） | P6.1–P6.4、P1.5 | `besdk.auth.bundle`、`besdk.auth.evaluate` |
+| 规范列表谓词、单条判定（看不见答 404）、字段掩码、行按钮 | P6.5–P6.9 | `besdk.auth.scope`、`besdk.auth.access` |
+| 资源契约 `_authz/check`、`_authz/explain`、`_shares`；变更流 ACL 投影；一致性令牌 | P6.10–P6.12、P6.14 | `besdk.auth.contract`、`besdk.auth.projection`、`besdk.auth.provider` |
 | 系统面（gRPC） | P7.2–P7.10、P7.12 | `besdk.rpc` |
 | 出站 HTTP、事务内不许走网络 | P8.1–P8.4 | `besdk.outbound` |
 | 截止时间、重试、舱壁 | P9 | （以上各处） |
-| 数据库 Store | P10.1–P10.8、P10.12 | `besdk.store` |
-| 迁移与平台迁移 | P11.1–P11.3、P11.5（标识）、P16.6（outbox 窗口） | `besdk.migrate` |
+| 数据库 Store、带版本的会话名与 presence 会话 | P10.1–P10.8、P10.12 | `besdk.store` |
+| 迁移、平台迁移、`be:contract` 门控 | P11.1–P11.5 | `besdk.migrate` |
+| 命令幂等（RFC 8785 指纹、原子认领、按调用方重放） | P3.7、P13.1–P13.7 | `besdk.idem` |
+| 后台工作（every、singleton、cron 含 `@every`）、队列、reconciler、`JOBS_OVERRIDES`、`job run`、`_ops/jobs`、清理 | P14.1–P14.8 | `besdk.jobs` |
+| 生命周期 P0：`lifecycle.yaml`、分区窗口、封存、`_lifecycle/*` 全部挂出 | P16.1、P16.2（热 / 温）、P16.4–P16.6、P16.8–P16.10 | `besdk.lifecycle` |
 | 事件：outbox、泵、消费者、死信 | P12.1–P12.10、P12.13、P12.14 | `besdk.events` |
 | 每成员的日志、指标、trace | P18.1–P18.4 | `besdk.logs`、`besdk.metrics`、`besdk.telemetry` |
 | 自描述 | P20.3、P20.4 | `besdk.http.app` |
 
-还没有（后续任务）：命令幂等（P13）；后台任务、队列和对账器（P14，以及 `job run`）；Access 的数据范围、资源契约和投影（P6.3–P6.15）；生命周期引擎和业务表分区窗口（P16）；日历、金额、单据编号、搜索、对象存储、缓存、快照（P11.6–P11.10、P15、P17）；测试包 `besdk.testing`；外壳启动器（P19）；PostgreSQL 总线适配器（P12.12）；`examples/widget` 夹具。
+还没有（后续任务）：图类型的 `ListObjects` 与一致性令牌落后时回落到 provider 的 `Check`（P6.11、P6.15：图类型的 id 为空，列表带 `X-Authz-Degraded: graph`；令牌追不上答 `X-Authz-Consistency: stale`）；生命周期事件（P16.7）、冷层与 gRPC 服务 `be.lifecycle.v1`、RANGE_COLD（1.0 不冷冻任何数据）；gRPC 上面向用户方法的检查（P7.3）；日历、金额、单据编号、搜索、对象存储、缓存、快照（P11.6–P11.10、P15、P17）；测试包 `besdk.testing`；外壳启动器（P19）；PostgreSQL 总线适配器（P12.12）；`examples/widget` 夹具。
 
 ## Internal guarantees (INTERNAL rows)
 
@@ -78,6 +87,9 @@ besdk.main(spec)
 - 原始 token 只放在请求上下文里，只有 `rt.user_http` 会转发它。
 - 每个成员有自己的 logger（从不用根 logger）、指标 registry、tracer provider 和 meter provider；导出器共用、最后才关（复现 r1-01）。
 - durable 只在不存在时创建：先 `consumer_info`，查不到才 `add_consumer`，从不更新（复现 r1-07）。
+- 连接建立时 `application_name` 为 `<组件 ID>@<版本>`；池打开期间另有一条同名空闲 presence 会话一直在；此外不保留空闲下限（`PG_POOL_MIN_IDLE` 已退役），空闲连接按 `PG_CONN_MAX_IDLE_TIME` 关闭。
+- 租约、槽、队列行、reconciler 行、幂等认领、投影游标都由一条原子语句拿到（`ON CONFLICT`、`SKIP LOCKED`、`FOR UPDATE`）；放弃的 reconciler 条目保留一行 `next_at = infinity`，拿着过期候选的副本不会再认领它。
+- provider 的消息（WriteTuples）来自装进私有 DescriptorPool 的描述符集，组件再导入 authz 契约自己的生成代码也不会符号冲突。
 
 ## Stack (exact pins)
 
