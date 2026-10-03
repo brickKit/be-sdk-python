@@ -145,6 +145,7 @@ class Runtime:
         self.protected_routes = False
         self._store: Any = None
         self._outbound: Any = None
+        self.events: Any = None  # besdk.events.runtime.EventsRuntime
         self._wire_secrets()
         if self._declared("AUTHZ_URL") and self._declared("IAM_URL"):
             shared.ensure_auth(self.config, self.logger)
@@ -202,6 +203,16 @@ class Runtime:
 
     def external_http(self, name: str, *, timeout: float = 10.0, max_conns: int = 32) -> httpx.AsyncClient:
         return self.outbound().external_http(name, timeout=timeout, max_conns=max_conns)
+
+    async def start_events(self, module: Module) -> None:
+        from besdk.events.runtime import EventsRuntime
+
+        self.events = EventsRuntime(self, module)
+        await self.events.start()
+
+    async def stop_events(self) -> None:
+        if self.events is not None:
+            await self.events.stop()
 
     def capabilities(self) -> dict[str, Any]:
         src = self.shared.bundle_source

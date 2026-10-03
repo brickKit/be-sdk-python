@@ -248,6 +248,11 @@ class Config:
             return V.Parsed(raw is not None, raw)
         return p
 
+    def present(self, key: str) -> bool:
+        """The variable itself is set (not only defaulted)."""
+        self._get(key)
+        return bool(self._env.get(key))
+
     def has(self, key: str) -> bool:
         return self._get(key).set
 

@@ -78,6 +78,7 @@ class Store:
         self.acquire_timeout = acquire_timeout
         self.logger, self.metrics = logger, metrics
         self._opener = opener
+        self.publisher: Any = None  # besdk.events.outbox.Publisher, set when the member declares events
 
     @classmethod
     def for_runtime(cls, rt: "Runtime") -> "Store":
