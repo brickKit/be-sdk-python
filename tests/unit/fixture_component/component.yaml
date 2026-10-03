@@ -1,0 +1,11 @@
+# A tiny component for the entry-point tests: no database, no auth; one Public route.
+metadata: {id: conformance/tiny, version: 1.0.0}
+configSchema:
+  properties:
+    HTTP_DEFAULT_TIMEOUT: {type: string, default: 10s}
+    SHUTDOWN_GRACE: {type: string, default: 25s}
+    LOG_LEVEL: {type: string, default: info}
+    TINY_LIMIT: {type: integer, default: 3}
+    TINY_NAME: {type: string}
+  required: [TINY_NAME]
+deployment: {port: 8080, stopGracePeriodSeconds: 30}

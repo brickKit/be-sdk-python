@@ -120,10 +120,11 @@ class Runtime:
     """One member's runtime. Components use only its public methods and attributes."""
 
     def __init__(self, spec: Spec, env: dict[str, str], shared: Shared, *, log_stream: TextIO | None = None,
-                 port: int | None = None, extra_ports: dict[str, int] | None = None):
+                 port: int | None = None, extra_ports: dict[str, int] | None = None,
+                 manifest: Manifest | None = None, config: Config | None = None):
         self.spec = spec
-        self.manifest = Manifest.load(spec.manifest_path())
-        self.config = Config.load(env, self.manifest)
+        self.manifest = manifest or Manifest.load(spec.manifest_path())
+        self.config = config or Config.load(env, self.manifest)
         self.id = self.manifest.id
         self.version = env.get("COMPONENT_VERSION") or self.manifest.version
         self.shared = shared

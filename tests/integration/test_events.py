@@ -11,7 +11,7 @@ import nats.js.errors
 import pytest
 from nats.js.api import ConsumerConfig
 
-from besdk import Event, Events, Module, Subscription, context, ids, permanent
+from besdk import Event, Events, Module, StartFrom, Subscription, context, ids, permanent
 from besdk.events import consumer as consumer_mod
 from besdk.events.envelope import durable_name
 from besdk.runtime import Runtime, Shared, Spec
@@ -39,7 +39,7 @@ class Seen:
         self.slow = 0.0
 
 
-def make_module(seen: Seen, subject="conformance.widget.created.v1", run=False):
+def make_module(seen: Seen, subject="conformance.widget.created.v1", run=False, start_from=StartFrom.ALL):
     async def apply(tx, ev: Event):
         if seen.slow:
             await asyncio.sleep(seen.slow)
@@ -55,7 +55,8 @@ def make_module(seen: Seen, subject="conformance.widget.created.v1", run=False):
     async def run_(ev: Event):
         await apply(None, ev)
 
-    sub = Subscription(subject, run=run_) if run else Subscription(subject, apply=apply)
+    sub = Subscription(subject, run=run_, start_from=start_from) if run else \
+        Subscription(subject, apply=apply, start_from=start_from)
 
     async def create(rt):
         return Module(events=Events(publishes=["conformance.widget.created.v1", "conformance.widget.noted.v1"],
@@ -252,7 +253,7 @@ async def test_slow_handler_reports_progress_and_runs_once(tmp_path, ident, nats
     monkeypatch.setattr(consumer_mod, "HANDLER_MARGIN", -3.0)  # let the handler outlive the ack wait
     seen = Seen()
     seen.slow = 3.0
-    rt = await start(tmp_path, ident, nats_url, make_module(seen))
+    rt = await start(tmp_path, ident, nats_url, make_module(seen, start_from=StartFrom.NEW))  # skip older tests' events
     wid = str(ids.new_id())
     await rt.store().tx(lambda tx: tx.publish(Event("conformance.widget.created.v1", wid, 1, payload(wid))))
     await eventually(lambda: (wid, 1) in seen.applied, timeout=15)

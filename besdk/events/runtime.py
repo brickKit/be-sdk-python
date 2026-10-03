@@ -82,6 +82,12 @@ class EventsRuntime:
                 delay = min(delay * 2, 15.0)
         for subject in self.module.events.publishes:
             await bus.ensure_stream_for(subject)
+        src = rt.shared.bundle_source
+        if src is not None:  # best-effort poke: fetch the bundle at once (P6.1, P12.10)
+            async def poke(_msg) -> None:
+                src.poke()
+
+            await bus.nc.subscribe("infra.authz.changed.v1", cb=poke)
         store = rt.store()
         if self.module.events.publishes:
             self.pump = OutboxPump(store, bus, self.publisher, rt.metrics, rt.logger)

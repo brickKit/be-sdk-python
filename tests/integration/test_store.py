@@ -185,3 +185,14 @@ async def test_shared_physical_pool_two_members_statement_prefix(tmp_path, pg16)
         with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
             await conn.fetch(f'SELECT * FROM "{a.schema}".thing')
     await pool.close()
+
+
+async def test_pg14_floor(tmp_path, pg14):
+    ident = Identity(pg14, tmp_path)
+    root = component_dir(tmp_path)
+    migrator(root, ident).up()
+    r = runtime(root, ident, PG_POOL_MIN_IDLE="0")
+    await r.store().open()
+    assert await r.store().probe() == []
+    assert await r.store().tx(lambda tx: tx.fetchval("SELECT current_schema()")) == ident.schema
+    await r.store().close()

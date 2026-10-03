@@ -106,8 +106,8 @@ class HttpServer:
                 self._task.result()
             await asyncio.sleep(0.005)
 
-    async def stop(self) -> None:
-        """Stop accepting, let in-flight requests finish (uvicorn's graceful shutdown), close."""
+    async def stop(self, grace: float | None = None) -> None:
+        """Stop accepting, let in-flight requests finish within the grace given at construction, close."""
         self.server.should_exit = True
         if self._task is not None:
             await self._task
