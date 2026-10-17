@@ -57,13 +57,14 @@ _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 # Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host serves, the HTTP
 # layer builds each member's application, the configuration source reads the environment for the launcher, the
 # database package opens the pools and the migrate entry's connection, the call layer owns each member's clients, the
-# system surface its server, the transport adapters the process's bus connection and the claim check its storage.
+# system surface its server, the identity keys their fetching client, the transport adapters the process's bus connection and the claim check its storage.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
     "besdk/db/pool.py": {"asyncpg.create_pool"},
     "besdk/db/migrate.py": {"asyncpg.connect"},
-    "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel", "grpc.aio.insecure_channel"},
+    "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel"},
     "besdk/system.py": {"grpc.aio.server"},
+    "besdk/identity/token.py": {"httpx.AsyncClient"},
     "besdk/events/jetstream.py": {"nats.connect"},
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
     "besdk/events/objectstore.py": {"aioboto3.Session", "httpx.AsyncClient"},

@@ -5,7 +5,6 @@ import socket
 import time
 
 import grpc
-import httpx
 import pytest
 from fastapi.responses import JSONResponse
 from google.protobuf import wrappers_pb2
@@ -13,10 +12,10 @@ from opentelemetry.sdk.trace import TracerProvider
 
 from besdk import errs, reqctx
 from besdk.calls.client import Member, options
-from besdk.http import Deps as HTTPDeps, Platform, Route, Routes, build_app
+from besdk.http import Deps as HTTPDeps, Platform, Routes, build_app
 from besdk.host import HTTPServer, listen
 from besdk.obs import Member as ObsMember, new_logger, new_registry
-from besdk.system import Deps, Method, Services, build_server
+from besdk.system import Deps, Method, Services, build_server, serve_port
 
 SAY = "/demo.Echo/Say"
 
@@ -36,12 +35,18 @@ def services(behavior, callers=("demo/a", "demo/b")):
     return s
 
 
-async def serve(s, logs):
-    server = build_server(Deps(new_logger(ObsMember("demo/x", "3.0.0"), "debug", logs), new_registry(),
-                               TracerProvider().get_tracer("t")), s)
-    port = server.add_insecure_port("127.0.0.1:0")
+async def serve(s, logs, world, component):
+    server = build_server(Deps(new_logger(ObsMember(component, "3.0.0"), "debug", logs), new_registry(),
+                               TracerProvider().get_tracer("t"), world.tls(component)), s)
+    port = serve_port(server, "127.0.0.1:0", world.tls(component))
     await server.start()
     return server, f"127.0.0.1:{port}"
+
+
+def member(world, component):
+    out = Member()
+    out.set_tls(world.tls(component))
+    return out
 
 
 def say(channel):
@@ -49,7 +54,7 @@ def say(channel):
                                response_deserializer=wrappers_pb2.StringValue.FromString)
 
 
-async def test_grpc_chain_retries_at_one_layer_only():
+async def test_grpc_chain_retries_at_one_layer_only(world):
     calls = {"b": 0, "c": 0}
     seen = {}
 
@@ -58,16 +63,16 @@ async def test_grpc_chain_retries_at_one_layer_only():
         seen["c_request_id"] = reqctx.request_id()
         raise errs.new("SERVICE_BUSY", "c is busy")
 
-    c_server, c_addr = await serve(services(c_say), io.StringIO())
-    b_out = Member()
+    c_server, c_addr = await serve(services(c_say), io.StringIO(), world, "demo/c")
+    b_out = member(world, "demo/b")
 
     async def b_say(request, context):
         calls["b"] += 1
         seen["b_remaining"] = reqctx.remaining()
         return await say(b_out.grpc("demo/c", c_addr))(request, metadata=options(idempotent=True))
 
-    b_server, b_addr = await serve(services(b_say), io.StringIO())
-    a_out = Member()
+    b_server, b_addr = await serve(services(b_say), io.StringIO(), world, "demo/b")
+    a_out = member(world, "demo/a")
     try:
         with reqctx.request_scope("chain-1"), reqctx.deadline_scope(time.monotonic() + 5):
             with pytest.raises(errs.Error) as e:
@@ -82,7 +87,7 @@ async def test_grpc_chain_retries_at_one_layer_only():
         await asyncio.gather(a_out.close(), b_out.close(), c_server.stop(None), b_server.stop(None))
 
 
-async def test_component_errors_pass_through_unchanged():
+async def test_component_errors_pass_through_unchanged(world):
     out_of_stock = errs.define("erp/inventory", "INSUFFICIENT_STOCK", errs.Code.FAILED_PRECONDITION, 409, errs.RETRY_NO,
                                "Not enough stock")
 
@@ -90,8 +95,8 @@ async def test_component_errors_pass_through_unchanged():
         raise out_of_stock.new("only 3 left").with_("available", "3").with_violations(
             errs.Violation("/quantity", "TOO_LARGE", "at most 3"))
 
-    server, addr = await serve(services(c_say), io.StringIO())
-    out = Member()
+    server, addr = await serve(services(c_say), io.StringIO(), world, "erp/inventory")
+    out = member(world, "demo/a")
     try:
         with reqctx.deadline_scope(time.monotonic() + 5), pytest.raises(errs.Error) as e:
             await say(out.grpc("erp/inventory", addr))(wrappers_pb2.StringValue(value="x"))

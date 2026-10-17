@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from importlib.resources.abc import Traversable
-from typing import TYPE_CHECKING, Awaitable, Callable, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Protocol, runtime_checkable
 
 from besdk.config import Key
 
@@ -51,3 +51,6 @@ class Definition:
     streams: list = field(default_factory=list)
     # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
     subscribes: bool = False
+    # The resources and operations the component declares (besdk.authz.Definitions); required with protected routes or
+    # system methods, which each name one of its operations (P8.7).
+    authz: Any = None

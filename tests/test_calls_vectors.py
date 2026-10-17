@@ -1,5 +1,3 @@
-import json
-
 from besdk import errs, errwire, protocol
 from besdk.calls import policy
 from besdk.calls.outcome import Result, classify, upward

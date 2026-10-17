@@ -131,7 +131,7 @@ async def test_serve_ready_and_graceful_stop():
             pass
 
 
-async def test_serves_the_system_surface_and_stops_it_gracefully():
+async def test_serves_the_system_surface_and_stops_it_gracefully(world):
     import grpc
     from google.protobuf import wrappers_pb2
 
@@ -154,9 +154,13 @@ async def test_serves_the_system_surface_and_stops_it_gracefully():
                 {"Say": Method("demo.system.say", ["demo/client"])})
 
     port, gport, stop = free_port(), free_port(), asyncio.Event()
-    d = Definition("demo/system", "3.0.0", lambda rt: System(), grpc_port=gport)
+    from tests.sectest import defs
+
+    d = Definition("demo/system", "3.0.0", lambda rt: System(), grpc_port=gport,
+                   authz=defs("demo/system", "demo.thing", "demo.thing.read", "demo.system.say"))
     run = asyncio.create_task(launcher.run(d, launcher.Options(env=env(
-        {"COMPONENT_ID": "demo/system", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "200ms"}),
+        {"COMPONENT_ID": "demo/system", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "200ms",
+         **world.env("demo/system")}),
         stdout=io.StringIO(), stderr=io.StringIO(), host="127.0.0.1"), stop))
     async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}") as client:
         for _ in range(500):
@@ -167,6 +171,7 @@ async def test_serves_the_system_surface_and_stops_it_gracefully():
                 pass
             await asyncio.sleep(0.01)
     out = Member()
+    out.set_tls(world.tls("demo/client"))
     say = out.grpc("demo/system", f"127.0.0.1:{gport}").unary_unary(
         "/demo.Echo/Say", request_serializer=wrappers_pb2.StringValue.SerializeToString,
         response_deserializer=wrappers_pb2.StringValue.FromString)

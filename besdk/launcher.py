@@ -117,8 +117,22 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
 
 async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: config.Values, plat: config.Values,
                         started: float, pool: Pool | None, database: DB | None, transport=None) -> int:
+    keys = await host.open_keys(values, obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout))
+    refresh = asyncio.create_task(keys.run()) if keys is not None else None
     try:
-        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database, transport=transport))
+        return await _serve_built(d, o, stop, values, plat, started, pool, database, transport, keys)
+    finally:
+        if refresh is not None:
+            refresh.cancel()
+            await asyncio.gather(refresh, return_exceptions=True)
+            await keys.aclose()  # type: ignore[union-attr]
+
+
+async def _serve_built(d: Definition, o: Options, stop: asyncio.Event, values: config.Values, plat: config.Values,
+                       started: float, pool: Pool | None, database: DB | None, transport, keys) -> int:
+    try:
+        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database, transport=transport,
+                                                    keys=keys))
     except host.ConfigError as e:
         host.report_config(o.stderr, d.id, e.problems)
         return EXIT_CONFIGURATION
@@ -148,7 +162,7 @@ async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: 
             await server.shutdown(0)
             return EXIT_FAILURE
         try:
-            servers.append(host.GRPCServer(m.system, d.grpc_port, o.host))
+            servers.append(host.GRPCServer(m.system, d.grpc_port, m.tls, o.host))
             await servers[-1].start()
         except (OSError, RuntimeError) as e:
             log.error("cannot listen on the grpc port", error=str(e))

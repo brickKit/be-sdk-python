@@ -4,6 +4,7 @@ registration in which every method declares its operation and its callers, like 
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import re
 import time
 import traceback
@@ -104,13 +105,24 @@ class Deps:
     logger: Logger
     registry: CollectorRegistry
     tracer: trace.Tracer
-    # the caller check (P8.5, P8.6): returns the calling component or raises; None until a service identity exists
-    authorize: Callable[[grpc.aio.ServicerContext, Method], str] | None = None
+    tls: Any = None  # the member's service identity (besdk.identity.ServiceTLS); the surface never runs without it
+
+
+_caller: contextvars.ContextVar[str] = contextvars.ContextVar("be_caller", default="")
+
+
+def caller() -> str:
+    """The component the current system call came from, as its verified certificate says (P8.5, P8.6)."""
+    return _caller.get()
 
 
 def build_server(d: Deps, s: Services) -> grpc.aio.Server:
-    """The member's system-surface server with every method wrapped in the chain. Listening is the caller's."""
+    """The member's system-surface server with every method wrapped in the chain. Listening is the caller's, with
+    serve_port (mTLS only)."""
     s.validate()
+    if d.tls is None:
+        raise ValueError("system surface: no service identity (SERVICE_TLS_CERT_FILE, SERVICE_TLS_KEY_FILE, "
+                         "SERVICE_TLS_CA_FILE)")
     duration = Histogram("be_grpc_server_duration_seconds", "System-surface call duration by method and code.",
                          ["method", "code"], registry=d.registry)
     handlers = {}
@@ -146,9 +158,16 @@ def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Await
             try:
                 with reqctx.deadline_scope(time.monotonic() + limit):
                     async with asyncio.timeout(limit):
-                        if d.authorize is not None:
-                            d.authorize(context, decl)
-                        return await behavior(request, context)
+                        who = d.tls.caller(context)
+                        if who not in decl.callers:  # P8.6: the certificate decides, never a label in the request
+                            log.warn("a system call from a component not allowed to call this method", method=full,
+                                     caller=who)
+                            raise errs.new("PERMISSION_DENIED", "this component may not call this method")
+                        token = _caller.set(who)
+                        try:
+                            return await behavior(request, context)
+                        finally:
+                            _caller.reset(token)
             except BaseException as exc:  # noqa: BLE001 - every failure becomes the error object, never a crash
                 if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
                     raise  # an external cancellation stays one; the handler's own deadline arrives as TimeoutError
@@ -168,3 +187,8 @@ def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Await
         await context.abort_with_status(rpc_status.to_status(errwire.to_status(failure)))  # type: ignore[arg-type]
 
     return call
+
+
+def serve_port(server: grpc.aio.Server, address: str, tls: Any) -> int:
+    """Listens with mTLS only: a client certificate from the deployment's trust root is required (P8.5)."""
+    return server.add_secure_port(address, tls.server_credentials())

@@ -4,6 +4,7 @@ route declares its operation (protocol chapters 01, 03 and 04)."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import re
 import time
 import traceback
@@ -145,10 +146,10 @@ class Context:
 
 
 class Guard(Protocol):
-    """Admits a request to a non-public route (protocol chapter 08): verifies the caller's credential and binds the
-    verified subject and the request's cutoff into the task's context."""
+    """Admits a request to a non-public route (protocol chapter 08): verifies the caller's credential or raises; the
+    returned scope binds the verified subject and the request's cutoff while the handler runs (None: nothing)."""
 
-    async def admit(self, route: Route, request: Request) -> None: ...
+    async def admit(self, route: Route, request: Request) -> contextlib.AbstractContextManager | None: ...
 
 
 @dataclass
@@ -275,9 +276,9 @@ async def _run(request: Request, d: Deps, r: Route, rid: str, trace_id: str, log
 
 async def _admitted(request: Request, d: Deps, r: Route, rid: str, trace_id: str, log: Logger, limit: float) -> Response:
     async with asyncio.timeout(limit):
-        if not r.public:
-            await d.guard.admit(r, request)  # type: ignore[union-attr]
-        result = await r.handle(Context(request, r, rid, trace_id, log))
+        scope = None if r.public else await d.guard.admit(r, request)  # type: ignore[union-attr]
+        with scope if scope is not None else contextlib.nullcontext():
+            result = await r.handle(Context(request, r, rid, trace_id, log))
     if result is None:
         return Response(status_code=204)
     return result

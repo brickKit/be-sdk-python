@@ -8,7 +8,7 @@ import base64
 import json
 import uuid
 from typing import Callable
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 import asyncpg
 

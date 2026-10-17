@@ -202,6 +202,59 @@ class _Interceptor(grpc.aio.UnaryUnaryClientInterceptor):
         return response[-1]
 
 
+class _TLSChannel:
+    """A channel to a component's system surface whose credentials follow the member's certificate: after a rotation
+    the next call opens a new channel with the new certificate, and the old one closes once its calls are done
+    (generated stubs bind multicallables once, so those are rebound per certificate generation)."""
+
+    def __init__(self, tls: Any, component: str, target: str, options: list[tuple[str, Any]], interceptors: list):
+        self._tls, self._component, self._target, self._options, self._interceptors = tls, component, target, options, interceptors
+        self._channel: grpc.aio.Channel | None = None
+        self.generation = -1
+        self._closing: set[asyncio.Task] = set()
+
+    def current(self) -> grpc.aio.Channel:
+        if self._channel is None or self.generation != self._tls.generation:
+            creds, names = self._tls.channel(self._component)
+            old = self._channel
+            self._channel = grpc.aio.secure_channel(self._target, creds, [*names, *self._options],
+                                                    interceptors=self._interceptors)
+            self.generation = self._tls.generation
+            if old is not None:
+                t = asyncio.get_running_loop().create_task(old.close(grace=ROTATION_GRACE))
+                self._closing.add(t)
+                t.add_done_callback(self._closing.discard)
+        return self._channel
+
+    def unary_unary(self, method: str, request_serializer: Any = None, response_deserializer: Any = None,
+                    **kw: Any) -> _Rebound:
+        return _Rebound(self, method, request_serializer, response_deserializer, kw)
+
+    def __getattr__(self, name: str) -> Any:  # channel_ready, get_state, the other call shapes
+        return getattr(self.current(), name)
+
+    async def close(self) -> None:
+        if self._channel is not None:
+            await self._channel.close()
+        await asyncio.gather(*self._closing, return_exceptions=True)
+
+
+class _Rebound:
+    def __init__(self, ch: _TLSChannel, method: str, ser: Any, de: Any, kw: dict):
+        self._ch, self._args, self._generation, self._call = ch, (method, ser, de, kw), -2, None
+
+    def __call__(self, request: Any, **kw: Any) -> Any:
+        channel = self._ch.current()
+        if self._generation != self._ch.generation:
+            method, ser, de, extra = self._args
+            self._call = channel.unary_unary(method, request_serializer=ser, response_deserializer=de, **extra)
+            self._generation = self._ch.generation
+        return self._call(request, **kw)  # type: ignore[misc]
+
+
+ROTATION_GRACE = 30.0  # how long calls on a channel with the previous certificate may still finish
+
+
 class Member:
     """One member's dependencies: each (dependency, surface) is created once and kept for the member's life, with
     the member's own HTTP client and gRPC channels (never process-wide ones)."""
@@ -210,8 +263,12 @@ class Member:
         self._metrics = _Metrics(registry)
         self._deps: dict[tuple[str, str], Dependency] = {}
         self._client: httpx.AsyncClient | None = None
-        self._channels: dict[tuple[str, str], grpc.aio.Channel] = {}
-        self.channel_credentials: grpc.ChannelCredentials | None = None  # the member's mTLS identity (chapter 08)
+        self._channels: dict[tuple[str, str], _TLSChannel] = {}
+        self.tls: Any = None  # the member's mTLS identity (besdk.identity.ServiceTLS)
+
+    def set_tls(self, tls: Any) -> None:
+        """The member's service identity; system-surface calls are made only with it (P8.5)."""
+        self.tls = tls
 
     def dependency(self, id: str, surface: str) -> Dependency:
         key = (id, surface)
@@ -225,16 +282,15 @@ class Member:
                 max_connections=policy.OUTBOUND_LIMIT, keepalive_expiry=90))
         return HTTP(self.dependency(id, "http"), base, self._client)
 
-    def grpc(self, id: str, target: str, options: list[tuple[str, Any]] | None = None) -> grpc.aio.Channel:
-        """The member's channel to a dependency's system surface at target (host:port)."""
+    def grpc(self, id: str, target: str, options: list[tuple[str, Any]] | None = None) -> Any:
+        """The member's channel to a dependency's system surface at target (host:port), over mTLS only: the client
+        presents this member's certificate and accepts only the dependency's (P8.5); never plaintext."""
+        if self.tls is None:
+            raise ValueError(f"system surface of {id}: this member has no service identity (SERVICE_TLS_*)")
         key = (id, target)
         if key not in self._channels:
-            interceptors = [_Interceptor(self.dependency(id, "grpc"))]
-            if self.channel_credentials is not None:
-                self._channels[key] = grpc.aio.secure_channel(target, self.channel_credentials, options or [],
-                                                              interceptors=interceptors)
-            else:
-                self._channels[key] = grpc.aio.insecure_channel(target, options or [], interceptors=interceptors)
+            self._channels[key] = _TLSChannel(self.tls, id, target, options or [],
+                                              [_Interceptor(self.dependency(id, "grpc"))])
         return self._channels[key]
 
     async def close(self) -> None:

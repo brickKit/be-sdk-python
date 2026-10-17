@@ -261,7 +261,17 @@ async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: o
             except (OSError, ValueError, ConnectionError) as e:
                 log.error("the bus is not usable", error=str(e))
                 return host.EXIT_STARTUP_CHECK
-        return await _serve_members(self, sv, plans, log, o, stop, started, pools, transport)
+        # one key set per process; IAM_JWKS_URL is a process-level key, so the members agree on it
+        keyed = [p for p in plans if p.values.string("IAM_JWKS_URL")]
+        keys = await host.open_keys(keyed[0].values, log) if keyed else None
+        refresh = asyncio.create_task(keys.run()) if keys is not None else None
+        try:
+            return await _serve_members(self, sv, plans, log, o, stop, started, pools, transport, keys)
+        finally:
+            if refresh is not None:
+                refresh.cancel()
+                await asyncio.gather(refresh, return_exceptions=True)
+                await keys.aclose()  # type: ignore[union-attr]
     finally:
         if transport is not None:
             await transport.close()
@@ -283,7 +293,8 @@ async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -
 
 
 async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
-                         stop: asyncio.Event, started: float, pools: dict[db.Target, Pool], transport=None) -> int:
+                         stop: asyncio.Event, started: float, pools: dict[db.Target, Pool], transport=None,
+                         keys=None) -> int:
     members: list[host.Member] = []
     servers: list = []
 
@@ -299,7 +310,7 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
                 st = db.settings_from(p.values)
                 database = DB(p.definition.id, pools[st.target], st)
             m = await host.build(p.definition, p.values, host.Shared(MapSource(p.served.config), o.env.read_file, o.stdout,
-                                                                     db=database, transport=transport))
+                                                                     db=database, transport=transport, keys=keys))
         except host.ConfigError as e:
             host.report_config(o.stderr, p.definition.id, e.problems)
             await asyncio.gather(*(s.shutdown(0) for s in servers))
@@ -319,7 +330,7 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
                 return await fail(p.definition.id, "the member registers gRPC services but BrickKit gave it no grpc port",
                                   ValueError("no extra port grpc"))
             try:
-                servers.append(host.GRPCServer(m.system, port, o.host))
+                servers.append(host.GRPCServer(m.system, port, m.tls, o.host))
                 await servers[-1].start()
             except (OSError, RuntimeError) as e:
                 return await fail(p.definition.id, "cannot listen on the member's grpc port", e)

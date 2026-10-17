@@ -12,16 +12,21 @@ import traceback
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import IO, Callable
+from urllib.parse import urlsplit
 
 import uvicorn
 from fastapi import FastAPI
 
 import besdk
-from besdk import config, obs, protocol, system
+from besdk import config, obs, protocol, reqctx, system
+from besdk.audit import Auditor, GRPCSender
+from besdk.authz import GRPCSource, Holder
 from besdk.calls import client as calls
 from besdk.component import Definition, Starter, Stopper
 from besdk.config import Key, Problem, Type, Values
-from besdk.http import Deps, Guard, Platform, Routes, build_app
+from besdk.guard import UserGuard
+from besdk.http import Deps, Platform, Routes, build_app
+from besdk.identity import KeySet, ServiceTLS, Verifier
 from besdk.events.consumer import Consumer, Subscriptions
 from besdk.events.objectstore import HTTPClaims, S3Store
 from besdk.events.outbox import Forwarder, Producer
@@ -88,11 +93,9 @@ class Shared:
     addresses: config.Source | None
     read: Callable[[str], bytes]
     out: IO[str]
-    guard: Callable[[Member], Guard | None] = lambda m: None
-    # the system surface's caller check for a member (chapter 08); None: no service identity yet
-    authorize: Callable[[Member], Callable | None] = lambda m: None
     db: object = None  # the member's besdk.db.pool.DB, None without migrations
     transport: object = None  # the process's bus (one per process), None when no member uses events
+    keys: object = None  # the process's identity keys (besdk.identity.KeySet), None when IAM_JWKS_URL is not set
 
 
 @dataclass
@@ -111,6 +114,11 @@ class Member:
     transport: object = None
     claims: object = None
     consumers: list = field(default_factory=list)
+    ready: Callable[[], tuple[bool, str, list[str]]] | None = None  # the shell's readiness for its own port, if any
+    tls: object = None  # the member's service identity (besdk.identity.ServiceTLS)
+    holder: object = None  # the member's authorization view (besdk.authz.Holder), with protected routes
+    auditor: object = None  # with a database: the audit table and its transfer
+    audit_sender: object = None  # the audit component's system surface, None without AUDIT_GRPC_URL
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -129,6 +137,19 @@ class Member:
         for c in self.consumers:
             self._subs.append(await self.transport.subscribe(c.spec(), c.handle))  # type: ignore[attr-defined]
         self._tasks.append(asyncio.create_task(self._reread_secrets(read)))
+        if self.tls is not None:
+            self._tasks.append(asyncio.create_task(self._reread_certificate()))
+        if self.auditor is not None:
+            self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
+        if self.holder is not None:
+            # one verification before ready, so the first requests find a view; best effort: the authorization member
+            # may be down, and then protected requests answer a retryable 503 until it is back
+            try:
+                with reqctx.deadline_scope(time.monotonic() + 2):
+                    await self.holder.verify()  # type: ignore[attr-defined]
+            except Exception as e:  # noqa: BLE001
+                self.logger.warn("no authorization view yet; protected requests wait for one", error=str(e))
+            self._tasks.append(asyncio.create_task(self.holder.run()))  # type: ignore[attr-defined]
 
     def stop_background(self) -> None:
         for t in self._tasks:
@@ -147,6 +168,15 @@ class Member:
             if self.claims is not None:
                 await self.claims.close()  # type: ignore[attr-defined]
 
+    async def _reread_certificate(self) -> None:
+        while True:
+            await asyncio.sleep(SECRET_REREAD_EVERY)
+            try:
+                if self.tls.reload():  # type: ignore[attr-defined]
+                    self.logger.info("the service certificate changed; new connections use it")
+            except ValueError as e:
+                self.logger.warn("the service certificate could not be re-read; keeping the previous one", error=str(e))
+
     async def _reread_secrets(self, read: Callable[[str], bytes]) -> None:
         secrets = self.values.file_secrets()
         while secrets:
@@ -160,19 +190,27 @@ class Member:
 
 
 async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[], tuple[bool, str, list[str]]] | None = None) -> Member:
-    """One member: its logger, registry, tracer, runtime, module and user-surface application."""
+    """One member: its logger, registry, tracer, runtime, module, user-surface application and system surface."""
     m = obs.Member(d.id, d.version)
     log = obs.new_logger(m, values.string("LOG_LEVEL"), shared.out)
     registry = obs.new_registry()
     tracers = obs.new_tracer_provider(m, values.string("OTEL_URL"))
     outbound = calls.Member(registry)
+    try:
+        tls = _service_identity(d, values, shared)
+    except ValueError as e:
+        log.error("the member could not be built", error=str(e))
+        raise BuildError(str(e)) from e
+    if tls is not None:
+        outbound.set_tls(tls)
     producer = forwarder = None
     if d.streams:
         producer = Producer(d.id, d.streams, S3Store.from_values(values))
         forwarder = Forwarder(shared.db, producer, shared.transport, d.id, values.string("IMPLEMENTATION_INSTANCE"),
                               log)  # type: ignore[arg-type]
+    auditor = Auditor(shared.db) if shared.db is not None else None  # type: ignore[arg-type]
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
-                 addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer)
+                 addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
@@ -185,19 +223,103 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
     except Exception as e:  # noqa: BLE001 - a module's wiring failure is reported, never a crash
         log.error("the module could not be built", error=repr(e), stack="".join(traceback.format_exception(e)))
         raise BuildError(str(e)) from e
-    member = Member(d, values, log, registry, tracers, rt, module, FastAPI())
-    member.forwarder, member.transport = forwarder, shared.transport
+    member = Member(d, values, log, registry, tracers, rt, module, FastAPI(), ready=ready)
+    member.forwarder, member.transport, member.tls, member.auditor = forwarder, shared.transport, tls, auditor
     if d.subscribes:
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]
         member.claims = HTTPClaims()
         member.consumers = [Consumer(d.id, s, shared.db, log, member.claims) for s in subs.list]  # type: ignore[arg-type]
-    guard = shared.guard(member)
-    member.app = build_app(Deps(log, registry, rt.tracer, Platform(
-        ready or (lambda: (member.state == READY, member.state, [])), member.describe), guard), routes)
-    if not services.empty:
-        member.system = system.build_server(system.Deps(log, registry, rt.tracer, shared.authorize(member)), services)
+    try:
+        _surfaces(member, shared, outbound, routes, services)
+    except ValueError as e:
+        log.error("the member could not be built", error=str(e))
+        raise BuildError(str(e)) from e
     return member
+
+
+def _surfaces(member: Member, shared: Shared, outbound: calls.Member, routes: Routes, services: system.Services) -> None:
+    """The audit transfer's target, the user surface with its guard, and the system surface (mTLS only)."""
+    d, log = member.definition, member.logger
+    if member.auditor is not None:
+        member.audit_sender = _audit_sender(member.values, outbound, log)
+    ops = [r.operation for r in routes.list() if not r.public]
+    guard = _guard(member, shared, outbound, ops) if ops else None
+    member.app = build_app(Deps(log, member.registry, member.runtime.tracer, Platform(
+        member.ready or (lambda: (member.state == READY, member.state, [])), member.describe), guard), routes)
+    if not services.empty:
+        _declared(d, services.operations(), "system methods")
+        member.system = system.build_server(system.Deps(log, member.registry, member.runtime.tracer, member.tls),
+                                            services)
+
+
+def _service_identity(d: Definition, values: Values, shared: Shared) -> ServiceTLS | None:
+    """The member's mTLS identity when its certificate is configured (P8.5): all three files and the deployment."""
+    files = [values.string(k) for k in ("SERVICE_TLS_CERT_FILE", "SERVICE_TLS_KEY_FILE", "SERVICE_TLS_CA_FILE")]
+    if not any(files):
+        return None
+    problems = [Problem(k, "missing", "set together with the other SERVICE_TLS_* keys")
+                for k in ("SERVICE_TLS_CERT_FILE", "SERVICE_TLS_KEY_FILE", "SERVICE_TLS_CA_FILE", "DEPLOYMENT_ID")
+                if not values.string(k)]
+    if problems:
+        raise ConfigError(problems)
+    return ServiceTLS(values.string("DEPLOYMENT_ID"), d.id, *files, shared.read)
+
+
+def _declared(d: Definition, ops: list[str], what: str) -> None:
+    """Routes and methods name declared operations (P8.7)."""
+    if d.authz is None:
+        raise ValueError(f"the module has {what} but the definition declares no resources and operations (authz)")
+    d.authz.validate()
+    d.authz.check_operations(ops)
+
+
+def _guard(member: Member, shared: Shared, outbound: calls.Member, ops: list[str]) -> UserGuard:
+    """The admission of protected routes: declared operations, the identity keys, and a view holder that verifies
+    with the authorization member over mTLS (P8.7, P8.9)."""
+    d, values = member.definition, member.values
+    _declared(d, ops, "protected routes")
+    problems = [Problem(k, "missing", why) for k, why in (
+        ("DEPLOYMENT_ID", "the deployment identity: protected routes accept its audience"),
+        ("IAM_ISSUER", "the identity member's issuer: protected routes verify tokens"),
+        ("IAM_JWKS_URL", "the identity member's keys: protected routes verify tokens"),
+        ("AUTHZ_GRPC_URL", "the authorization member's system surface: protected routes need a view"))
+        if not values.string(k)]
+    if member.tls is None:
+        problems.append(Problem("SERVICE_TLS_CERT_FILE", "missing",
+                                "the member's service identity: the view is verified over mTLS"))
+    if problems or shared.keys is None:
+        raise ConfigError(problems)
+    channel = outbound.grpc("infra/authz", host_port(values.string("AUTHZ_GRPC_URL")))
+    member.holder = Holder(d.id, GRPCSource(channel), member.logger)
+    verifier = Verifier(values.string("IAM_ISSUER"), "be:deployment:" + values.string("DEPLOYMENT_ID"),
+                        shared.keys)  # type: ignore[arg-type]
+    return UserGuard(verifier, d.authz, member.holder, member.logger)  # type: ignore[arg-type]
+
+
+def _audit_sender(values: Values, outbound: calls.Member, log: obs.Logger) -> GRPCSender | None:
+    """The audit component's system surface; without AUDIT_GRPC_URL the records stay local (P8.21)."""
+    if not (addr := values.string("AUDIT_GRPC_URL")):
+        log.warn("AUDIT_GRPC_URL is not set: audit records stay in the local table until it is")
+        return None
+    return GRPCSender(outbound.grpc("infra/audit", host_port(addr)))
+
+
+def host_port(addr: str) -> str:
+    """An address as BrickKit derives it (http://service:port) or a bare host:port."""
+    u = urlsplit(addr)
+    return u.netloc if u.netloc else addr
+
+
+async def open_keys(values: Values, log: obs.Logger) -> KeySet | None:
+    """The process's identity keys when IAM_JWKS_URL is set; a failing first fetch is reported and the set keeps
+    retrying (the identity member may start later)."""
+    if not (url := values.string("IAM_JWKS_URL")):
+        return None
+    keys, err = await KeySet.open(url)
+    if err is not None:
+        log.warn("the identity keys could not be fetched yet; they are retried", error=str(err))
+    return keys
 
 
 class _Server(uvicorn.Server):
@@ -241,9 +363,9 @@ class HTTPServer:
 class GRPCServer:
     """A member's system surface: stop accepting, let calls in flight finish until the stop deadline."""
 
-    def __init__(self, server, port: int, host: str = "0.0.0.0"):
+    def __init__(self, server, port: int, tls, host: str = "0.0.0.0"):
         self.server = server
-        bound = server.add_insecure_port(f"{host}:{port}")  # mTLS arrives with the service identity (chapter 08)
+        bound = system.serve_port(server, f"{host}:{port}", tls)
         if bound == 0:
             raise OSError(f"cannot listen on {host}:{port}")
         self.port, self.name, self.task = bound, f"grpc {host}:{bound}", None
