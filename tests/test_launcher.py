@@ -2,6 +2,7 @@ import asyncio
 import io
 import json
 import socket
+import time
 
 import httpx
 from fastapi.responses import JSONResponse, Response
@@ -128,3 +129,58 @@ async def test_serve_ready_and_graceful_stop():
             raise AssertionError("still listening after the stop")
         except httpx.ConnectError:
             pass
+
+
+async def test_serves_the_system_surface_and_stops_it_gracefully():
+    import grpc
+    from google.protobuf import wrappers_pb2
+
+    from besdk import reqctx
+    from besdk.calls.client import Member, options
+    from besdk.system import Method
+
+    release = asyncio.Event()
+
+    class System(Demo):
+        def services(self, s):
+            async def say(request, context):
+                if request.value == "slow":
+                    await release.wait()
+                return wrappers_pb2.StringValue(value="echo " + request.value)
+
+            s.add("demo.Echo", {"Say": grpc.unary_unary_rpc_method_handler(
+                say, request_deserializer=wrappers_pb2.StringValue.FromString,
+                response_serializer=wrappers_pb2.StringValue.SerializeToString)},
+                {"Say": Method("demo.system.say", ["demo/client"])})
+
+    port, gport, stop = free_port(), free_port(), asyncio.Event()
+    d = Definition("demo/system", "3.0.0", lambda rt: System(), grpc_port=gport)
+    run = asyncio.create_task(launcher.run(d, launcher.Options(env=env(
+        {"COMPONENT_ID": "demo/system", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "200ms"}),
+        stdout=io.StringIO(), stderr=io.StringIO(), host="127.0.0.1"), stop))
+    async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}") as client:
+        for _ in range(500):
+            try:
+                if (await client.get("/readyz")).status_code == 200:
+                    break
+            except httpx.ConnectError:
+                pass
+            await asyncio.sleep(0.01)
+    out = Member()
+    say = out.grpc("demo/system", f"127.0.0.1:{gport}").unary_unary(
+        "/demo.Echo/Say", request_serializer=wrappers_pb2.StringValue.SerializeToString,
+        response_deserializer=wrappers_pb2.StringValue.FromString)
+
+    async def call(v):
+        with reqctx.deadline_scope(time.monotonic() + 3):
+            return (await say(wrappers_pb2.StringValue(value=v), metadata=options(idempotent=True))).value
+
+    assert await call("hi") == "echo hi"
+    slow = asyncio.create_task(call("slow"))
+    await asyncio.sleep(0.05)
+    stop.set()
+    await asyncio.sleep(0.1)
+    release.set()
+    assert await slow == "echo slow", "a call in flight finishes during the stop"
+    assert await run == launcher.EXIT_OK
+    await out.close()

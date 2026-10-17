@@ -45,7 +45,9 @@ RULES: dict[tuple[str, str], str] = {
     ("nats", "connect"): "opens a bus connection outside the SDK; use the runtime's bus",
     ("aioboto3", "Session"): "opens object storage outside the SDK",
     ("grpc", "insecure_channel"): _CALL, ("grpc", "secure_channel"): _CALL, ("grpc.aio", "insecure_channel"): _CALL,
-    ("grpc.aio", "secure_channel"): _CALL, ("httpx", "*"): _CALL, ("requests", "*"): _CALL,
+    ("grpc.aio", "secure_channel"): _CALL, ("requests", "*"): _CALL,
+    **{("httpx", n): _CALL for n in ("AsyncClient", "Client", "get", "post", "put", "patch", "delete", "head",
+                                     "options", "request", "stream")},
     ("urllib.request", "urlopen"): _CALL, ("aiohttp", "ClientSession"): _CALL,
 }
 # metric constructors are fine with an explicit registry= and a violation without one
@@ -54,11 +56,14 @@ _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 
 # Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host serves, the HTTP
 # layer builds each member's application, the configuration source reads the environment for the launcher, the
-# database package opens the pools and the migrate entry's connection.
+# database package opens the pools and the migrate entry's connection, the call layer owns each member's clients and
+# the system surface its server.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
     "besdk/db/pool.py": {"asyncpg.create_pool"},
     "besdk/db/migrate.py": {"asyncpg.connect"},
+    "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel", "grpc.aio.insecure_channel"},
+    "besdk/system.py": {"grpc.aio.server"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},

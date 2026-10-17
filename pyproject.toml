@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn",
     "httpx",
     "grpcio",
+    "grpcio-status",
     "protobuf",
     "googleapis-common-protos",
     "asyncpg",

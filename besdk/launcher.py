@@ -129,11 +129,24 @@ async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: 
     except OSError as e:
         log.error("cannot listen on PORT", error=str(e))
         return EXIT_FAILURE
+    servers: list = [server]
+    if m.system is not None:
+        if d.grpc_port <= 0:
+            log.error("the module registers gRPC services but the definition has no grpc_port")
+            await server.shutdown(0)
+            return EXIT_FAILURE
+        try:
+            servers.append(host.GRPCServer(m.system, d.grpc_port, o.host))
+            await servers[-1].start()
+        except (OSError, RuntimeError) as e:
+            log.error("cannot listen on the grpc port", error=str(e))
+            await server.shutdown(0)
+            return EXIT_FAILURE
     try:
         await m.start(o.env.read_file)
     except Exception as e:  # noqa: BLE001
         log.error("the module could not start", error=repr(e))
-        await server.shutdown(0)
+        await asyncio.gather(*(s.shutdown(0) for s in servers))
         return EXIT_FAILURE
     m.state = host.READY
     log.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
@@ -143,7 +156,7 @@ async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: 
     if server.task in done:
         log.error("the user surface stopped unexpectedly")
         return EXIT_FAILURE
-    return await host.stop_all(log, [m], [server], values.duration("STOP_DRAIN_DELAY").total_seconds(),
+    return await host.stop_all(log, [m], servers, values.duration("STOP_DRAIN_DELAY").total_seconds(),
                                values.duration("STOP_TIMEOUT").total_seconds())
 
 

@@ -215,3 +215,22 @@ async def test_document_numbers():  # P5.18-P5.20, CK-DB-07
             await d.tx(lambda tx: next_number(tx, Series("le-1", "OLD")))
     finally:
         await pool.close()
+
+
+async def test_no_calls_inside_a_transaction():  # P4.20
+    from besdk import reqctx
+    from besdk.calls.client import Member
+
+    v, _ = await migrated("py_tx4")
+    d, pool = await open_db("py_tx4", v)
+    out = Member()
+    try:
+        async def calls_out(tx):
+            with reqctx.deadline_scope(time.monotonic() + 5):
+                await out.http("demo/other", "http://127.0.0.1:9").do("GET", "/api/x")
+
+        with pytest.raises(errs.Error) as e:
+            await d.tx(calls_out)
+        assert e.value.reason == "INTERNAL" and "NETWORK_IN_TX" in str(e.value)
+    finally:
+        await asyncio.gather(out.close(), pool.close())

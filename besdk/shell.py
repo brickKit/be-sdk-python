@@ -274,7 +274,7 @@ async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -
 async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
                          stop: asyncio.Event, started: float, pools: dict[db.Target, Pool]) -> int:
     members: list[host.Member] = []
-    servers: list[host.HTTPServer] = []
+    servers: list = []
 
     async def fail(member: str, msg: str, err: BaseException) -> int:
         log.error(msg, member=member, error=repr(err))
@@ -302,6 +302,16 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
             return await fail(p.definition.id, "cannot listen on the member's port", e)
         members.append(m)
         servers.append(server)
+        if m.system is not None:
+            port = p.served.extra_ports.get("grpc", 0)
+            if port <= 0:
+                return await fail(p.definition.id, "the member registers gRPC services but BrickKit gave it no grpc port",
+                                  ValueError("no extra port grpc"))
+            try:
+                servers.append(host.GRPCServer(m.system, port, o.host))
+                await servers[-1].start()
+            except (OSError, RuntimeError) as e:
+                return await fail(p.definition.id, "cannot listen on the member's grpc port", e)
     try:
         own = host.HTTPServer(_own_surface(self, sv, members), host.listen(sv.int("PORT"), o.host))
         await own.start()

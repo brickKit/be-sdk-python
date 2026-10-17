@@ -36,6 +36,19 @@ class Runtime:
     tracer: Tracer
     addresses: Source | None = None  # where the platform's *_ENDPOINT values are looked up
     db: Any = None  # the member's database (besdk.db), None without migrations
+    outbound: Any = None  # the member's call clients (besdk.calls.client.Member)
+
+    def http(self, component_id: str) -> Any:
+        """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter
+        04); None: the dependency is absent."""
+        ep = self.dependency(component_id)
+        return None if ep is None or self.outbound is None else self.outbound.http(component_id, ep.url)
+
+    def grpc(self, component_id: str) -> Any:
+        """The channel to a dependency's system surface (its "grpc" port) for generated stubs; mark idempotent
+        methods and commands' keys with besdk.calls.client.options(...). None: the dependency is absent."""
+        ep = self.dependency_port(component_id, "grpc")
+        return None if ep is None or self.outbound is None else self.outbound.grpc(component_id, ep.host)
 
     def dependency(self, component_id: str) -> Endpoint | None:
         """The address of a dependency's main port; None means the dependency is absent (an optional one that is not
