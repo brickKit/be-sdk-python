@@ -52,13 +52,14 @@ RULES: dict[tuple[str, str], str] = {
 _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 
 
-# Where the SDK itself owns what modules may not do: the launcher runs the loop and exits, the host serves, the HTTP
+# Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host serves, the HTTP
 # layer builds each member's application, the configuration source reads the environment for the launcher.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},
+    "besdk/shell.py": {"asyncio.run", "sys.exit"},
     "besdk/mergesafety.py": {"sys.exit"},
 }
 
