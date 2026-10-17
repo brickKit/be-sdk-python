@@ -1,0 +1,322 @@
+{
+  "sdk": "python",
+  "distribution": "be-sdk",
+  "protocol": "3.0.0-alpha.2",
+  "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
+  "features": {
+    "lifecycle": {
+      "status": "verified",
+      "evidence": [
+        "test_launcher::test_serve_ready_and_graceful_stop",
+        "test_launcher::test_unknown_entry",
+        "test_launcher::test_configuration_errors_all_at_once",
+        "test_launcher::test_module_failures_do_not_crash",
+        "test_http::test_platform_endpoints",
+        "test_db_hosting::test_a_component_with_a_database_migrates_and_serves",
+        "test_launcher_process::test_sigterm_stops_the_process_gracefully",
+        "test_launcher::test_serves_the_system_surface_and_stops_it_gracefully",
+        "test_mergesafety::test_the_sdk_is_merge_safe"
+      ],
+      "pending": [
+        {
+          "rule": "P1.16",
+          "reason": "容器里作为 1 号进程响应 SIGTERM：探针镜像已能构建，真实镜像中的验证在第 4 步"
+        }
+      ]
+    },
+    "observability": {
+      "status": "verified",
+      "evidence": [
+        "test_obs::test_log_lines_and_access_lines",
+        "test_obs::test_the_outbound_families",
+        "test_shell::test_hosts_members_on_their_own_ports"
+      ]
+    },
+    "shell": {
+      "status": "verified",
+      "evidence": [
+        "test_shell::test_hosts_members_on_their_own_ports",
+        "test_shell::test_refuses_member_not_installed",
+        "test_shell::test_refuses_other_version_in_the_metadata",
+        "test_shell::test_prerelease_versions_compare_by_meaning",
+        "test_shell::test_refuses_local_installs_unless_allowed",
+        "test_shell::test_refuses_version_mismatch_and_bad_config_all_at_once",
+        "test_shell::test_refuses_process_keys_that_disagree",
+        "test_shell::test_shell_does_not_migrate",
+        "test_db_hosting::test_members_share_one_pool_and_never_each_others_schema"
+      ],
+      "pending": [
+        {
+          "rule": "P1.13",
+          "reason": "成员按 BrickKit 列出的顺序初始化，依赖顺序由 BrickKit 给出；真实外壳镜像在第 4 步验证"
+        },
+        {
+          "rule": "P1.17",
+          "reason": "成员并行停止已实现，外壳镜像中的停止宽限在第 4 步验证"
+        }
+      ]
+    },
+    "config": {
+      "status": "verified",
+      "evidence": [
+        "test_config::test_config_parse_vectors",
+        "test_config::test_all_problems_at_once_and_no_secret_values",
+        "test_config::test_declaration_rules",
+        "test_config::test_secret_from_file_and_refresh",
+        "test_config::test_secret_value_and_file_conflict",
+        "test_config::test_range_and_accessor_misuse"
+      ]
+    },
+    "errors": {
+      "status": "verified",
+      "evidence": [
+        "test_errs::test_errors_vectors",
+        "test_errs::test_internal_never_leaks",
+        "test_errs::test_unknown_reason_is_internal",
+        "test_errs::test_cancellation_and_timeouts",
+        "test_errs::test_problem_and_retry_after",
+        "test_errs::test_declared_component_reason",
+        "test_http::test_errors_crashes_bodies_and_unknown_routes",
+        "test_chain::test_component_errors_pass_through_unchanged"
+      ],
+      "pending": [
+        {
+          "rule": "P3.3",
+          "reason": "GraphQL 的 extensions 由移动聚合组件（TypeScript）实现，Python SDK 不涉及"
+        }
+      ]
+    },
+    "calls": {
+      "status": "verified",
+      "evidence": [
+        "test_calls_vectors::test_outbound_timeout_vectors",
+        "test_calls_vectors::test_retry_decision_vectors",
+        "test_calls_vectors::test_retry_budget_vectors",
+        "test_calls_vectors::test_circuit_breaker_vectors",
+        "test_calls_vectors::test_call_outcomes_vectors",
+        "test_calls::test_retries_only_idempotent_calls_at_most_three_times",
+        "test_calls::test_relayed_failures_are_neither_retried_nor_counted",
+        "test_calls::test_the_budget_stops_retries_when_the_dependency_keeps_failing",
+        "test_calls::test_the_breaker_opens_and_fails_fast_without_sending",
+        "test_calls::test_outbound_limit",
+        "test_calls::test_deadlines",
+        "test_http::test_request_id_and_deadline",
+        "test_chain::test_grpc_chain_retries_at_one_layer_only",
+        "test_chain::test_http_chain_retries_at_one_layer_and_forwards_the_user",
+        "test_db_integration::test_no_calls_inside_a_transaction",
+        "test_security_integration::test_go_python_go_chain_over_mtls_retries_at_one_layer"
+      ]
+    },
+    "idempotency": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "database": {
+      "status": "verified",
+      "evidence": [
+        "test_db_errors::test_db_errors_vectors",
+        "test_db_lint::test_migration_lint_vectors",
+        "test_db_integration::test_migrate_twice_and_the_state_in_the_component_schema",
+        "test_db_integration::test_a_failed_file_leaves_no_trace_and_the_entry_stays_rerunnable",
+        "test_db_integration::test_a_lock_wait_reports_the_blocker",
+        "test_db_integration::test_two_instances_migrate_at_once",
+        "test_db_integration::test_refused_migrations_change_nothing",
+        "test_db_integration::test_role_schema_and_timeouts_are_per_transaction_and_never_leak",
+        "test_db_integration::test_nesting_retries_and_lock_timeouts",
+        "test_db_integration::test_foreground_budget_and_durable_check",
+        "test_db_hosting::test_members_share_one_pool_and_never_each_others_schema",
+        "test_db_interop::test_one_schema_two_sdks",
+        "test_db_interop::test_both_sdks_at_once_run_every_file_once"
+      ]
+    },
+    "document-numbers": {
+      "status": "verified",
+      "evidence": [
+        "test_db_integration::test_document_numbers"
+      ]
+    },
+    "partitions": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "money": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "business-dates": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "outbox": {
+      "status": "verified",
+      "evidence": [
+        "test_events_vectors::test_partition_vectors",
+        "test_events_integration::test_emit_only_with_the_business_commit",
+        "test_events_integration::test_two_numberers_never_share_a_position",
+        "test_events_integration::test_a_new_epoch_restarts_positions_and_records_the_fork",
+        "test_events_integration::test_the_forwarder_publishes_in_order_once_numbered",
+        "test_events_interop::test_python_to_go"
+      ],
+      "pending": [
+        {
+          "rule": "P6.12",
+          "reason": "已发布行的清理是 SDK 的单例作业 be.outbox.purge，需要后台工作项（不在 Python 子集中）：Python 组件的已发布行目前不清理；未发布积压的度量随观测的告警规则加入"
+        }
+      ]
+    },
+    "envelope": {
+      "status": "verified",
+      "evidence": [
+        "test_events_vectors::test_envelope_vectors",
+        "test_events_interop::test_go_to_python"
+      ]
+    },
+    "claim-check": {
+      "status": "verified",
+      "evidence": [
+        "test_events_integration::test_large_payloads_travel_by_claim_check",
+        "test_events_interop::test_python_to_go"
+      ]
+    },
+    "transport": {
+      "status": "verified",
+      "evidence": [
+        "test_transports::test_transport_suite",
+        "test_transports::test_the_suite_fails_an_adapter_that_loses_acks"
+      ]
+    },
+    "consumers": {
+      "status": "verified",
+      "evidence": [
+        "test_events_integration::test_redelivery_once_dead_letters_and_hops",
+        "test_events_integration::test_emitting_while_handling_counts_hops"
+      ]
+    },
+    "work": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "cron": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "user-credentials": {
+      "status": "verified",
+      "evidence": [
+        "test_identity::test_jwt_verify_vectors",
+        "test_identity::test_an_unknown_kid_refreshes_at_most_every_30_seconds",
+        "test_identity::test_stale_keys_are_used_for_an_hour_then_the_answer_is_unavailable",
+        "test_identity::test_keys_this_code_does_not_understand_are_skipped",
+        "test_identity::test_a_timed_out_request_does_not_cancel_the_unknown_kid_refresh",
+        "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view"
+      ]
+    },
+    "call-modes": {
+      "status": "verified",
+      "evidence": [
+        "test_http::test_route_validation",
+        "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view",
+        "test_chain::test_undeclared_methods_are_refused"
+      ],
+      "pending": [
+        {
+          "rule": "P8.4",
+          "reason": "user、public、system 已验证；service_proxy 见能力 call-mode-service-proxy：路由还不能声明这种模式"
+        }
+      ]
+    },
+    "service-identity": {
+      "status": "verified",
+      "evidence": [
+        "test_security::test_only_permitted_components_may_call",
+        "test_security::test_connections_without_a_valid_identity_are_refused",
+        "test_security::test_rotated_certificates_apply_to_new_connections",
+        "test_security_integration::test_go_python_go_chain_over_mtls_retries_at_one_layer"
+      ]
+    },
+    "authz-definitions": {
+      "status": "verified",
+      "evidence": [
+        "test_authz::test_declarations_are_checked_together",
+        "test_security::test_protected_routes_need_the_security_configuration_and_declarations",
+        "test_canon::test_canonical_vectors",
+        "test_authz::test_segment_digests_of_vector_canonical"
+      ]
+    },
+    "authz-view": {
+      "status": "verified",
+      "evidence": [
+        "test_authz::test_no_view_after_start",
+        "test_authz::test_validity_counts_from_the_request",
+        "test_authz::test_answers_that_do_not_renew",
+        "test_authz::test_a_stall_invalidates_every_shard",
+        "test_authz::test_a_wall_clock_jump_invalidates_every_shard",
+        "test_authz::test_a_verification_that_times_out_is_not_a_stall",
+        "test_authz::test_check_moves_the_cutoff_to_the_evidence",
+        "test_security::test_without_a_view_protected_routes_answer_a_retryable_503"
+      ]
+    },
+    "authz-evaluation": {
+      "status": "implemented",
+      "evidence": [
+        "test_authz::test_segment_eval_vectors",
+        "test_authz::test_instants_without_an_offset_never_hold",
+        "test_authz::test_amounts_are_decimal_strings_as_the_protocol_writes_them",
+        "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view"
+      ],
+      "pending": [
+        {
+          "rule": "P8.17",
+          "reason": "把段编译成 SQL 谓词与命中位图（列表）不在 Python 子集中；单对象求值已验证"
+        },
+        {
+          "rule": "P8.18",
+          "reason": "列表的筛选与授权求交随 P8.17"
+        }
+      ]
+    },
+    "audit": {
+      "status": "verified",
+      "evidence": [
+        "test_security_integration::test_audit_records_reach_the_audit_member_with_receipts",
+        "test_security::test_a_failed_denial_record_never_changes_the_denial"
+      ]
+    },
+    "lists": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "search": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "projections": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+    },
+    "call-mode-service-proxy": {
+      "status": "not_implemented"
+    },
+    "authz-strict-path": {
+      "status": "not_implemented"
+    },
+    "delegation-impersonation": {
+      "status": "not_implemented"
+    },
+    "projection-watermarks": {
+      "status": "not_implemented"
+    },
+    "projection-shadow": {
+      "status": "not_implemented"
+    },
+    "member-switching": {
+      "status": "not_implemented"
+    },
+    "high-availability": {
+      "status": "not_implemented"
+    },
+    "event-signing": {
+      "status": "not_implemented"
+    }
+  }
+}

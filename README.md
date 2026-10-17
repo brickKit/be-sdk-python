@@ -4,6 +4,24 @@
 
 首批只实现代表部署实验用到的子集（D75），其余能力在功能矩阵中如实标为未实现；子集的范围见装配项目的实验计划与第 3 步计划。
 
+## 在组件里使用
+
+不发到包索引；组件按标签从 Git 取，版本由组件自己的 `uv.lock` 锁定：
+
+```toml
+[project]
+dependencies = ["be-sdk"]
+
+[tool.uv.sources]
+be-sdk = { git = "https://github.com/brickKit/be-sdk-python", tag = "v3.0.0a1" }
+```
+
+标签用 PEP 440 的写法（`v3.0.0a1`），与分发版本一致；自描述里报告的 SDK 版本是 `be-sdk-python/3.0.0-alpha.1`。组件自己的测试可以用 `besdk.testing`：测试部署的签发方与公钥、信任根与组件证书、假的授权与审计组件、成员数据库的准备；只用于测试，组件代码不导入它。
+
+## 功能矩阵
+
+`features.json` 列出 `be-protocol` 能力清单中 SDK 负责的每项能力的状态与证明它的测试（`tests/test_features.py` 核对它与协议副本一一对应、证据是真实存在的测试）。
+
 ## 依赖
 
 Python 3.14；依赖由 `uv` 管理，`uv.lock` 锁定精确版本。技术栈按装配项目的“锁定的技术栈”：FastAPI 跑在 uvicorn 上（单进程、单事件循环）、`grpc.aio`、`asyncpg` 与手写 SQL、`nats-py`、PyJWT、`aioboto3`、标准 `logging`、每个成员一个 Prometheus 注册表、OpenTelemetry；迁移入口由 SDK 自带（A111），与 Go SDK 读写同一份迁移状态。

@@ -7,7 +7,7 @@ import time
 import httpx
 from fastapi.responses import JSONResponse, Response
 
-from besdk import launcher
+from besdk import launcher, protocol
 from besdk.component import Definition
 from besdk.config import Key, Type
 from besdk.http import Route
@@ -106,7 +106,7 @@ async def test_serve_ready_and_graceful_stop():
         r = await client.get("/api/hello")
         assert r.status_code == 200 and r.json() == {"greeting": "hi"}
         desc = (await client.get("/.well-known/be-component")).json()
-        assert desc["component_id"] == "demo/alpha" and desc["protocol"] == "3.0.0-alpha.1"
+        assert desc["component_id"] == "demo/alpha" and desc["protocol"] == protocol.capabilities()["protocol"]
         assert desc["sdk"].startswith("be-sdk-python/")
         slow = asyncio.create_task(client.get("/api/slow"))
         await asyncio.sleep(0.05)
