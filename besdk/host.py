@@ -46,8 +46,10 @@ def security_keys() -> list[Key]:
 
 
 def keys(d: Definition) -> list[Key]:
-    """A definition's keys plus the SDK's."""
-    return [*d.keys, *sdk_keys(), *security_keys()]
+    """A definition's keys plus the SDK's (and the database keys when the component owns a database)."""
+    from besdk import db
+
+    return [*d.keys, *sdk_keys(), *security_keys(), *(db.serve_keys() if d.migrations is not None else [])]
 
 
 class ConfigError(Exception):
@@ -78,6 +80,7 @@ class Shared:
     read: Callable[[str], bytes]
     out: IO[str]
     guard: Callable[[Member], Guard | None] = lambda m: None
+    db: object = None  # the member's besdk.db.pool.DB, None without migrations
 
 
 @dataclass
@@ -132,7 +135,7 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
     registry = obs.new_registry()
     tracers = obs.new_tracer_provider(m, values.string("OTEL_URL"))
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
-                 addresses=shared.addresses)
+                 addresses=shared.addresses, db=shared.db)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):

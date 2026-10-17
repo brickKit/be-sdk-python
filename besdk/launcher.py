@@ -11,8 +11,12 @@ import time
 from dataclasses import dataclass, field
 from typing import IO
 
+import asyncpg
+
 import besdk
-from besdk import clock, config, host, protocol
+from besdk import clock, config, db, host, obs, protocol
+from besdk.db import migrate
+from besdk.db.pool import DB, CredentialsError, Pool, StartCheckError, StoppedWaiting
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, Problem, Type
 
@@ -86,8 +90,23 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
         host.report_config(o.stderr, d.id, problems)
         return EXIT_CONFIGURATION
     assert values is not None and plat is not None
+    pool = database = None
+    if d.migrations is not None:
+        # alone, the component connects with its own runtime login role (protocol 14, "connection pools")
+        s = db.settings_from(values)
+        pool = await Pool.open(s.target, s.user, s.password, d.id, s.foreground + s.background, s.prepared)
+        database = DB(d.id, pool, s)
     try:
-        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout))
+        return await _serve_member(d, o, stop, values, plat, started, pool, database)
+    finally:
+        if pool is not None:
+            await pool.close()
+
+
+async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: config.Values, plat: config.Values,
+                        started: float, pool: Pool | None, database: DB | None) -> int:
+    try:
+        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database))
     except host.ConfigError as e:
         host.report_config(o.stderr, d.id, e.problems)
         return EXIT_CONFIGURATION
@@ -101,6 +120,9 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
     except clock.ClockError as e:
         log.error("start check failed: no clock that counts suspension (CLOCK_BOOTTIME)", error=str(e))
         return EXIT_STARTUP_CHECK
+    if pool is not None:
+        if (code := await ready_exit(pool, log, stop)) is not None:
+            return code
     try:
         server = host.HTTPServer(m.app, host.listen(plat.int("PORT"), o.host))
         await server.start()
@@ -125,10 +147,41 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
                                values.duration("STOP_TIMEOUT").total_seconds())
 
 
+async def ready_exit(pool: Pool, log, stop: asyncio.Event) -> int | None:
+    """Wait for the database (P5.10); None when it is usable, else the exit code."""
+    try:
+        await pool.ready(log, stop)
+        return None
+    except StoppedWaiting:
+        return EXIT_OK  # stopped while waiting for the database
+    except CredentialsError as e:
+        log.error("the database refused the credentials", error=str(e))
+        return EXIT_CONFIGURATION
+    except StartCheckError as e:
+        log.error("a start check of the database failed", error=str(e))
+        return EXIT_STARTUP_CHECK
+
+
 async def _migrate(d: Definition, o: Options) -> int:
-    """The migrate entry (P1.1, P1.2); it arrives with the database (step 3, T3.4)."""
+    """The migrate entry (P1.1, P1.2): the SDK's tables, then the component's, as the owner role directly on the
+    database. Only the database keys are read, so the entry does not depend on the rest of the configuration."""
     if d.migrations is None:
         o.stderr.write(json.dumps({"level": "ERROR", "component": d.id, "msg": "migrate: this component has no database"}) + "\n")
         return EXIT_USAGE
-    o.stderr.write(json.dumps({"level": "ERROR", "component": d.id, "msg": "migrate: not available yet"}) + "\n")
-    return EXIT_FAILURE
+    try:
+        values = config.parse([*db.migrate_keys(), host.sdk_keys()[0]], o.env)
+    except ConfigError as e:
+        host.report_config(o.stderr, d.id, e.problems)
+        return EXIT_CONFIGURATION
+    log = obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout)
+    cfg, problems = migrate.config_from(d.id, values, log)
+    if problems:
+        host.report_config(o.stderr, d.id, problems)
+        return EXIT_CONFIGURATION
+    try:
+        await migrate.migrate(cfg, migrate.sdk_migrations(), migrate.MigrationSet(d.id, "schema_migrations", d.migrations))
+    except (migrate.MigrateError, OSError, asyncpg.PostgresError) as e:
+        log.error("migrate failed", error=str(e))  # the last line names the failed migration (P1.2)
+        return EXIT_FAILURE
+    log.info("migrate done")
+    return EXIT_OK

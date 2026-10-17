@@ -53,9 +53,12 @@ _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 
 
 # Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host serves, the HTTP
-# layer builds each member's application, the configuration source reads the environment for the launcher.
+# layer builds each member's application, the configuration source reads the environment for the launcher, the
+# database package opens the pools and the migrate entry's connection.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
+    "besdk/db/pool.py": {"asyncpg.create_pool"},
+    "besdk/db/migrate.py": {"asyncpg.connect"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},

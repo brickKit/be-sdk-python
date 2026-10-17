@@ -20,10 +20,12 @@ from prometheus_client import CollectorRegistry, generate_latest
 from prometheus_client.metrics_core import Metric
 
 import besdk
-from besdk import clock, config, host, obs, protocol
+from besdk import clock, config, db, host, obs, protocol
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, MapSource, Problem, Type
+from besdk.db.pool import DB, Pool
 from besdk.http import Deps, Platform, Routes, build_app
+from besdk.launcher import ready_exit
 
 
 @dataclass(frozen=True)
@@ -173,7 +175,21 @@ def check(raw: str, defs: list[Definition], lookup: Callable[[Definition], tuple
             out.append(Planned(d, s, config.parse(host.keys(d), MapSource(s.config))))
         except ConfigError as e:
             refusals += [_refusal(mid, p.key, p.kind, p.expected) for p in e.problems]
-    return out, refusals + process_keys_agree(out), warnings
+    return out, refusals + process_keys_agree(out) + targets_agree(out), warnings
+
+
+def targets_agree(members: list[Planned]) -> list[Problem]:
+    """Members on the same database target share one pool, so they agree on how statements run there (P2.11, P5.3)."""
+    first: dict[db.Target, Planned] = {}
+    out = []
+    for m in members:
+        if m.definition.migrations is None:
+            continue
+        s = db.settings_from(m.values)
+        if (f := first.setdefault(s.target, m)) is not m and db.settings_from(f.values).prepared != s.prepared:
+            out.append(_refusal(m.definition.id, "PG_POOLER_PREPARED", "invalid",
+                                f"the same value as {f.definition.id} (members on target {s.target} share one pool)"))
+    return out
 
 
 def process_keys_agree(members: list[Planned]) -> list[Problem]:
@@ -214,6 +230,10 @@ async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.
         problems.append(Problem("COMPONENT_VERSION", "invalid", self.version, sv.string("COMPONENT_VERSION")))
     plans, refusals, warnings = check(sv.string("BRICKKIT_SERVED_MEMBERS_CONFIG"), defs, o.installed_of,
                                       sv.bool("SHELL_ALLOW_REPLACE"))
+    if any(p.definition.migrations is not None for p in plans) and (
+            not sv.string("PG_SHELL_USER") or sv.secret("PG_SHELL_PASSWORD") is None):
+        refusals.append(_refusal(self.id, "PG_SHELL_USER", "missing",
+                                 "the shell's login role and PG_SHELL_PASSWORD: a hosted member owns a database"))
     if problems or refusals:
         host.report_config(o.stderr, self.id, problems + refusals)
         return host.EXIT_CONFIGURATION
@@ -230,6 +250,29 @@ async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.
 
 async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
                  stop: asyncio.Event, started: float) -> int:
+    pools = await _open_pools(self, sv, plans)
+    try:
+        return await _serve_members(self, sv, plans, log, o, stop, started, pools)
+    finally:
+        await asyncio.gather(*(p.close() for p in pools.values()))
+
+
+async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -> dict[db.Target, Pool]:
+    """One pool per database target, with the shell's login role; its size is the sum of the members' budgets on that
+    target (P5.1, P5.2). The login role holds the members' runtime roles WITH INHERIT FALSE and switches per
+    transaction."""
+    budgets: dict[db.Target, tuple[int, bool]] = {}
+    for p in plans:
+        if p.definition.migrations is not None:
+            s = db.settings_from(p.values)
+            size, _ = budgets.get(s.target, (0, s.prepared))
+            budgets[s.target] = (size + s.foreground + s.background, s.prepared)
+    return {t: await Pool.open(t, sv.string("PG_SHELL_USER"), sv.secret("PG_SHELL_PASSWORD"), self.id, size, prepared)
+            for t, (size, prepared) in budgets.items()}
+
+
+async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
+                         stop: asyncio.Event, started: float, pools: dict[db.Target, Pool]) -> int:
     members: list[host.Member] = []
     servers: list[host.HTTPServer] = []
 
@@ -240,7 +283,12 @@ async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: o
 
     for p in plans:
         try:
-            m = await host.build(p.definition, p.values, host.Shared(MapSource(p.served.config), o.env.read_file, o.stdout))
+            database = None
+            if p.definition.migrations is not None:
+                st = db.settings_from(p.values)
+                database = DB(p.definition.id, pools[st.target], st)
+            m = await host.build(p.definition, p.values, host.Shared(MapSource(p.served.config), o.env.read_file, o.stdout,
+                                                                     db=database))
         except host.ConfigError as e:
             host.report_config(o.stderr, p.definition.id, e.problems)
             await asyncio.gather(*(s.shutdown(0) for s in servers))
@@ -260,6 +308,10 @@ async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: o
     except OSError as e:
         return await fail(self.id, "cannot listen on PORT", e)
     servers.append(own)
+    for pool in pools.values():
+        if (code := await ready_exit(pool, log, stop)) is not None:
+            await asyncio.gather(*(s.shutdown(0) for s in servers))
+            return code
     for m in members:  # in the order BrickKit lists them
         try:
             await m.start(o.env.read_file)

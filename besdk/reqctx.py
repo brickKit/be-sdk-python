@@ -11,6 +11,7 @@ from typing import Iterator
 _request_id: contextvars.ContextVar[str] = contextvars.ContextVar("be_request_id", default="")
 _user_credential: contextvars.ContextVar[str] = contextvars.ContextVar("be_user_credential", default="")
 _deadline: contextvars.ContextVar[float | None] = contextvars.ContextVar("be_deadline", default=None)
+_cutoff: contextvars.ContextVar[float | None] = contextvars.ContextVar("be_cutoff", default=None)
 
 
 def request_id() -> str:
@@ -54,3 +55,20 @@ def deadline_scope(deadline: float) -> Iterator[None]:
         yield
     finally:
         _deadline.reset(token)
+
+
+def cutoff() -> float | None:
+    """The request's authorization cutoff on the suspend-aware clock (besdk.clock.since_boot()), or None: write
+    transactions check it once more before COMMIT (P8.12)."""
+    return _cutoff.get()
+
+
+@contextlib.contextmanager
+def cutoff_scope(at: float) -> Iterator[None]:
+    """The cutoff for the block (the guard binds it); it only ever moves earlier."""
+    current = _cutoff.get()
+    token = _cutoff.set(at if current is None else min(current, at))
+    try:
+        yield
+    finally:
+        _cutoff.reset(token)
