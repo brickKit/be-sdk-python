@@ -20,7 +20,7 @@ from prometheus_client.exposition import CONTENT_TYPE_LATEST
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from besdk import errs, reqctx
-from besdk.obs import PROPAGATOR, Logger
+from besdk.obs import DURATION_BUCKETS, PROPAGATOR, Logger
 
 HEADER_REQUEST_ID = "X-Request-Id"
 HEADER_TIMEOUT_MS = "Be-Timeout-Ms"
@@ -186,7 +186,7 @@ def build_app(d: Deps, routes: Routes) -> FastAPI:
             if not r.public:
                 raise ValueError(f"route {r.method} {r.path}: no guard to admit its callers")
     duration = Histogram("be_http_server_duration_seconds", "User-surface request duration by route and status.",
-                         ["method", "route", "status"], registry=d.registry)
+                         ["method", "route", "status"], registry=d.registry, buckets=DURATION_BUCKETS)
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
     _platform(app, d)
     for r in routes.list():

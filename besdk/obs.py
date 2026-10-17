@@ -33,6 +33,10 @@ class Member:
     version: str
 
 
+# The upper bounds of every duration histogram, the same in every language (P10.6).
+DURATION_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
+
+
 class _JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         line = {"time": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(record.created))

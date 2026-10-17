@@ -19,7 +19,7 @@ from prometheus_client import CollectorRegistry, Histogram
 
 from besdk import errs, errwire, reqctx
 from besdk.calls.client import METADATA_REQUEST_ID
-from besdk.obs import PROPAGATOR, Logger
+from besdk.obs import DURATION_BUCKETS, PROPAGATOR, Logger
 
 DEFAULT_DEADLINE, ORCHESTRATION_DEADLINE = 10.0, 15.0
 _REQUEST_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
@@ -124,7 +124,7 @@ def build_server(d: Deps, s: Services) -> grpc.aio.Server:
         raise ValueError("system surface: no service identity (SERVICE_TLS_CERT_FILE, SERVICE_TLS_KEY_FILE, "
                          "SERVICE_TLS_CA_FILE)")
     duration = Histogram("be_grpc_server_duration_seconds", "System-surface call duration by method and code.",
-                         ["method", "code"], registry=d.registry)
+                         ["method", "code"], registry=d.registry, buckets=DURATION_BUCKETS)
     handlers = {}
     for full, h in s._handlers.items():
         handlers[full] = grpc.unary_unary_rpc_method_handler(_wrap(d, full, s._declared[full], h.unary_unary, duration),

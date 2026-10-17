@@ -24,7 +24,6 @@ METADATA_REQUEST_ID, METADATA_IDEMPOTENCY_KEY = "x-request-id", "idempotency-key
 MAX_RESPONSE = 16 << 20
 # reserved metadata the client interceptor reads and strips: per-call flags for generated stubs
 _IDEMPOTENT = "x-be-sdk-idempotent"
-_STATES = {policy.CLOSED: 0, policy.HALF_OPEN: 1, policy.OPEN: 2}
 
 
 def options(idempotent: bool = False, idempotency_key: str = "") -> list[tuple[str, str]]:
@@ -41,7 +40,7 @@ class _Metrics:
                                 ["dependency", "surface", "class"], registry=reg)
         self.rejected = Counter("be_outbound_rejected_total", "Outbound calls not sent, by reason.",
                                 ["dependency", "surface", "reason"], registry=reg)
-        self.breaker = Gauge("be_outbound_breaker_state", "Circuit breaker state: 0 closed, 1 half open, 2 open.",
+        self.breaker = Gauge("be_outbound_breaker_open", "1 while the circuit breaker of a dependency is not closed.",
                              ["dependency", "surface"], registry=reg)
 
 
@@ -110,7 +109,7 @@ class Dependency:
             await self.sleep(backoff)
 
     def _state(self) -> None:
-        self._m.breaker.labels(self.id, self.surface).set(_STATES[self.breaker.state])
+        self._m.breaker.labels(self.id, self.surface).set(0 if self.breaker.state == policy.CLOSED else 1)
 
 
 class HTTP:
