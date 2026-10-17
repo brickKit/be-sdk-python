@@ -13,7 +13,7 @@ dependencies = [
     "googleapis-common-protos",
     "asyncpg",
     "nats-py",
-    "pyjwt[crypto]",
+    "pyjwt[crypto]>=2.10.1",  # 2.10.0 matched the issuer as a substring (CVE-2024-53861)
     "aioboto3",
     "prometheus-client",
     "opentelemetry-api",

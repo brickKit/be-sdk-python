@@ -154,7 +154,7 @@ async def test_serves_the_system_surface_and_stops_it_gracefully(world):
                 {"Say": Method("demo.system.say", ["demo/client"])})
 
     port, gport, stop = free_port(), free_port(), asyncio.Event()
-    from tests.sectest import defs
+    from besdk.testing import defs
 
     d = Definition("demo/system", "3.0.0", lambda rt: System(), grpc_port=gport,
                    authz=defs("demo/system", "demo.thing", "demo.thing.read", "demo.system.say"))

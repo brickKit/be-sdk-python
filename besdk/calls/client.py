@@ -228,9 +228,21 @@ class _TLSChannel:
 
     def unary_unary(self, method: str, request_serializer: Any = None, response_deserializer: Any = None,
                     **kw: Any) -> _Rebound:
-        return _Rebound(self, method, request_serializer, response_deserializer, kw)
+        return _Rebound(self, "unary_unary", method, request_serializer, response_deserializer, kw)
 
-    def __getattr__(self, name: str) -> Any:  # channel_ready, get_state, the other call shapes
+    def unary_stream(self, method: str, request_serializer: Any = None, response_deserializer: Any = None,
+                     **kw: Any) -> _Rebound:
+        return _Rebound(self, "unary_stream", method, request_serializer, response_deserializer, kw)
+
+    def stream_unary(self, method: str, request_serializer: Any = None, response_deserializer: Any = None,
+                     **kw: Any) -> _Rebound:
+        return _Rebound(self, "stream_unary", method, request_serializer, response_deserializer, kw)
+
+    def stream_stream(self, method: str, request_serializer: Any = None, response_deserializer: Any = None,
+                      **kw: Any) -> _Rebound:
+        return _Rebound(self, "stream_stream", method, request_serializer, response_deserializer, kw)
+
+    def __getattr__(self, name: str) -> Any:  # channel_ready, get_state
         return getattr(self.current(), name)
 
     async def close(self) -> None:
@@ -240,14 +252,16 @@ class _TLSChannel:
 
 
 class _Rebound:
-    def __init__(self, ch: _TLSChannel, method: str, ser: Any, de: Any, kw: dict):
-        self._ch, self._args, self._generation, self._call = ch, (method, ser, de, kw), -2, None
+    """A multicallable of one call shape, rebound to the current channel per certificate generation."""
+
+    def __init__(self, ch: _TLSChannel, shape: str, method: str, ser: Any, de: Any, kw: dict):
+        self._ch, self._shape, self._args, self._generation, self._call = ch, shape, (method, ser, de, kw), -2, None
 
     def __call__(self, request: Any, **kw: Any) -> Any:
         channel = self._ch.current()
         if self._generation != self._ch.generation:
             method, ser, de, extra = self._args
-            self._call = channel.unary_unary(method, request_serializer=ser, response_deserializer=de, **extra)
+            self._call = getattr(channel, self._shape)(method, request_serializer=ser, response_deserializer=de, **extra)
             self._generation = self._ch.generation
         return self._call(request, **kw)  # type: ignore[misc]
 

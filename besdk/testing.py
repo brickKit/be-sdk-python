@@ -1,5 +1,6 @@
-"""A test deployment's security, as the Go SDK's internal/sectest: a token issuer with its published keys, a trust
-root issuing component certificates, and fake authorization and audit members answering over mTLS. Tests only."""
+"""A test deployment's security for components' own tests and the acceptance suite: a token issuer with its published
+keys, a trust root issuing component certificates (with the SPIFFE ID and its derived DNS name, P8.5), and fake
+authorization and audit members answering over mTLS. For tests only: never import it from component code."""
 from __future__ import annotations
 
 import datetime as dt
@@ -9,7 +10,9 @@ import pathlib
 import threading
 import time
 import uuid
+from urllib.parse import urlsplit
 
+import asyncpg
 import grpc
 import jwt
 from cryptography import x509
@@ -18,7 +21,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from google.protobuf import wrappers_pb2
 
-from besdk.authz import SECRET, Definitions, Operation, Resource, Field
+from besdk.authz import SECRET, Definitions, Field, Operation, Resource
 from besdk.identity import ServiceTLS, dns_name, spiffe
 
 ALICE = "0190f3a1-0000-7000-8000-0000000000a1"
@@ -226,3 +229,43 @@ def defs(component: str, resource: str, *ops: str, risk: str = "low") -> Definit
 
 def new_id() -> str:
     return str(uuid.uuid7())
+
+
+async def provision(admin_dsn: str, database: str, schema: str, owner: str, runtime: str, shell_role: str = "") -> dict:
+    """A member's database as the deployment's provisioning does it (protocol 14): the database, an owner role that
+    owns the schema (migrations) and a runtime role with the business privileges, functions not executable by PUBLIC;
+    with shell_role, the shell's login role holds the runtime role WITH INHERIT FALSE. The schema starts empty.
+    Returns the member's PG_* configuration (passwords are derived from the role names: tests only)."""
+    c = await asyncpg.connect(admin_dsn)
+    try:
+        if not await c.fetchval("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)", database):
+            try:
+                await c.execute(f'CREATE DATABASE "{database}"')
+            except asyncpg.DuplicateDatabaseError:
+                pass
+    finally:
+        await c.close()
+    c = await asyncpg.connect(urlsplit(admin_dsn)._replace(path="/" + database).geturl())
+    try:
+        for r in (owner, runtime):
+            if not await c.fetchval("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1)", r):
+                try:
+                    await c.execute(f"CREATE ROLE {r} LOGIN")
+                except asyncpg.DuplicateObjectError:
+                    pass
+            await c.execute(f"ALTER ROLE {r} LOGIN PASSWORD '{r}-pw'")
+        for sql in [f"DROP SCHEMA IF EXISTS {schema} CASCADE", f'GRANT CONNECT ON DATABASE "{database}" TO {owner}, {runtime}',
+                    f"CREATE SCHEMA {schema} AUTHORIZATION {owner}", f"GRANT USAGE ON SCHEMA {schema} TO {runtime}",
+                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA {schema} GRANT SELECT, INSERT, UPDATE, DELETE "
+                    f"ON TABLES TO {runtime}",
+                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC",
+                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA {schema} GRANT EXECUTE ON FUNCTIONS TO {runtime}"]:
+            await c.execute(sql)
+        if shell_role:
+            await c.execute(f"GRANT {runtime} TO {shell_role} WITH INHERIT FALSE, SET TRUE")
+    finally:
+        await c.close()
+    u = urlsplit(admin_dsn)
+    return {"PG_HOST": u.hostname or "localhost", "PG_PORT": str(u.port or 5432), "PG_DATABASE": database,
+            "PG_USER": runtime, "PG_PASSWORD": runtime + "-pw", "PG_SCHEMA": schema, "PG_OWNER_USER": owner,
+            "PG_OWNER_PASSWORD": owner + "-pw"}

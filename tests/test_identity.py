@@ -91,3 +91,67 @@ async def test_keys_never_fetched_are_unavailable_not_a_refusal():
     with pytest.raises(errs.Error) as e:
         await fixture_verifier(keys, f).verify(cases[0]["token"])
     assert errs.is_(e.value, "be", "DEPENDENCY_UNAVAILABLE")
+
+
+def own_issuer():
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ed25519
+
+    key = ed25519.Ed25519PrivateKey.generate()
+    x = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    jwk = {"kty": "OKP", "crv": "Ed25519", "kid": "k1", "alg": "EdDSA", "x": base64.urlsafe_b64encode(x).rstrip(b"=").decode()}
+    return key, jwk
+
+
+def sign(key, claims, kid="k1"):
+    import jwt
+
+    return jwt.encode(claims, key, algorithm="EdDSA", headers={"typ": "at+jwt", "kid": kid})
+
+
+CLAIMS = {"iss": "https://iam/", "aud": "be:deployment:d", "sub": "0190f3a1-0000-7000-8000-0000000000a1"}
+
+
+async def test_keys_this_code_does_not_understand_are_skipped():  # P8.2, RFC 7517 section 5
+    key, jwk = own_issuer()
+    jwks = {"keys": [{"kty": "XYZ", "kid": "future-1"}, {"kty": "RSA", "kid": "broken"}, jwk]}
+    keys = KeySet("http://iam/jwks", jwks_client(jwks, []))
+    await keys.refresh()
+    v = Verifier("https://iam/", "be:deployment:d", keys, now=lambda: 1000)
+    assert (await v.verify(sign(key, {**CLAIMS, "exp": 2000}))).subject == CLAIMS["sub"]
+
+
+async def test_a_timed_out_request_does_not_cancel_the_unknown_kid_refresh():  # P8.2
+    import asyncio
+
+    key, jwk = own_issuer()
+    served, hits = [{"keys": []}], []
+
+    async def handler(request):
+        hits.append(1)
+        await asyncio.sleep(0.3)
+        return httpx.Response(200, json=served[0])
+
+    keys = KeySet("http://iam/jwks", httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    await keys.refresh()
+    served[0] = {"keys": [jwk]}  # the issuer rotated to a new key
+    v = Verifier("https://iam/", "be:deployment:d", keys, now=lambda: 1000)
+    token = sign(key, {**CLAIMS, "exp": 2000})
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.05):
+            await v.verify(token)
+    await asyncio.sleep(0.4)
+    assert (await v.verify(token)).subject == CLAIMS["sub"], "the refresh finished although its request gave up"
+    assert len(hits) == 2
+
+
+async def test_a_time_claim_that_is_not_a_finite_number_is_refused():
+    key, jwk = own_issuer()
+    keys = KeySet("http://iam/jwks", jwks_client({"keys": [jwk]}, []))
+    await keys.refresh()
+    v = Verifier("https://iam/", "be:deployment:d", keys, now=lambda: 1000)
+    with pytest.raises(TokenError) as e:
+        await v.verify(sign(key, {**CLAIMS, "exp": float("nan")}))
+    assert e.value.problem == "format"

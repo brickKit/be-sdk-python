@@ -47,8 +47,12 @@ class Record:
 
 
 def _canon_map(m: dict) -> dict:
-    """Only the encoder's types: numbers must be strings, as in the Go SDK (whose JSON round trip makes them floats)."""
-    return json.loads(json.dumps(m), parse_int=float)
+    """Only the encoder's types: JSON strings, booleans, objects and arrays. Numbers are refused (write them as
+    strings), as in the Go SDK, whose JSON round trip makes them floats; other Python types are a module error."""
+    try:
+        return json.loads(json.dumps(m), parse_int=float)
+    except TypeError as e:
+        raise TypeError(f"audit record values must be JSON strings, booleans, objects or arrays: {e}") from e
 
 
 def _body(r: Record, rid: str, at: datetime) -> dict:
@@ -137,9 +141,10 @@ class Auditor:
         r.category = SENSITIVE_READ
         await self.db.tx(lambda tx: self._insert(tx, r))
 
-    async def denial(self, r: Record) -> None:
+    async def denial(self, r: Record) -> Exception | None:
         """Records a security denial within the per-minute budget; past it the window only counts, and flush later
-        appends one summary row with the count (P8.23). Its failure never changes the denial."""
+        appends one summary row with the count (P8.23). Its failure never changes the denial: it is returned (for the
+        module to log), never raised."""
         r.category, r.outcome = SECURITY_DENIAL, DENIED
         now = datetime.now(timezone.utc)
         minute = now.replace(second=0, microsecond=0)
@@ -156,7 +161,11 @@ class Auditor:
                              "last_at = $4 WHERE principal = $1 AND reason = $2 AND minute = $3", r.actor, r.reason,
                              minute, now)
 
-        await self.db.background_tx(fn)
+        try:
+            await self.db.background_tx(fn)
+            return None
+        except Exception as e:  # noqa: BLE001 - the denial stands whatever happened to its record
+            return e
 
     async def flush(self) -> int:
         """Appends one summary row for every finished window whose denials went past the budget."""

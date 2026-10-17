@@ -21,7 +21,7 @@ from besdk.config import EnvSource
 from besdk.http import Route
 from besdk.system import Method
 from tests import pgtest
-from tests.sectest import ALICE, defs
+from besdk.testing import ALICE, defs
 from tests.test_events_interop import free_port, ready, start_python
 
 pytestmark = pytest.mark.integration

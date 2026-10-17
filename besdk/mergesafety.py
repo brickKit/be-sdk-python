@@ -54,10 +54,12 @@ RULES: dict[tuple[str, str], str] = {
 _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 
 
-# Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host serves, the HTTP
-# layer builds each member's application, the configuration source reads the environment for the launcher, the
-# database package opens the pools and the migrate entry's connection, the call layer owns each member's clients, the
-# system surface its server, the identity keys their fetching client, the transport adapters the process's bus connection and the claim check its storage.
+# Where the SDK itself owns what modules may not do: the launcher and the shell run the loop and exit, the host
+# serves, the HTTP layer builds each member's application, the configuration source reads the environment for the
+# launcher, the database package opens the pools and the migrate entry's connection, the call layer owns each member's
+# clients, the system surface its server, the identity keys their fetching client, the transport adapters the
+# process's bus connection, the claim check its storage, and the test deployment (besdk.testing, never imported by
+# component code) its fake members and the provisioning of test databases.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
     "besdk/db/pool.py": {"asyncpg.create_pool"},
@@ -65,6 +67,7 @@ SDK_ALLOW: dict[str, set[str]] = {
     "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel"},
     "besdk/system.py": {"grpc.aio.server"},
     "besdk/identity/token.py": {"httpx.AsyncClient"},
+    "besdk/testing.py": {"grpc.aio.server", "asyncpg.connect"},
     "besdk/events/jetstream.py": {"nats.connect"},
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
     "besdk/events/objectstore.py": {"aioboto3.Session", "httpx.AsyncClient"},

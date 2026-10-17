@@ -24,7 +24,7 @@ from besdk.http import Route
 from besdk.identity import ServiceTLS
 from besdk.obs import Member as ObsMember, new_logger, new_registry
 from besdk.system import Deps, Method, Services, build_server, serve_port
-from tests.sectest import ALICE, BOB, defs, pem
+from besdk.testing import ALICE, BOB, defs, pem
 
 SAY = "/demo.Echo/Say"
 READ = lambda p: pathlib.Path(p).read_bytes()  # noqa: E731
@@ -236,3 +236,14 @@ async def test_protected_routes_need_the_security_configuration_and_declarations
     undeclared = defs("demo/orders", "demo.order", "demo.order.read")
     _, _, task, out = await start(Definition("demo/orders", "3.0.0", Orders, authz=undeclared), world.env("demo/orders"))
     assert await task == launcher.EXIT_FAILURE and "not declared: demo.order.approve" in out.getvalue()
+
+
+async def test_a_failed_denial_record_never_changes_the_denial():  # P8.19
+    from besdk.audit import Auditor, Record
+
+    class Down:
+        async def background_tx(self, fn, options=None):
+            raise OSError("the database is down")
+
+    err = await Auditor(Down()).denial(Record("", "demo.order.approve", "", "PERMISSION_DENIED", actor=ALICE))
+    assert isinstance(err, OSError), "returned for logging, never raised"

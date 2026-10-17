@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+import re
+from decimal import Decimal
 from enum import Enum
 
 from besdk import canon, errs
@@ -37,6 +38,7 @@ class Fact:
 
 
 NULL, UNOBTAINED = Fact("null"), Fact("unobtained")
+_DECIMAL = re.compile(r"-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?")
 
 
 @dataclass
@@ -65,7 +67,11 @@ class Atom:
 
 
 def _instant(s: str) -> datetime:
-    return datetime.fromisoformat(s)
+    """An RFC 3339 instant: a time without an offset (or a bare date) is not one (Go's time.Parse refuses it too)."""
+    t = datetime.fromisoformat(s)
+    if t.tzinfo is None or "T" not in s.upper():
+        raise ValueError(f"not an RFC 3339 instant: {s!r}")
+    return t
 
 
 @dataclass
@@ -197,14 +203,11 @@ def _atom(a: Atom, f: Fact | None, principal: str) -> Tri:
 def _interval(a: Atom, f: Fact) -> Tri:
     if f.currency != a.currency:
         return Tri.FALSE
-    try:
-        amount = Decimal(f.value)
-        lo = Decimal(a.lo) if a.lo is not None else None
-        hi = Decimal(a.hi) if a.hi is not None else None
-    except InvalidOperation:
-        return Tri.UNKNOWN
-    if not amount.is_finite() or (lo is not None and not lo.is_finite()) or (hi is not None and not hi.is_finite()):
-        return Tri.UNKNOWN
+    if any(v is not None and not _DECIMAL.fullmatch(v) for v in (f.value, a.lo, a.hi)):
+        return Tri.UNKNOWN  # not a decimal string as the protocol writes them (no spaces, underscores, NaN)
+    amount = Decimal(f.value)
+    lo = Decimal(a.lo) if a.lo is not None else None
+    hi = Decimal(a.hi) if a.hi is not None else None
     if lo is not None and (amount < lo or (amount == lo and not a.lo_closed)):
         return Tri.FALSE
     if hi is not None and (amount > hi or (amount == hi and not a.hi_closed)):

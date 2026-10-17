@@ -3,6 +3,7 @@ member, validity counted from when the request left on the suspend-aware clock, 
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from besdk.obs import Logger
 W_READ, W_HIGH, DRIFT, T_STALL = 30.0, 5.0, 0.001, 2.0
 INTERVAL = W_HIGH / 2
 VERIFY_METHOD = "/be.authz.v3.ViewService/Verify"
+_INTEGER = re.compile(r"-?[0-9]+")  # as Go's strconv.ParseInt: no signs but -, no underscores, no spaces
 
 
 @dataclass
@@ -103,11 +105,18 @@ class Holder:
             except Exception as e:  # noqa: BLE001 - the view stays valid only until it expires
                 self.log.warn("authorization view verification failed; the view stays valid only until it expires",
                               error=str(e))
+            self.rest()
             await sleep(INTERVAL)
 
+    def rest(self) -> None:
+        """Marks the start of the wait between verifications: the scheduling gap tick() checks is the wait alone, so a
+        slow verification (its own deadline is INTERVAL) is never taken for a stall."""
+        now = self.boot()
+        self._last_tick, self._last_skew = now, self.wall() - now
+
     def tick(self) -> None:
-        """A scheduling gap beyond INTERVAL + T_STALL, or a jump between the boot clock and the wall clock beyond
-        T_STALL, invalidates every shard (P8.10)."""
+        """A scheduling gap beyond INTERVAL + T_STALL since rest(), or a jump between the boot clock and the wall
+        clock beyond T_STALL, invalidates every shard (P8.10)."""
         now, wall = self.boot(), self.wall()
         skew = wall - now
         if self._last_tick is not None:
@@ -129,10 +138,10 @@ class Holder:
             ans = await self.source.verify(req)
             if ans.get("nonce") != nonce:
                 raise ValueError("an answer for another request (nonce mismatch) was discarded")
-            try:
-                gen = int((ans.get("recovery_generation") or {}).get("value", ""))
-            except ValueError:
-                raise ValueError(f"recovery generation {ans.get('recovery_generation')!r}") from None
+            raw = (ans.get("recovery_generation") or {}).get("value", "")
+            if not isinstance(raw, str) or not _INTEGER.fullmatch(raw):
+                raise ValueError(f"recovery generation {raw!r}")
+            gen = int(raw)
             if gen < self.recovery:
                 self.shards, self.stopped = {}, True
                 self.log.error("the authorization member answered with an older recovery generation: a rollback; "

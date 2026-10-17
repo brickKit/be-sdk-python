@@ -7,6 +7,7 @@ import base64
 import contextlib
 import contextvars
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -69,6 +70,7 @@ class KeySet:
         self._keys: dict[str, jwt.PyJWK] = {}
         self._fetched_at: float | None = None
         self.last_unknown: float | None = None
+        self._unknown: asyncio.Task | None = None
         self._lock = asyncio.Lock()
 
     @staticmethod
@@ -109,7 +111,7 @@ class KeySet:
                 try:
                     k = jwt.PyJWK(entry)
                 except (jwt.PyJWKError, jwt.InvalidKeyError, TypeError, ValueError):
-                    continue  # a key this code cannot use is skipped, as the Go SDK's key set does
+                    continue  # a key this code does not understand is skipped, the rest are used (P8.2, RFC 7517 §5)
                 if k.key_id:
                     keys[k.key_id] = k
             self._keys, self._fetched_at = keys, self._now()
@@ -123,8 +125,13 @@ class KeySet:
         now = self._now()
         if kid not in self._keys and (self.last_unknown is None or now - self.last_unknown >= UNKNOWN_KID_REFRESH):
             self.last_unknown = now
+            # the refresh is the key set's, not the request's: a request that times out does not cancel it
+            self._unknown = asyncio.get_running_loop().create_task(self.refresh())
+        if self._unknown is not None and not self._unknown.done():
             try:
-                await self.refresh()
+                await asyncio.shield(self._unknown)
+            except asyncio.CancelledError:
+                raise
             except Exception:  # noqa: BLE001 - judged below by the keys' age
                 pass
         if self._fetched_at is None or self._now() - self._fetched_at > KEY_MAX_AGE:
@@ -216,7 +223,7 @@ class Verifier:
             v = claims.get(name)
             if v is None:
                 return None
-            if isinstance(v, bool) or not isinstance(v, (int, float)):
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
                 raise TokenError("format")
             return float(v)
 

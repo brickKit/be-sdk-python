@@ -248,7 +248,7 @@ requires-dist = [
     { name = "packaging" },
     { name = "prometheus-client" },
     { name = "protobuf" },
-    { name = "pyjwt", extras = ["crypto"] },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10.1" },
     { name = "uvicorn" },
 ]
 

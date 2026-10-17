@@ -216,3 +216,45 @@ async def test_check_moves_the_cutoff_to_the_evidence():  # P8.12
         s.check("demo.order.read", {})
         assert reqctx.cutoff() == clock[0] + W_READ * (1 - DRIFT)
     assert reqctx.cutoff() is None
+
+
+async def test_a_verification_that_times_out_is_not_a_stall():  # P8.10: only the wait between verifications is timed
+    import asyncio
+
+    h, src, clock = holder()
+    answer, calls = src.verify, []
+
+    async def slow_then_failing(req):
+        calls.append(1)
+        if len(calls) == 1:
+            return await answer(req)
+        clock[0] += INTERVAL - 0.1  # the authorization member is slow: the call runs into its deadline
+        raise TimeoutError("deadline")
+
+    src.verify = slow_then_failing
+
+    async def sleep(seconds):
+        clock[0] += seconds  # the wait, on time
+        if len(calls) == 3:
+            raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        await h.run(sleep)
+    assert h.lookup("demo.order", ALICE, "low").segments, "the view renewed by the first answer is still valid"
+
+
+def test_instants_without_an_offset_never_hold():
+    for bad in ("2026-01-01T00:00:00", "2026-01-01"):
+        seg = Segment("demo.order.read", {}, [], bad)
+        assert not seg.active_at(datetime.fromisoformat("2026-10-17T00:00:00Z")), bad
+    seg = Segment("demo.order.read", {}, [], "2026-01-01T00:00:00Z", "2027-01-01")
+    assert not seg.active_at(datetime.fromisoformat("2026-10-17T00:00:00Z"))
+
+
+def test_amounts_are_decimal_strings_as_the_protocol_writes_them():
+    from besdk.authz.segment import Atom, Tri, _interval
+
+    a = Atom("interval", currency="CNY", lo="0", lo_closed=True)
+    assert _interval(a, Fact.money("100", "CNY")) is Tri.TRUE
+    for odd in ("1_000", " 100", "NaN", "Infinity", "١٠٠"):
+        assert _interval(a, Fact.money(odd, "CNY")) is Tri.UNKNOWN, odd

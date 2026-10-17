@@ -8,6 +8,8 @@ from urllib.parse import urlsplit
 
 import asyncpg
 
+from besdk import testing
+
 DATABASE = "be_sdk_test"
 
 
@@ -45,6 +47,7 @@ async def ensure_database(name: str) -> None:
 
 
 async def role(c: asyncpg.Connection, name: str, password: str) -> None:
+    """A login role (a shell's) with this password."""
     if not await c.fetchval("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1)", name):
         try:
             await c.execute(f"CREATE ROLE {name} LOGIN PASSWORD '{password}'")
@@ -55,26 +58,12 @@ async def role(c: asyncpg.Connection, name: str, password: str) -> None:
 
 async def member(name: str, shell_role: str = "") -> None:
     """A member's schema, owner and runtime roles provisioned as the assembly's provisioning script does."""
-    c = await admin()
-    try:
-        owner, rw = f"sdk_{name}_owner", f"sdk_{name}_rw"
-        await role(c, owner, name + "-owner-pw")
-        await role(c, rw, name + "-pw")
-        for sql in [f"DROP SCHEMA IF EXISTS {name} CASCADE", f"GRANT CONNECT ON DATABASE {DATABASE} TO {owner}, {rw}",
-                    f"CREATE SCHEMA {name} AUTHORIZATION {owner}", f"GRANT USAGE ON SCHEMA {name} TO {rw}",
-                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA {name} GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {rw}",
-                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC",
-                    f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA {name} GRANT EXECUTE ON FUNCTIONS TO {rw}"]:
-            await c.execute(sql)
-        if shell_role:
-            await c.execute(f"GRANT {rw} TO {shell_role} WITH INHERIT FALSE, SET TRUE")
-    finally:
-        await c.close()
+    await testing.provision(admin_dsn(), DATABASE, name, f"sdk_{name}_owner", f"sdk_{name}_rw", shell_role)
 
 
 def member_env(name: str) -> dict[str, str]:
     """A member's database configuration as BrickKit would inject it."""
     host, port = host_port()
     return {"PG_HOST": host, "PG_PORT": str(port), "PG_DATABASE": DATABASE, "PG_USER": f"sdk_{name}_rw",
-            "PG_PASSWORD": name + "-pw", "PG_SCHEMA": name, "PG_OWNER_USER": f"sdk_{name}_owner",
-            "PG_OWNER_PASSWORD": name + "-owner-pw"}
+            "PG_PASSWORD": f"sdk_{name}_rw-pw", "PG_SCHEMA": name, "PG_OWNER_USER": f"sdk_{name}_owner",
+            "PG_OWNER_PASSWORD": f"sdk_{name}_owner-pw"}
