@@ -1,0 +1,130 @@
+import asyncio
+import io
+import json
+import socket
+
+import httpx
+from fastapi.responses import JSONResponse, Response
+
+from besdk import launcher
+from besdk.component import Definition
+from besdk.config import Key, Type
+from besdk.http import Route
+
+
+class Demo:
+    def __init__(self):
+        self.started = self.stopped = False
+        self.release = asyncio.Event()
+
+    def routes(self, r):
+        async def hello(c):
+            return JSONResponse({"greeting": "hi"})
+
+        async def slow(c):
+            await self.release.wait()
+            return Response(status_code=204)
+
+        r.add(Route("GET", "/api/hello", hello, public=True))
+        r.add(Route("GET", "/api/slow", slow, public=True))
+
+    async def start(self):
+        self.started = True
+
+    async def stop(self):
+        self.stopped = True
+
+
+def definition(demo, new=None):
+    return Definition("demo/alpha", "3.0.0", new or (lambda rt: demo), keys=[Key("GREETING", Type.STRING, default="hello")],
+                      capabilities=["core"])
+
+
+def env(values):
+    return launcher.EnvSource(lookup_env=values.get, read=lambda p: open(p, "rb").read())
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+async def test_unknown_entry():
+    err = io.StringIO()
+    code = await launcher.run(definition(Demo()), launcher.Options(args=["dance"], env=env({}), stderr=err,
+                                                                   stdout=io.StringIO()), asyncio.Event())
+    assert code == launcher.EXIT_USAGE and "dance" in err.getvalue()
+
+
+async def test_configuration_errors_all_at_once():
+    err = io.StringIO()
+    code = await launcher.run(definition(Demo()), launcher.Options(env=env(
+        {"COMPONENT_ID": "demo/alpha", "COMPONENT_VERSION": "2.9.9", "LOG_LEVEL": "loud"}), stderr=err,
+        stdout=io.StringIO()), asyncio.Event())
+    assert code == launcher.EXIT_CONFIGURATION
+    for want in ['"key":"PORT"', '"key":"LOG_LEVEL"', '"key":"COMPONENT_VERSION"']:
+        assert want in err.getvalue()
+
+
+async def test_module_failures_do_not_crash():
+    base = {"COMPONENT_ID": "demo/alpha", "COMPONENT_VERSION": "3.0.0", "PORT": str(free_port())}
+
+    def bad_wiring(rt):
+        raise RuntimeError("bad wiring")
+
+    async def bad_async(rt):
+        raise ValueError("boom")
+
+    for new in (bad_wiring, bad_async):
+        out = io.StringIO()
+        code = await launcher.run(definition(Demo(), new), launcher.Options(env=env(base), stdout=out,
+                                                                            stderr=io.StringIO()), asyncio.Event())
+        assert code == launcher.EXIT_FAILURE
+        assert "the module could not be built" in out.getvalue()
+
+
+async def test_serve_ready_and_graceful_stop():
+    port = free_port()
+    base = f"http://127.0.0.1:{port}"
+    demo, stop, out = Demo(), asyncio.Event(), io.StringIO()
+    run = asyncio.create_task(launcher.run(definition(demo), launcher.Options(env=env(
+        {"COMPONENT_ID": "demo/alpha", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "400ms",
+         "STOP_TIMEOUT": "5s"}), stdout=out, stderr=io.StringIO(), host="127.0.0.1"), stop))
+    async with httpx.AsyncClient(base_url=base) as client:
+        for _ in range(500):
+            try:
+                if (await client.get("/readyz")).status_code == 200:
+                    break
+            except httpx.ConnectError:
+                pass
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("never ready: " + out.getvalue())
+        assert demo.started
+        r = await client.get("/api/hello")
+        assert r.status_code == 200 and r.json() == {"greeting": "hi"}
+        desc = (await client.get("/.well-known/be-component")).json()
+        assert desc["component_id"] == "demo/alpha" and desc["protocol"] == "3.0.0-alpha.1"
+        assert desc["sdk"].startswith("be-sdk-python/")
+        slow = asyncio.create_task(client.get("/api/slow"))
+        await asyncio.sleep(0.05)
+        stop.set()  # the stop signal
+        for _ in range(100):
+            if (await client.get("/readyz")).status_code == 503:
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("still ready while stopping")
+        demo.release.set()
+        assert (await slow).status_code == 204, "a request in flight finishes during the stop"
+    assert await run == launcher.EXIT_OK
+    assert demo.stopped
+    events = [json.loads(line).get("event") for line in out.getvalue().splitlines()]
+    assert {"ready", "stopping", "stopped"} <= set(events)
+    async with httpx.AsyncClient(base_url=base) as client:
+        try:
+            await client.get("/healthz")
+            raise AssertionError("still listening after the stop")
+        except httpx.ConnectError:
+            pass
