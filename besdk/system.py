@@ -150,8 +150,8 @@ def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Await
                             d.authorize(context, decl)
                         return await behavior(request, context)
             except BaseException as exc:  # noqa: BLE001 - every failure becomes the error object, never a crash
-                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
-                    raise
+                if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
+                    raise  # an external cancellation stays one; the handler's own deadline arrives as TimeoutError
                 failure = errs.from_exception(exc)
                 if not isinstance(exc, errs.Error) and failure.internal:
                     log.error("unhandled exception while serving a call", method=full, error=repr(exc),

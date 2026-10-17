@@ -87,6 +87,8 @@ class Transport:
         sub = _Subscription()
         try:
             for stream in spec.streams:
+                # the subscriber may start before any producer: the stream is ensured here too, same settings (P6.17)
+                await self.ensure_stream(Stream(stream, 1))
                 await self._consumer(stream, spec)
                 psub = await self.js.pull_subscribe_bind(durable=spec.durable, stream=jetstream_name(stream))
                 sub.subs.append(psub)

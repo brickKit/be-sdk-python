@@ -11,6 +11,7 @@ from besdk.events.core import Outcome
 from tests import pgtest, transport_suite
 
 pytestmark = pytest.mark.integration
+LOG_BUS = obs.new_logger(obs.Member("bus", "0"), "error", io.StringIO())
 
 
 def bus_url() -> str:
@@ -25,7 +26,7 @@ async def pg_transport():
         await a.execute("CREATE SCHEMA IF NOT EXISTS py_bus_test")
     finally:
         await a.close()
-    await pgqueue.migrate_bus(bus_url(), obs.new_logger(obs.Member("bus", "0"), "error", io.StringIO()))
+    await pgqueue.migrate_bus(bus_url(), LOG_BUS)
     return await pgqueue.Transport.connect(bus_url(), "be-sdk-python-test")
 
 
@@ -58,7 +59,7 @@ async def test_transport_suite(adapter, case):  # P6.16-P6.24, CK-BUS-01..08
     tr = await (js_transport() if adapter == "jetstream" else pg_transport())
     stream = "pysuite.s" + uuid.uuid4().hex[:10]
     try:
-        if adapter == "jetstream":
+        if adapter == "jetstream" and case is not transport_suite.a_subscriber_may_start_before_any_producer:
             from besdk.events.core import Stream
 
             await tr.ensure_stream(Stream(stream, 4))

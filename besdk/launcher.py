@@ -17,6 +17,7 @@ import besdk
 from besdk import clock, config, db, host, obs, protocol
 from besdk.db import migrate
 from besdk.db.pool import DB, CredentialsError, Pool, StartCheckError, StoppedWaiting
+from besdk.events.bus import open_bus
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, Problem, Type
 
@@ -96,17 +97,28 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
         s = db.settings_from(values)
         pool = await Pool.open(s.target, s.user, s.password, d.id, s.foreground + s.background, s.prepared)
         database = DB(d.id, pool, s)
+    transport = None
     try:
-        return await _serve_member(d, o, stop, values, plat, started, pool, database)
+        if d.streams or d.subscribes:
+            # one bus connection per process (protocol 17)
+            blog = obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout)
+            try:
+                transport = await open_bus(values.secret("BUS_URL").value(), d.id, blog)  # type: ignore[union-attr]
+            except (OSError, ValueError, ConnectionError) as e:
+                blog.error("the bus is not usable", error=str(e))
+                return EXIT_STARTUP_CHECK
+        return await _serve_member(d, o, stop, values, plat, started, pool, database, transport)
     finally:
+        if transport is not None:
+            await transport.close()
         if pool is not None:
             await pool.close()
 
 
 async def _serve_member(d: Definition, o: Options, stop: asyncio.Event, values: config.Values, plat: config.Values,
-                        started: float, pool: Pool | None, database: DB | None) -> int:
+                        started: float, pool: Pool | None, database: DB | None, transport=None) -> int:
     try:
-        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database))
+        m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database, transport=transport))
     except host.ConfigError as e:
         host.report_config(o.stderr, d.id, e.problems)
         return EXIT_CONFIGURATION

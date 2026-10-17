@@ -234,3 +234,16 @@ async def test_no_calls_inside_a_transaction():  # P4.20
         assert e.value.reason == "INTERNAL" and "NETWORK_IN_TX" in str(e.value)
     finally:
         await asyncio.gather(out.close(), pool.close())
+
+
+async def test_a_cancelled_task_stays_cancelled():  # the forwarder and consumers stop by cancellation
+    v, _ = await migrated("py_tx5")
+    d, pool = await open_db("py_tx5", v)
+    try:
+        task = asyncio.create_task(d.background_tx(lambda tx: tx.fetchval("SELECT pg_sleep(5)")))
+        await asyncio.sleep(0.2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    finally:
+        await pool.close()

@@ -217,6 +217,16 @@ async def filters_select_subjects(tr, stream, subs):
     assert len(rec.got) == 1 and rec.got[0].data == b"yes", [d.data for d in rec.got]
 
 
+async def a_subscriber_may_start_before_any_producer(tr, stream, subs):  # P6.17
+    from besdk.events.core import Stream
+
+    rec = Recorder()
+    subs.append(await tr.subscribe(spec(stream, "early"), ack_into(rec)))  # the stream does not exist yet
+    await tr.ensure_stream(Stream(stream, 4))  # the producer starts later
+    await tr.publish(msg(stream, 1, "demo.thing_happened.v1", "late"))
+    await eventually(10, lambda: len(rec.got) == 1, "delivered to the early subscriber")
+
+
 async def notifications_are_neither_stored_nor_redelivered(tr, stream, subs):
     subj = "be.notify." + stream
     await tr.notify(subj, b"before")
@@ -236,7 +246,7 @@ CASES = [offline_consumer_receives_what_was_published_meanwhile, instances_of_on
          term_ends_the_deliveries_at_once, creating_a_durable_again_keeps_its_settings,
          headers_and_payload_round_trip_unchanged, a_message_over_the_limit_fails_to_publish,
          the_same_message_id_is_delivered_once, two_durables_each_receive_a_copy, filters_select_subjects,
-         notifications_are_neither_stored_nor_redelivered]
+         a_subscriber_may_start_before_any_producer, notifications_are_neither_stored_nor_redelivered]
 
 
 async def run(case, tr, stream) -> None:

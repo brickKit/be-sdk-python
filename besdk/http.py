@@ -245,8 +245,8 @@ async def _serve(request: Request, d: Deps, r: Route, duration: Histogram) -> Re
         try:
             response = await _run(request, d, r, rid, trace_id, log)
         except BaseException as exc:  # noqa: BLE001 - every failure becomes the error object, never a crash
-            if isinstance(exc, (KeyboardInterrupt, SystemExit)):
-                raise
+            if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
+                raise  # an external cancellation stays one; the handler's own deadline arrives as TimeoutError
             e = errs.from_exception(exc)
             if not isinstance(exc, errs.Error) and e.internal:
                 log.error("unhandled exception while serving a request", error=repr(exc),

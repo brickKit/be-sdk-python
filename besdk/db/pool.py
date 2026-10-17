@@ -189,6 +189,8 @@ class DB:
                     last = e
                     if attempt < MAX_ATTEMPTS:
                         await asyncio.sleep(random.uniform(0, 0.02 * (1 << attempt)))
+                except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+                    raise  # a cancelled task stays cancelled: the transaction rolled back, nothing to map
                 except BaseException as e:  # noqa: BLE001 - mapped below
                     last = e
                     break

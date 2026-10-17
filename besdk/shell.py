@@ -24,6 +24,7 @@ from besdk import clock, config, db, host, obs, protocol
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, MapSource, Problem, Type
 from besdk.db.pool import DB, Pool
+from besdk.events.bus import open_bus
 from besdk.http import Deps, Platform, Routes, build_app
 from besdk.launcher import ready_exit
 
@@ -251,9 +252,19 @@ async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.
 async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
                  stop: asyncio.Event, started: float) -> int:
     pools = await _open_pools(self, sv, plans)
+    transport = None
     try:
-        return await _serve_members(self, sv, plans, log, o, stop, started, pools)
+        users = [p for p in plans if p.definition.streams or p.definition.subscribes]
+        if users:  # one bus per process; BUS_URL is a process-level key, so the members agree on it
+            try:
+                transport = await open_bus(users[0].values.secret("BUS_URL").value(), self.id, log)  # type: ignore[union-attr]
+            except (OSError, ValueError, ConnectionError) as e:
+                log.error("the bus is not usable", error=str(e))
+                return host.EXIT_STARTUP_CHECK
+        return await _serve_members(self, sv, plans, log, o, stop, started, pools, transport)
     finally:
+        if transport is not None:
+            await transport.close()
         await asyncio.gather(*(p.close() for p in pools.values()))
 
 
@@ -272,7 +283,7 @@ async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -
 
 
 async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
-                         stop: asyncio.Event, started: float, pools: dict[db.Target, Pool]) -> int:
+                         stop: asyncio.Event, started: float, pools: dict[db.Target, Pool], transport=None) -> int:
     members: list[host.Member] = []
     servers: list = []
 
@@ -288,7 +299,7 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
                 st = db.settings_from(p.values)
                 database = DB(p.definition.id, pools[st.target], st)
             m = await host.build(p.definition, p.values, host.Shared(MapSource(p.served.config), o.env.read_file, o.stdout,
-                                                                     db=database))
+                                                                     db=database, transport=transport))
         except host.ConfigError as e:
             host.report_config(o.stderr, p.definition.id, e.problems)
             await asyncio.gather(*(s.shutdown(0) for s in servers))

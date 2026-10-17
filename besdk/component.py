@@ -47,3 +47,7 @@ class Definition:
     # The component's migration files (<version>_<title>.up.sql); set means it owns a database.
     migrations: Traversable | None = None
     grpc_port: int = 0  # the "grpc" extra port of component.yaml
+    # The event streams the component produces (chapter 06); they need migrations (the outbox). rt.events emits.
+    streams: list = field(default_factory=list)
+    # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
+    subscribes: bool = False

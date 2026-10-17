@@ -22,6 +22,9 @@ from besdk.calls import client as calls
 from besdk.component import Definition, Starter, Stopper
 from besdk.config import Key, Problem, Type, Values
 from besdk.http import Deps, Guard, Platform, Routes, build_app
+from besdk.events.consumer import Consumer, Subscriptions
+from besdk.events.objectstore import HTTPClaims, S3Store
+from besdk.events.outbox import Forwarder, Producer
 from besdk.runtime import Runtime
 
 # Exit codes (protocol chapter 01).
@@ -50,7 +53,12 @@ def keys(d: Definition) -> list[Key]:
     """A definition's keys plus the SDK's (and the database keys when the component owns a database)."""
     from besdk import db
 
-    return [*d.keys, *sdk_keys(), *security_keys(), *(db.serve_keys() if d.migrations is not None else [])]
+    from besdk.events import bus, objectstore
+
+    out = [*d.keys, *sdk_keys(), *security_keys(), *(db.serve_keys() if d.migrations is not None else [])]
+    if d.streams or d.subscribes:
+        out += [*bus.keys(bool(d.streams)), *objectstore.store_keys()]
+    return out
 
 
 class ConfigError(Exception):
@@ -84,6 +92,7 @@ class Shared:
     # the system surface's caller check for a member (chapter 08); None: no service identity yet
     authorize: Callable[[Member], Callable | None] = lambda m: None
     db: object = None  # the member's besdk.db.pool.DB, None without migrations
+    transport: object = None  # the process's bus (one per process), None when no member uses events
 
 
 @dataclass
@@ -98,6 +107,11 @@ class Member:
     app: FastAPI
     state: str = STARTING
     system: object = None  # the member's grpc.aio server; None without services
+    forwarder: object = None
+    transport: object = None
+    claims: object = None
+    consumers: list = field(default_factory=list)
+    _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
     def describe(self) -> dict:
@@ -110,6 +124,10 @@ class Member:
         """The module's background work (if any) and the secret re-reading."""
         if isinstance(self.module, Starter):
             await self.module.start()
+        if self.forwarder is not None:
+            await self.forwarder.start()  # type: ignore[attr-defined]
+        for c in self.consumers:
+            self._subs.append(await self.transport.subscribe(c.spec(), c.handle))  # type: ignore[attr-defined]
         self._tasks.append(asyncio.create_task(self._reread_secrets(read)))
 
     def stop_background(self) -> None:
@@ -118,10 +136,16 @@ class Member:
 
     async def stop(self) -> None:
         try:
+            # the events in hand finish; the rest stay with the transport
+            await asyncio.gather(*(s.stop() for s in self._subs), return_exceptions=True)
+            if self.forwarder is not None:
+                await self.forwarder.stop()  # type: ignore[attr-defined]
             if isinstance(self.module, Stopper):
                 await self.module.stop()
         finally:
             await self.runtime.outbound.close()  # type: ignore[union-attr]
+            if self.claims is not None:
+                await self.claims.close()  # type: ignore[attr-defined]
 
     async def _reread_secrets(self, read: Callable[[str], bytes]) -> None:
         secrets = self.values.file_secrets()
@@ -142,8 +166,13 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
     registry = obs.new_registry()
     tracers = obs.new_tracer_provider(m, values.string("OTEL_URL"))
     outbound = calls.Member(registry)
+    producer = forwarder = None
+    if d.streams:
+        producer = Producer(d.id, d.streams, S3Store.from_values(values))
+        forwarder = Forwarder(shared.db, producer, shared.transport, d.id, values.string("IMPLEMENTATION_INSTANCE"),
+                              log)  # type: ignore[arg-type]
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
-                 addresses=shared.addresses, db=shared.db, outbound=outbound)
+                 addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
@@ -157,6 +186,12 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         log.error("the module could not be built", error=repr(e), stack="".join(traceback.format_exception(e)))
         raise BuildError(str(e)) from e
     member = Member(d, values, log, registry, tracers, rt, module, FastAPI())
+    member.forwarder, member.transport = forwarder, shared.transport
+    if d.subscribes:
+        subs = Subscriptions()
+        module.subscriptions(subs)  # type: ignore[attr-defined]
+        member.claims = HTTPClaims()
+        member.consumers = [Consumer(d.id, s, shared.db, log, member.claims) for s in subs.list]  # type: ignore[arg-type]
     guard = shared.guard(member)
     member.app = build_app(Deps(log, registry, rt.tracer, Platform(
         ready or (lambda: (member.state == READY, member.state, [])), member.describe), guard), routes)

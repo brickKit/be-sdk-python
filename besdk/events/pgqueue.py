@@ -136,7 +136,13 @@ class Transport:
                                         s.durable, uuid.UUID(token), s.ack_wait)
 
             d.in_progress = in_progress
-            out = await h(d)
+            try:
+                out = await h(d)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001 - a handler's failure is a nak, never the end of the worker
+                self._report(e)
+                out = Outcome.NAK
             await asyncio.shield(self._settle(s, d, token, out))
 
     async def _advance(self, s: SubscriptionSpec) -> None:

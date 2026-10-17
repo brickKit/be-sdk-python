@@ -37,6 +37,7 @@ class Runtime:
     addresses: Source | None = None  # where the platform's *_ENDPOINT values are looked up
     db: Any = None  # the member's database (besdk.db), None without migrations
     outbound: Any = None  # the member's call clients (besdk.calls.client.Member)
+    events: Any = None  # writes the member's events into its outbox inside a transaction (besdk.events.outbox.Producer)
 
     def http(self, component_id: str) -> Any:
         """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter
