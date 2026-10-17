@@ -1,0 +1,438 @@
+{
+  "topic": "canonical",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P8.8"
+  ],
+  "description": "规范编码（装配项目安全 09a）：kind=decimal、instant、text 是单个值的规范形式；json 是 RFC 8785 的规范字节（这里写成 UTF-8 字符串）；digest 是 sha256:（<记录类型>.v<主版本> + 换行 + 规范字节）；segment 是授予段的规范化（集合按元素的规范字节排序去重、十进制与时刻规范化、排除 digest 字段）后的规范字节与摘要，两份语义相同的段摘要相同。expect.refused 表示拒绝（null、浮点数、绝对值不小于 2^53 的整数、不合规的十进制或时刻）。",
+  "fields": {
+    "kind": "decimal | instant | text | json | digest | segment",
+    "in": "输入",
+    "record_type、major": "digest 的域前缀",
+    "expect": "out、canonical 与 digest，或 refused"
+  },
+  "cases": [
+    {
+      "id": "decimal-trailing-zeros",
+      "kind": "decimal",
+      "in": "100.00",
+      "expect": {
+        "out": "100"
+      }
+    },
+    {
+      "id": "decimal-exponent",
+      "kind": "decimal",
+      "in": "1E2",
+      "expect": {
+        "out": "100"
+      }
+    },
+    {
+      "id": "decimal-negative-zero",
+      "kind": "decimal",
+      "in": "-0.0",
+      "expect": {
+        "out": "0"
+      }
+    },
+    {
+      "id": "decimal-fraction",
+      "kind": "decimal",
+      "in": "0.500",
+      "expect": {
+        "out": "0.5"
+      }
+    },
+    {
+      "id": "decimal-leading-plus",
+      "kind": "decimal",
+      "in": "+1",
+      "expect": {
+        "out": "1"
+      }
+    },
+    {
+      "id": "decimal-leading-zeros",
+      "kind": "decimal",
+      "in": "00012.3400",
+      "expect": {
+        "out": "12.34"
+      }
+    },
+    {
+      "id": "decimal-negative",
+      "kind": "decimal",
+      "in": "-12.3400",
+      "expect": {
+        "out": "-12.34"
+      }
+    },
+    {
+      "id": "decimal-small-exponent",
+      "kind": "decimal",
+      "in": "1e-18",
+      "expect": {
+        "out": "0.000000000000000001"
+      }
+    },
+    {
+      "id": "decimal-too-many-digits",
+      "kind": "decimal",
+      "in": "111111111111111111111111111111111111111",
+      "expect": {
+        "refused": "decimal"
+      }
+    },
+    {
+      "id": "decimal-too-many-fraction-digits",
+      "kind": "decimal",
+      "in": "0.0000000000000000001",
+      "expect": {
+        "refused": "decimal"
+      }
+    },
+    {
+      "id": "decimal-not-a-number",
+      "kind": "decimal",
+      "in": "abc",
+      "expect": {
+        "refused": "decimal"
+      }
+    },
+    {
+      "id": "decimal-infinity",
+      "kind": "decimal",
+      "in": "Infinity",
+      "expect": {
+        "refused": "decimal"
+      }
+    },
+    {
+      "id": "decimal-integer",
+      "kind": "decimal",
+      "in": "42",
+      "expect": {
+        "out": "42"
+      }
+    },
+    {
+      "id": "instant-offset",
+      "kind": "instant",
+      "in": "2026-10-17T10:00:00+08:00",
+      "expect": {
+        "out": "2026-10-17T02:00:00.000000Z"
+      }
+    },
+    {
+      "id": "instant-fraction",
+      "kind": "instant",
+      "in": "2026-10-17T02:00:00.5Z",
+      "expect": {
+        "out": "2026-10-17T02:00:00.500000Z"
+      }
+    },
+    {
+      "id": "instant-utc",
+      "kind": "instant",
+      "in": "2026-10-17T02:00:00Z",
+      "expect": {
+        "out": "2026-10-17T02:00:00.000000Z"
+      }
+    },
+    {
+      "id": "instant-no-zone",
+      "kind": "instant",
+      "in": "2026-10-17T02:00:00",
+      "expect": {
+        "refused": "instant"
+      }
+    },
+    {
+      "id": "instant-negative-offset",
+      "kind": "instant",
+      "in": "2026-10-16T21:30:00.123456-04:30",
+      "expect": {
+        "out": "2026-10-17T02:00:00.123456Z"
+      }
+    },
+    {
+      "id": "text-nfc",
+      "kind": "text",
+      "in": "é café",
+      "expect": {
+        "out": "é café"
+      }
+    },
+    {
+      "id": "json-key-order",
+      "kind": "json",
+      "in": {
+        "b": 1,
+        "a": [
+          true,
+          false
+        ],
+        "c": {
+          "z": "1",
+          "y": "2"
+        }
+      },
+      "expect": {
+        "out": "{\"a\":[true,false],\"b\":1,\"c\":{\"y\":\"2\",\"z\":\"1\"}}"
+      }
+    },
+    {
+      "id": "json-escapes",
+      "kind": "json",
+      "in": {
+        "s": "quote\" back\\ nl\n tab\t ctl\u0001 del slash/"
+      },
+      "expect": {
+        "out": "{\"s\":\"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001 del slash/\"}"
+      }
+    },
+    {
+      "id": "json-unicode",
+      "kind": "json",
+      "in": {
+        "s": "仓库 é 😀  "
+      },
+      "expect": {
+        "out": "{\"s\":\"仓库 é 😀  \"}"
+      }
+    },
+    {
+      "id": "json-integers",
+      "kind": "json",
+      "in": {
+        "a": 0,
+        "b": -1,
+        "c": 9007199254740991
+      },
+      "expect": {
+        "out": "{\"a\":0,\"b\":-1,\"c\":9007199254740991}"
+      }
+    },
+    {
+      "id": "json-null",
+      "kind": "json",
+      "in": {
+        "a": null
+      },
+      "expect": {
+        "refused": "json"
+      }
+    },
+    {
+      "id": "json-float",
+      "kind": "json",
+      "in": {
+        "a": 1.5
+      },
+      "expect": {
+        "refused": "json"
+      }
+    },
+    {
+      "id": "json-too-large-integer",
+      "kind": "json",
+      "in": {
+        "a": 9007199254740992
+      },
+      "expect": {
+        "refused": "json"
+      }
+    },
+    {
+      "id": "json-nested-arrays",
+      "kind": "json",
+      "in": [
+        [],
+        [
+          {}
+        ],
+        [
+          "x",
+          1
+        ]
+      ],
+      "expect": {
+        "out": "[[],[{}],[\"x\",1]]"
+      }
+    },
+    {
+      "id": "digest-resource",
+      "kind": "digest",
+      "in": {
+        "type": "demo.order",
+        "fields": [
+          "cost",
+          "number"
+        ]
+      },
+      "record_type": "be.security.resource_definition",
+      "major": 1,
+      "expect": {
+        "out": "sha256:ec9d2a25693d753311555c98fea9c2c526693a05cf3c11f91e29ea200cd18982"
+      }
+    },
+    {
+      "id": "digest-same-json-other-type",
+      "kind": "digest",
+      "in": {
+        "type": "demo.order",
+        "fields": [
+          "cost",
+          "number"
+        ]
+      },
+      "record_type": "be.security.operation_definition",
+      "major": 1,
+      "expect": {
+        "out": "sha256:5331bbdda53d29ed099ef0339b240d946847ec90d10d35c531310ad35bee7c7e"
+      }
+    },
+    {
+      "id": "digest-same-json-other-major",
+      "kind": "digest",
+      "in": {
+        "type": "demo.order",
+        "fields": [
+          "cost",
+          "number"
+        ]
+      },
+      "record_type": "be.security.resource_definition",
+      "major": 2,
+      "expect": {
+        "out": "sha256:3781123784e5d270092f59ecaf38c86b34aec57da8c54db202fb97055cbb91d5"
+      }
+    },
+    {
+      "id": "segment-normalized",
+      "kind": "segment",
+      "in": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "in",
+            "values": [
+              "LE2",
+              "LE1",
+              "LE2"
+            ]
+          },
+          "dept": {
+            "kind": "tree",
+            "items": [
+              {
+                "path": "org1/org3",
+                "mode": "subtree"
+              },
+              {
+                "path": "org1/org2",
+                "mode": "exact"
+              }
+            ]
+          },
+          "amount": {
+            "kind": "interval",
+            "currency": "CNY",
+            "lo": "0.00",
+            "lo_closed": true,
+            "hi": "1E4",
+            "hi_closed": false
+          },
+          "owner": {
+            "kind": "all"
+          }
+        },
+        "read_fields": [
+          "number",
+          "cost",
+          "number"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-17T08:00:00+08:00"
+        },
+        "source": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "definition": {
+          "owner_component": "demo/orders",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "1",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "expect": {
+        "canonical": "{\"atoms\":{\"amount\":{\"currency\":\"CNY\",\"hi\":\"10000\",\"hi_closed\":false,\"kind\":\"interval\",\"lo\":\"0\",\"lo_closed\":true},\"dept\":{\"items\":[{\"mode\":\"exact\",\"path\":\"org1/org2\"},{\"mode\":\"subtree\",\"path\":\"org1/org3\"}],\"kind\":\"tree\"},\"legal_entity\":{\"kind\":\"in\",\"values\":[\"LE1\",\"LE2\"]},\"owner\":{\"kind\":\"all\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/orders\",\"version\":\"1\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"cost\",\"number\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a1-7b2c-7def-8a01-23456789abcd\",\"valid\":{\"from\":\"2026-10-17T00:00:00.000000Z\"},\"write_fields\":[]}",
+        "digest": "sha256:a14c08075c766db0568314fb328a0932317d496bd71bd3252f0d3b85f0ca00a0"
+      }
+    },
+    {
+      "id": "segment-same-meaning",
+      "kind": "segment",
+      "in": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "in",
+            "values": [
+              "LE1",
+              "LE2"
+            ]
+          },
+          "dept": {
+            "kind": "tree",
+            "items": [
+              {
+                "path": "org1/org3",
+                "mode": "subtree"
+              },
+              {
+                "path": "org1/org2",
+                "mode": "exact"
+              }
+            ]
+          },
+          "amount": {
+            "kind": "interval",
+            "currency": "CNY",
+            "lo": "0",
+            "lo_closed": true,
+            "hi": "10000.000",
+            "hi_closed": false
+          },
+          "owner": {
+            "kind": "all"
+          }
+        },
+        "read_fields": [
+          "cost",
+          "number"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-17T00:00:00Z"
+        },
+        "source": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "definition": {
+          "owner_component": "demo/orders",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "1",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "digest": "sha256:ignored"
+      },
+      "expect": {
+        "canonical": "{\"atoms\":{\"amount\":{\"currency\":\"CNY\",\"hi\":\"10000\",\"hi_closed\":false,\"kind\":\"interval\",\"lo\":\"0\",\"lo_closed\":true},\"dept\":{\"items\":[{\"mode\":\"exact\",\"path\":\"org1/org2\"},{\"mode\":\"subtree\",\"path\":\"org1/org3\"}],\"kind\":\"tree\"},\"legal_entity\":{\"kind\":\"in\",\"values\":[\"LE1\",\"LE2\"]},\"owner\":{\"kind\":\"all\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/orders\",\"version\":\"1\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"cost\",\"number\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a1-7b2c-7def-8a01-23456789abcd\",\"valid\":{\"from\":\"2026-10-17T00:00:00.000000Z\"},\"write_fields\":[]}",
+        "digest": "sha256:a14c08075c766db0568314fb328a0932317d496bd71bd3252f0d3b85f0ca00a0"
+      }
+    }
+  ]
+}

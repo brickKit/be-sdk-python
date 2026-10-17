@@ -1,0 +1,268 @@
+{
+  "topic": "partition",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P6.1"
+  ],
+  "description": "分区 = FNV-1a 64 位（记录身份转成小写后的 UTF-8 字节）对分区数取余。hash 是 64 位无符号的十进制字符串（避免 JSON 数字丢精度）；大写的身份与小写的落在同一分区。",
+  "fields": {
+    "record_id": "记录身份",
+    "partitions": "流声明的分区数",
+    "hash": "FNV-1a 64 位，十进制字符串",
+    "expect": "分区"
+  },
+  "cases": [
+    {
+      "id": "0190f3a1-lower-1",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 1,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-lower-2",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 2,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-lower-4",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 4,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-lower-7",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 7,
+      "hash": "6376664520074753176",
+      "expect": 6
+    },
+    {
+      "id": "0190f3a1-lower-16",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 16,
+      "hash": "6376664520074753176",
+      "expect": 8
+    },
+    {
+      "id": "0190f3a1-lower-256",
+      "record_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+      "partitions": 256,
+      "hash": "6376664520074753176",
+      "expect": 152
+    },
+    {
+      "id": "0190f3a1-upper-1",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 1,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-upper-2",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 2,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-upper-4",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 4,
+      "hash": "6376664520074753176",
+      "expect": 0
+    },
+    {
+      "id": "0190f3a1-upper-7",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 7,
+      "hash": "6376664520074753176",
+      "expect": 6
+    },
+    {
+      "id": "0190f3a1-upper-16",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 16,
+      "hash": "6376664520074753176",
+      "expect": 8
+    },
+    {
+      "id": "0190f3a1-upper-256",
+      "record_id": "0190F3A1-7B2C-7DEF-8A01-23456789ABCD",
+      "partitions": 256,
+      "hash": "6376664520074753176",
+      "expect": 152
+    },
+    {
+      "id": "00000000-lower-1",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 1,
+      "hash": "8950988243607919089",
+      "expect": 0
+    },
+    {
+      "id": "00000000-lower-2",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 2,
+      "hash": "8950988243607919089",
+      "expect": 1
+    },
+    {
+      "id": "00000000-lower-4",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 4,
+      "hash": "8950988243607919089",
+      "expect": 1
+    },
+    {
+      "id": "00000000-lower-7",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 7,
+      "hash": "8950988243607919089",
+      "expect": 0
+    },
+    {
+      "id": "00000000-lower-16",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 16,
+      "hash": "8950988243607919089",
+      "expect": 1
+    },
+    {
+      "id": "00000000-lower-256",
+      "record_id": "00000000-0000-0000-0000-000000000000",
+      "partitions": 256,
+      "hash": "8950988243607919089",
+      "expect": 241
+    },
+    {
+      "id": "ffffffff-lower-1",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 1,
+      "hash": "8581874840851305265",
+      "expect": 0
+    },
+    {
+      "id": "ffffffff-lower-2",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 2,
+      "hash": "8581874840851305265",
+      "expect": 1
+    },
+    {
+      "id": "ffffffff-lower-4",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 4,
+      "hash": "8581874840851305265",
+      "expect": 1
+    },
+    {
+      "id": "ffffffff-lower-7",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 7,
+      "hash": "8581874840851305265",
+      "expect": 6
+    },
+    {
+      "id": "ffffffff-lower-16",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 16,
+      "hash": "8581874840851305265",
+      "expect": 1
+    },
+    {
+      "id": "ffffffff-lower-256",
+      "record_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "partitions": 256,
+      "hash": "8581874840851305265",
+      "expect": 49
+    },
+    {
+      "id": "0192a3b4-lower-1",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 1,
+      "hash": "3508918360087135157",
+      "expect": 0
+    },
+    {
+      "id": "0192a3b4-lower-2",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 2,
+      "hash": "3508918360087135157",
+      "expect": 1
+    },
+    {
+      "id": "0192a3b4-lower-4",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 4,
+      "hash": "3508918360087135157",
+      "expect": 1
+    },
+    {
+      "id": "0192a3b4-lower-7",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 7,
+      "hash": "3508918360087135157",
+      "expect": 1
+    },
+    {
+      "id": "0192a3b4-lower-16",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 16,
+      "hash": "3508918360087135157",
+      "expect": 5
+    },
+    {
+      "id": "0192a3b4-lower-256",
+      "record_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "partitions": 256,
+      "hash": "3508918360087135157",
+      "expect": 181
+    },
+    {
+      "id": "019abcde-lower-1",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 1,
+      "hash": "18277963777506016537",
+      "expect": 0
+    },
+    {
+      "id": "019abcde-lower-2",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 2,
+      "hash": "18277963777506016537",
+      "expect": 1
+    },
+    {
+      "id": "019abcde-lower-4",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 4,
+      "hash": "18277963777506016537",
+      "expect": 1
+    },
+    {
+      "id": "019abcde-lower-7",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 7,
+      "hash": "18277963777506016537",
+      "expect": 2
+    },
+    {
+      "id": "019abcde-lower-16",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 16,
+      "hash": "18277963777506016537",
+      "expect": 9
+    },
+    {
+      "id": "019abcde-lower-256",
+      "record_id": "019abcde-f012-7345-8678-9abcdef01234",
+      "partitions": 256,
+      "hash": "18277963777506016537",
+      "expect": 25
+    }
+  ]
+}

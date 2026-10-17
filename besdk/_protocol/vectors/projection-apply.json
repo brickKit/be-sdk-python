@@ -1,0 +1,1225 @@
+{
+  "topic": "projection-apply",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P9.11"
+  ],
+  "description": "投影行的接收（装配项目协议 02 的状态迁移表）：current 是本地行（null 为没有；old 表示属于旧纪元或旧实现实例），input 是到达的事件或读取（full 完整状态、partial 部分字段、delete 删除）及其版本；expect 是之后的状态、版本、需要的版本（incomplete 时）与动作：write、overwrite、merge_and_fetch、write_and_fetch（排入取回）、ignore。",
+  "fields": {
+    "current": "本地行",
+    "input": "到达的输入",
+    "expect": "结果"
+  },
+  "cases": [
+    {
+      "id": "none-full-v4",
+      "current": null,
+      "input": {
+        "kind": "full",
+        "version": 4
+      },
+      "expect": {
+        "state": "complete",
+        "version": 4,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-full-v5",
+      "current": null,
+      "input": {
+        "kind": "full",
+        "version": 5
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-full-v6",
+      "current": null,
+      "input": {
+        "kind": "full",
+        "version": 6
+      },
+      "expect": {
+        "state": "complete",
+        "version": 6,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-full-v7",
+      "current": null,
+      "input": {
+        "kind": "full",
+        "version": 7
+      },
+      "expect": {
+        "state": "complete",
+        "version": 7,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-full-v8",
+      "current": null,
+      "input": {
+        "kind": "full",
+        "version": 8
+      },
+      "expect": {
+        "state": "complete",
+        "version": 8,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-partial-v4",
+      "current": null,
+      "input": {
+        "kind": "partial",
+        "version": 4
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 4,
+        "action": "write_and_fetch",
+        "need_version": 4
+      }
+    },
+    {
+      "id": "none-partial-v5",
+      "current": null,
+      "input": {
+        "kind": "partial",
+        "version": 5
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "write_and_fetch",
+        "need_version": 5
+      }
+    },
+    {
+      "id": "none-partial-v6",
+      "current": null,
+      "input": {
+        "kind": "partial",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 6,
+        "action": "write_and_fetch",
+        "need_version": 6
+      }
+    },
+    {
+      "id": "none-partial-v7",
+      "current": null,
+      "input": {
+        "kind": "partial",
+        "version": 7
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 7,
+        "action": "write_and_fetch",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "none-partial-v8",
+      "current": null,
+      "input": {
+        "kind": "partial",
+        "version": 8
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 8,
+        "action": "write_and_fetch",
+        "need_version": 8
+      }
+    },
+    {
+      "id": "none-delete-v4",
+      "current": null,
+      "input": {
+        "kind": "delete",
+        "version": 4
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 4,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-delete-v5",
+      "current": null,
+      "input": {
+        "kind": "delete",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-delete-v6",
+      "current": null,
+      "input": {
+        "kind": "delete",
+        "version": 6
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 6,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-delete-v7",
+      "current": null,
+      "input": {
+        "kind": "delete",
+        "version": 7
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 7,
+        "action": "write"
+      }
+    },
+    {
+      "id": "none-delete-v8",
+      "current": null,
+      "input": {
+        "kind": "delete",
+        "version": 8
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 8,
+        "action": "write"
+      }
+    },
+    {
+      "id": "complete-5-full-v4",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 4
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "complete-5-full-v5",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 5
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "complete-5-full-v6",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 6
+      },
+      "expect": {
+        "state": "complete",
+        "version": 6,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "complete-5-full-v7",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 7
+      },
+      "expect": {
+        "state": "complete",
+        "version": 7,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "complete-5-full-v8",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 8
+      },
+      "expect": {
+        "state": "complete",
+        "version": 8,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "complete-5-partial-v4",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 4
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "complete-5-partial-v5",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 5
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "complete-5-partial-v6",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 6,
+        "action": "merge_and_fetch",
+        "need_version": 6
+      }
+    },
+    {
+      "id": "complete-5-partial-v7",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 7
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 7,
+        "action": "merge_and_fetch",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "complete-5-partial-v8",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 8
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 8,
+        "action": "merge_and_fetch",
+        "need_version": 8
+      }
+    },
+    {
+      "id": "complete-5-delete-v4",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 4
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "complete-5-delete-v5",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "write"
+      }
+    },
+    {
+      "id": "complete-5-delete-v6",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 6
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 6,
+        "action": "write"
+      }
+    },
+    {
+      "id": "complete-5-delete-v7",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 7
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 7,
+        "action": "write"
+      }
+    },
+    {
+      "id": "complete-5-delete-v8",
+      "current": {
+        "state": "complete",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 8
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 8,
+        "action": "write"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-full-v4",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "full",
+        "version": 4
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-full-v5",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "full",
+        "version": 5
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-full-v6",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "full",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-full-v7",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "full",
+        "version": 7
+      },
+      "expect": {
+        "state": "complete",
+        "version": 7,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-full-v8",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "full",
+        "version": 8
+      },
+      "expect": {
+        "state": "complete",
+        "version": 8,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-partial-v4",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "partial",
+        "version": 4
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-partial-v5",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "partial",
+        "version": 5
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-partial-v6",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "partial",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 6,
+        "action": "merge_and_fetch",
+        "need_version": 6
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-partial-v7",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "partial",
+        "version": 7
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 7,
+        "action": "merge_and_fetch",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-partial-v8",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "partial",
+        "version": 8
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 8,
+        "action": "merge_and_fetch",
+        "need_version": 8
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-delete-v4",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "delete",
+        "version": 4
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "ignore",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-delete-v5",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "delete",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "write"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-delete-v6",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "delete",
+        "version": 6
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 6,
+        "action": "write"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-delete-v7",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "delete",
+        "version": 7
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 7,
+        "action": "write"
+      }
+    },
+    {
+      "id": "incomplete-5-need-7-delete-v8",
+      "current": {
+        "state": "incomplete",
+        "version": 5,
+        "need_version": 7
+      },
+      "input": {
+        "kind": "delete",
+        "version": 8
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 8,
+        "action": "write"
+      }
+    },
+    {
+      "id": "tombstone-5-full-v4",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 4
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-full-v5",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-full-v6",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 6
+      },
+      "expect": {
+        "state": "complete",
+        "version": 6,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "tombstone-5-full-v7",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 7
+      },
+      "expect": {
+        "state": "complete",
+        "version": 7,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "tombstone-5-full-v8",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "full",
+        "version": 8
+      },
+      "expect": {
+        "state": "complete",
+        "version": 8,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "tombstone-5-partial-v4",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 4
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-partial-v5",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-partial-v6",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 6,
+        "action": "write_and_fetch",
+        "need_version": 6
+      }
+    },
+    {
+      "id": "tombstone-5-partial-v7",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 7
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 7,
+        "action": "write_and_fetch",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "tombstone-5-partial-v8",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "partial",
+        "version": 8
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 8,
+        "action": "write_and_fetch",
+        "need_version": 8
+      }
+    },
+    {
+      "id": "tombstone-5-delete-v4",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 4
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-delete-v5",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "ignore"
+      }
+    },
+    {
+      "id": "tombstone-5-delete-v6",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 6
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 6,
+        "action": "write"
+      }
+    },
+    {
+      "id": "tombstone-5-delete-v7",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 7
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 7,
+        "action": "write"
+      }
+    },
+    {
+      "id": "tombstone-5-delete-v8",
+      "current": {
+        "state": "tombstone",
+        "version": 5
+      },
+      "input": {
+        "kind": "delete",
+        "version": 8
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 8,
+        "action": "write"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-full-v4",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "full",
+        "version": 4
+      },
+      "expect": {
+        "state": "complete",
+        "version": 4,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-full-v5",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "full",
+        "version": 5
+      },
+      "expect": {
+        "state": "complete",
+        "version": 5,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-full-v6",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "full",
+        "version": 6
+      },
+      "expect": {
+        "state": "complete",
+        "version": 6,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-full-v7",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "full",
+        "version": 7
+      },
+      "expect": {
+        "state": "complete",
+        "version": 7,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-full-v8",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "full",
+        "version": 8
+      },
+      "expect": {
+        "state": "complete",
+        "version": 8,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-partial-v4",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "partial",
+        "version": 4
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 4,
+        "action": "write_and_fetch",
+        "need_version": 4
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-partial-v5",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "partial",
+        "version": 5
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 5,
+        "action": "write_and_fetch",
+        "need_version": 5
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-partial-v6",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "partial",
+        "version": 6
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 6,
+        "action": "write_and_fetch",
+        "need_version": 6
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-partial-v7",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "partial",
+        "version": 7
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 7,
+        "action": "write_and_fetch",
+        "need_version": 7
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-partial-v8",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "partial",
+        "version": 8
+      },
+      "expect": {
+        "state": "incomplete",
+        "version": 8,
+        "action": "write_and_fetch",
+        "need_version": 8
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-delete-v4",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "delete",
+        "version": 4
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 4,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-delete-v5",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "delete",
+        "version": 5
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 5,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-delete-v6",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "delete",
+        "version": 6
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 6,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-delete-v7",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "delete",
+        "version": 7
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 7,
+        "action": "overwrite"
+      }
+    },
+    {
+      "id": "old-epoch-complete-9-delete-v8",
+      "current": {
+        "state": "complete",
+        "version": 9,
+        "old": true
+      },
+      "input": {
+        "kind": "delete",
+        "version": 8
+      },
+      "expect": {
+        "state": "tombstone",
+        "version": 8,
+        "action": "overwrite"
+      }
+    }
+  ]
+}

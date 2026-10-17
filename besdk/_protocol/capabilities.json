@@ -1,0 +1,438 @@
+{
+  "protocol": "3.0.0-alpha.1",
+  "description": "能力清单：spec/ 中每条规则恰好属于一项能力（rules 为空的能力只留形状，规则随后续章节加入）。owner 为 sdk 的能力由每个 SDK 在自己仓库的 features.json 中标出状态；component 与 assembly 的能力由组件与装配检查负责。",
+  "capabilities": [
+    {
+      "id": "lifecycle",
+      "title": "生命周期、健康与停止",
+      "owner": "sdk",
+      "rules": [
+        "P1.1",
+        "P1.2",
+        "P1.3",
+        "P1.4",
+        "P1.5",
+        "P1.6",
+        "P1.7",
+        "P1.8",
+        "P1.9",
+        "P1.10",
+        "P1.11",
+        "P1.12",
+        "P1.14",
+        "P1.15",
+        "P1.16",
+        "P1.18"
+      ]
+    },
+    {
+      "id": "shell",
+      "title": "外壳：成员的承载、共享与一致性",
+      "owner": "sdk",
+      "rules": [
+        "P1.13",
+        "P1.17",
+        "P2.10",
+        "P2.11",
+        "P5.4"
+      ]
+    },
+    {
+      "id": "config",
+      "title": "配置与密钥",
+      "owner": "sdk",
+      "rules": [
+        "P2.1",
+        "P2.2",
+        "P2.3",
+        "P2.4",
+        "P2.5",
+        "P2.6",
+        "P2.7",
+        "P2.8",
+        "P2.9"
+      ]
+    },
+    {
+      "id": "errors",
+      "title": "错误对象与原因目录",
+      "owner": "sdk",
+      "rules": [
+        "P3.1",
+        "P3.2",
+        "P3.3",
+        "P3.4",
+        "P3.5",
+        "P3.6",
+        "P3.7",
+        "P3.8",
+        "P3.9"
+      ]
+    },
+    {
+      "id": "calls",
+      "title": "组件之间的调用：时限、重试、预算、并发、熔断与转述",
+      "owner": "sdk",
+      "rules": [
+        "P4.1",
+        "P4.2",
+        "P4.3",
+        "P4.4",
+        "P4.5",
+        "P4.6",
+        "P4.7",
+        "P4.8",
+        "P4.9",
+        "P4.10",
+        "P4.11",
+        "P4.12",
+        "P4.13",
+        "P4.14",
+        "P4.15",
+        "P4.18",
+        "P4.19",
+        "P4.20"
+      ]
+    },
+    {
+      "id": "batch-limit",
+      "title": "按身份批量读取的上限",
+      "owner": "component",
+      "rules": [
+        "P4.16"
+      ]
+    },
+    {
+      "id": "call-direction",
+      "title": "基础组件不同步调用业务组件",
+      "owner": "assembly",
+      "rules": [
+        "P4.17"
+      ]
+    },
+    {
+      "id": "idempotency",
+      "title": "命令的幂等键",
+      "owner": "sdk",
+      "rules": [
+        "P4.21",
+        "P4.22",
+        "P4.23",
+        "P4.24",
+        "P4.25"
+      ]
+    },
+    {
+      "id": "database",
+      "title": "数据库：连接池、事务入口、启动检查、迁移、记录身份",
+      "owner": "sdk",
+      "rules": [
+        "P5.1",
+        "P5.2",
+        "P5.3",
+        "P5.5",
+        "P5.6",
+        "P5.7",
+        "P5.8",
+        "P5.9",
+        "P5.10",
+        "P5.11",
+        "P5.12",
+        "P5.13",
+        "P5.14",
+        "P5.15",
+        "P5.16",
+        "P5.17"
+      ]
+    },
+    {
+      "id": "document-numbers",
+      "title": "单号序列",
+      "owner": "sdk",
+      "rules": [
+        "P5.18",
+        "P5.19",
+        "P5.20"
+      ]
+    },
+    {
+      "id": "partitions",
+      "title": "按月分区",
+      "owner": "sdk",
+      "rules": [
+        "P5.21",
+        "P5.22",
+        "P5.23",
+        "P5.24"
+      ]
+    },
+    {
+      "id": "money",
+      "title": "金额与十进制",
+      "owner": "sdk",
+      "rules": [
+        "P5.25",
+        "P5.26",
+        "P5.27",
+        "P5.28"
+      ]
+    },
+    {
+      "id": "business-dates",
+      "title": "业务日期",
+      "owner": "sdk",
+      "rules": [
+        "P5.29"
+      ]
+    },
+    {
+      "id": "outbox",
+      "title": "发件表：锁内编号、纪元、转发与保留",
+      "owner": "sdk",
+      "rules": [
+        "P6.1",
+        "P6.2",
+        "P6.3",
+        "P6.4",
+        "P6.5",
+        "P6.6",
+        "P6.7",
+        "P6.8",
+        "P6.9",
+        "P6.10",
+        "P6.11",
+        "P6.12"
+      ]
+    },
+    {
+      "id": "envelope",
+      "title": "事件信封与因果跳数",
+      "owner": "sdk",
+      "rules": [
+        "P6.13",
+        "P6.15"
+      ]
+    },
+    {
+      "id": "claim-check",
+      "title": "大消息的凭证检查",
+      "owner": "sdk",
+      "rules": [
+        "P6.14"
+      ]
+    },
+    {
+      "id": "transport",
+      "title": "运输端口：JetStream 与 PostgreSQL 队列",
+      "owner": "sdk",
+      "rules": [
+        "P6.16",
+        "P6.17",
+        "P6.18",
+        "P6.19",
+        "P6.20",
+        "P6.21",
+        "P6.22",
+        "P6.23",
+        "P6.24",
+        "P6.27"
+      ]
+    },
+    {
+      "id": "consumers",
+      "title": "消费者：收件表去重与保留",
+      "owner": "sdk",
+      "rules": [
+        "P6.25",
+        "P6.26"
+      ]
+    },
+    {
+      "id": "work",
+      "title": "后台工作项：认领、租约、副作用种类、重试与清理",
+      "owner": "sdk",
+      "rules": [
+        "P7.1",
+        "P7.2",
+        "P7.3",
+        "P7.4",
+        "P7.5",
+        "P7.6",
+        "P7.7",
+        "P7.8",
+        "P7.9",
+        "P7.10",
+        "P7.11",
+        "P7.12",
+        "P7.13",
+        "P7.14",
+        "P7.17",
+        "P7.18",
+        "P7.19",
+        "P7.20"
+      ]
+    },
+    {
+      "id": "cron",
+      "title": "定时作业的时间槽与物化",
+      "owner": "sdk",
+      "rules": [
+        "P7.15",
+        "P7.16"
+      ]
+    },
+    {
+      "id": "user-credentials",
+      "title": "用户访问凭据的核验",
+      "owner": "sdk",
+      "rules": [
+        "P8.1",
+        "P8.2",
+        "P8.3"
+      ]
+    },
+    {
+      "id": "call-modes",
+      "title": "调用模式：user、public、system",
+      "owner": "sdk",
+      "rules": [
+        "P8.4"
+      ]
+    },
+    {
+      "id": "service-identity",
+      "title": "服务身份：部署 mTLS 与允许的调用组件",
+      "owner": "sdk",
+      "rules": [
+        "P8.5",
+        "P8.6"
+      ]
+    },
+    {
+      "id": "authz-definitions",
+      "title": "资源、操作与字段的声明与摘要",
+      "owner": "sdk",
+      "rules": [
+        "P8.7",
+        "P8.8"
+      ]
+    },
+    {
+      "id": "authz-view",
+      "title": "有界本地授权：视图的持有、核验与有效期",
+      "owner": "sdk",
+      "rules": [
+        "P8.9",
+        "P8.10",
+        "P8.11",
+        "P8.12",
+        "P8.13"
+      ]
+    },
+    {
+      "id": "authz-evaluation",
+      "title": "段的求值与查询编译",
+      "owner": "sdk",
+      "rules": [
+        "P8.14",
+        "P8.15",
+        "P8.16",
+        "P8.17",
+        "P8.18"
+      ]
+    },
+    {
+      "id": "audit",
+      "title": "本地审计、编号、转运与删除",
+      "owner": "sdk",
+      "rules": [
+        "P8.19",
+        "P8.20",
+        "P8.21",
+        "P8.22",
+        "P8.23"
+      ]
+    },
+    {
+      "id": "lists",
+      "title": "列表：游标、筛选与排序",
+      "owner": "sdk",
+      "rules": [
+        "P9.1",
+        "P9.2",
+        "P9.3",
+        "P9.4",
+        "P9.5"
+      ]
+    },
+    {
+      "id": "search",
+      "title": "列表内搜索",
+      "owner": "sdk",
+      "rules": [
+        "P9.6",
+        "P9.7",
+        "P9.8",
+        "P9.9"
+      ]
+    },
+    {
+      "id": "projections",
+      "title": "投影的接收、对齐与补全",
+      "owner": "sdk",
+      "rules": [
+        "P9.10",
+        "P9.11",
+        "P9.12"
+      ]
+    },
+    {
+      "id": "call-mode-service-proxy",
+      "title": "服务代表用户（service_proxy）",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "authz-strict-path",
+      "title": "授权的严格路径（A、B 档）",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "delegation-impersonation",
+      "title": "委托与扮演",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "projection-watermarks",
+      "title": "水位来源的回声、补取与连续位置",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "projection-shadow",
+      "title": "影子投影：重建、回填与新增",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "member-switching",
+      "title": "授权与身份成员的切换",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "high-availability",
+      "title": "高可用",
+      "owner": "sdk",
+      "rules": []
+    },
+    {
+      "id": "event-signing",
+      "title": "事件签名",
+      "owner": "sdk",
+      "rules": []
+    }
+  ]
+}

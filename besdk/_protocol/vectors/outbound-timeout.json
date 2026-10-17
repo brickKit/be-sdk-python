@@ -1,0 +1,120 @@
+{
+  "topic": "outbound-timeout",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P4.4"
+  ],
+  "description": "一次出站尝试的时限：min(3000, 剩余 − 50) 毫秒；剩余不足 50 毫秒或没有剩余（null）时不发出。",
+  "fields": {
+    "remaining_ms": "调用方手里剩余的毫秒数，null 表示已没有截止时间余量",
+    "expect.send": "是否发出",
+    "expect.timeout_ms": "发出时这次尝试的时限",
+    "expect.reason": "不发出时的 reason"
+  },
+  "cases": [
+    {
+      "id": "remaining-none",
+      "remaining_ms": null,
+      "expect": {
+        "send": false,
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      }
+    },
+    {
+      "id": "remaining-0",
+      "remaining_ms": 0,
+      "expect": {
+        "send": false,
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      }
+    },
+    {
+      "id": "remaining-1",
+      "remaining_ms": 1,
+      "expect": {
+        "send": false,
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      }
+    },
+    {
+      "id": "remaining-49",
+      "remaining_ms": 49,
+      "expect": {
+        "send": false,
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      }
+    },
+    {
+      "id": "remaining-50",
+      "remaining_ms": 50,
+      "expect": {
+        "send": true,
+        "timeout_ms": 0
+      }
+    },
+    {
+      "id": "remaining-51",
+      "remaining_ms": 51,
+      "expect": {
+        "send": true,
+        "timeout_ms": 1
+      }
+    },
+    {
+      "id": "remaining-100",
+      "remaining_ms": 100,
+      "expect": {
+        "send": true,
+        "timeout_ms": 50
+      }
+    },
+    {
+      "id": "remaining-2999",
+      "remaining_ms": 2999,
+      "expect": {
+        "send": true,
+        "timeout_ms": 2949
+      }
+    },
+    {
+      "id": "remaining-3049",
+      "remaining_ms": 3049,
+      "expect": {
+        "send": true,
+        "timeout_ms": 2999
+      }
+    },
+    {
+      "id": "remaining-3050",
+      "remaining_ms": 3050,
+      "expect": {
+        "send": true,
+        "timeout_ms": 3000
+      }
+    },
+    {
+      "id": "remaining-3051",
+      "remaining_ms": 3051,
+      "expect": {
+        "send": true,
+        "timeout_ms": 3000
+      }
+    },
+    {
+      "id": "remaining-10000",
+      "remaining_ms": 10000,
+      "expect": {
+        "send": true,
+        "timeout_ms": 3000
+      }
+    },
+    {
+      "id": "remaining-15000",
+      "remaining_ms": 15000,
+      "expect": {
+        "send": true,
+        "timeout_ms": 3000
+      }
+    }
+  ]
+}

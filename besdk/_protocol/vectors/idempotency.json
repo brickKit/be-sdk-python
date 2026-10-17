@@ -1,0 +1,186 @@
+{
+  "topic": "idempotency",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P4.21",
+    "P4.22"
+  ],
+  "description": "命令的幂等键。kind=key：键是否合格（1–255 个可见 ASCII 字符，0x21–0x7E）。kind=fingerprint：请求指纹 = 规范摘要（P8.8，记录类型 be.idempotency.request，主版本 1），内容为 principal、operation、target 与 body_sha256（请求体原始字节的 SHA-256 小写十六进制；这里取 body 的 UTF-8 字节）；文本先做 NFC。请求体按字节比较，换了 JSON 键的顺序就是另一个请求；concat-a 与 concat-b 直接拼接会相同，规范对象不相同。",
+  "fields": {
+    "key": "kind=key：键与是否合格",
+    "fingerprint": "kind=fingerprint：请求与它的指纹"
+  },
+  "cases": [
+    {
+      "id": "key-00",
+      "kind": "key",
+      "key": "k",
+      "valid": true
+    },
+    {
+      "id": "key-01",
+      "kind": "key",
+      "key": "order-confirm-0190f3a2",
+      "valid": true
+    },
+    {
+      "id": "key-02",
+      "kind": "key",
+      "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid": true
+    },
+    {
+      "id": "key-03",
+      "kind": "key",
+      "key": "",
+      "valid": false
+    },
+    {
+      "id": "key-04",
+      "kind": "key",
+      "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid": false
+    },
+    {
+      "id": "key-05",
+      "kind": "key",
+      "key": "has space",
+      "valid": false
+    },
+    {
+      "id": "key-06",
+      "kind": "key",
+      "key": "tab\t",
+      "valid": false
+    },
+    {
+      "id": "key-07",
+      "kind": "key",
+      "key": "ümlaut",
+      "valid": false
+    },
+    {
+      "id": "key-08",
+      "kind": "key",
+      "key": "~!#$%&'*+-.^_`|",
+      "valid": true
+    },
+    {
+      "id": "fp-same-1",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.confirm",
+      "target": "POST /api/orders/7/confirm",
+      "body": "{\"revision\":3}",
+      "fingerprint": "sha256:f20f196b720563614aabbbeb6f46a7de280748f761c3be684736e3650fe3169c"
+    },
+    {
+      "id": "fp-same-2",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.confirm",
+      "target": "POST /api/orders/7/confirm",
+      "body": "{\"revision\":3}",
+      "fingerprint": "sha256:f20f196b720563614aabbbeb6f46a7de280748f761c3be684736e3650fe3169c"
+    },
+    {
+      "id": "fp-other-body",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.confirm",
+      "target": "POST /api/orders/7/confirm",
+      "body": "{\"revision\":4}",
+      "fingerprint": "sha256:7250b7c565c9f4b9cadd65415270cdc9ed6eae1c65252b94621f291838e2d5d2"
+    },
+    {
+      "id": "fp-key-order",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.create",
+      "target": "POST /api/orders",
+      "body": "{\"a\":1,\"b\":2}",
+      "fingerprint": "sha256:793f66b843d9288011361e91051f6d7740dbfe24eebbda05fa892eb03cae1b1c"
+    },
+    {
+      "id": "fp-key-order-swapped",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.create",
+      "target": "POST /api/orders",
+      "body": "{\"b\":2,\"a\":1}",
+      "fingerprint": "sha256:b2863d443d5efb9589b68b2b0462d43fb535abce3994cd0ca20a74cc6ecf477f"
+    },
+    {
+      "id": "fp-other-target",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.confirm",
+      "target": "POST /api/orders/8/confirm",
+      "body": "{\"revision\":3}",
+      "fingerprint": "sha256:a4d60b0f31d9949ee2307a6e40ec159662aadfe3e64243e8b6e39ce1b962ac7f"
+    },
+    {
+      "id": "fp-other-principal",
+      "kind": "fingerprint",
+      "principal": "erp/billing",
+      "operation": "erp.sales.order.confirm",
+      "target": "POST /api/orders/7/confirm",
+      "body": "{\"revision\":3}",
+      "fingerprint": "sha256:e26dd1b6384ee22cad6e42d05ed16a91bfb8e565f7292282ffb1a6ce5a238e5e"
+    },
+    {
+      "id": "fp-query",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "erp.sales.order.create",
+      "target": "POST /api/orders?draft=true",
+      "body": "",
+      "fingerprint": "sha256:2745d7c8e7550013e36b469b49857d0979d10b74816a733349abef2d6b497c90"
+    },
+    {
+      "id": "fp-concat-a",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "x.op",
+      "target": "POST /a/b",
+      "body": "c",
+      "fingerprint": "sha256:11dfd583f4f0e953d90932a453b88a3c1932b8ecae0602e349c80dcecdfd260d"
+    },
+    {
+      "id": "fp-concat-b",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "x.op",
+      "target": "POST /a",
+      "body": "/bc",
+      "fingerprint": "sha256:ed7779a86c40cc4826bcb7a5f661273f0f0f67d5004521083af982320011931c"
+    },
+    {
+      "id": "fp-grpc",
+      "kind": "fingerprint",
+      "principal": "erp/sales",
+      "operation": "erp.inventory.branch.hold",
+      "target": "/be.erp.inventory.v1.Branches/Hold",
+      "body": "\n\u0005b-001",
+      "fingerprint": "sha256:533b95fcbf528ca57fd122403ac18807bbebd94095a5576a8acdca27a0266b0e"
+    },
+    {
+      "id": "fp-nfc",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "x.op",
+      "target": "POST /café",
+      "body": "{}",
+      "fingerprint": "sha256:a2cd1eec3c5456acd4b9ea8a39ef1530ce89d28dea31ef60d37aa14823a59155"
+    },
+    {
+      "id": "fp-nfc-composed",
+      "kind": "fingerprint",
+      "principal": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+      "operation": "x.op",
+      "target": "POST /café",
+      "body": "{}",
+      "fingerprint": "sha256:a2cd1eec3c5456acd4b9ea8a39ef1530ce89d28dea31ef60d37aa14823a59155"
+    }
+  ]
+}

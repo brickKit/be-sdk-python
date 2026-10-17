@@ -1,0 +1,2222 @@
+{
+  "topic": "segment-eval",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P8.14",
+    "P8.15",
+    "P8.16",
+    "P8.17",
+    "P8.18"
+  ],
+  "description": "资源 demo.order 的段（每个维度恰好一个原子）在记录上的求值。第一项 kind=fixture 给出资源定义、全部记录与求值时刻。records，其中 r8、r9 有未取得的事实（unobtained），只用于单对象求值；其余记录同时用于列表（关系型编译）。kind=evaluate：每条记录的可见性（true、false、unknown）、可读字段（secret 永不输出）、动作 demo.order.approve 的资格，与对外的错误（看不见 NOT_FOUND；可见无资格 PERMISSION_DENIED；未知 AUTHORIZATION_UNPROVABLE）；list 是可见记录的 ID 与逐行可读字段。kind=list：加上请求的筛选（按维度取值，与授权求交）后的 ID。求值时刻 2026-10-17T02:00:00.000000Z；self 实例化为 principal。",
+  "fields": {
+    "resource、records、at": "fixture 项：资源定义、记录（事实带显式存在性）与求值时刻",
+    "principal": "请求的主体",
+    "segments": "主体的段",
+    "expect": "逐记录结果与列表"
+  },
+  "cases": [
+    {
+      "id": "fixture",
+      "kind": "fixture",
+      "resource": {
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {
+          "legal_entity": {
+            "kind": "value_set",
+            "column": "legal_entity",
+            "pushdown": "local_column"
+          },
+          "dept": {
+            "kind": "org_tree",
+            "column": "dept_path",
+            "pushdown": "local_column"
+          },
+          "owner": {
+            "kind": "principal",
+            "column": "owner_id",
+            "principal_role": "owner",
+            "pushdown": "local_column"
+          },
+          "amount": {
+            "kind": "amount",
+            "column": "amount",
+            "currency_column": "currency",
+            "pushdown": "local_column"
+          }
+        },
+        "fields": {
+          "number": {
+            "class": "ordinary"
+          },
+          "customer": {
+            "class": "ordinary"
+          },
+          "cost": {
+            "class": "restricted",
+            "read_key": "demo.order.cost"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "records": [
+        {
+          "id": "r1",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE1"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org2"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a1"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "100",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r1",
+          "customer": "C-r1",
+          "cost": "1.00",
+          "note": "secret-r1"
+        },
+        {
+          "id": "r2",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE1"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org3"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "20000",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r2",
+          "customer": "C-r2",
+          "cost": "1.00",
+          "note": "secret-r2"
+        },
+        {
+          "id": "r3",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE2"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org2/org5"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "500",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r3",
+          "customer": "C-r3",
+          "cost": "1.00",
+          "note": "secret-r3"
+        },
+        {
+          "id": "r4",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE2"
+          },
+          "dept_path": {
+            "state": "null"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a1"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "50",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r4",
+          "customer": "C-r4",
+          "cost": "1.00",
+          "note": "secret-r4"
+        },
+        {
+          "id": "r5",
+          "legal_entity": {
+            "state": "null"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org9"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "50",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r5",
+          "customer": "C-r5",
+          "cost": "1.00",
+          "note": "secret-r5"
+        },
+        {
+          "id": "r6",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE1"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org22"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "10",
+              "currency": "USD"
+            }
+          },
+          "number": "SO-r6",
+          "customer": "C-r6",
+          "cost": "1.00",
+          "note": "secret-r6"
+        },
+        {
+          "id": "r7",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE1"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": ""
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "10",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r7",
+          "customer": "C-r7",
+          "cost": "1.00",
+          "note": "secret-r7"
+        },
+        {
+          "id": "r8",
+          "legal_entity": {
+            "state": "unobtained"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org2"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a2"
+          },
+          "amount": {
+            "state": "value",
+            "value": {
+              "amount": "10",
+              "currency": "CNY"
+            }
+          },
+          "number": "SO-r8",
+          "customer": "C-r8",
+          "cost": "1.00",
+          "note": "secret-r8"
+        },
+        {
+          "id": "r9",
+          "legal_entity": {
+            "state": "value",
+            "value": "LE1"
+          },
+          "dept_path": {
+            "state": "value",
+            "value": "org1/org2"
+          },
+          "owner_id": {
+            "state": "value",
+            "value": "0190f3a1-0000-7000-8000-0000000000a1"
+          },
+          "amount": {
+            "state": "unobtained"
+          },
+          "number": "SO-r9",
+          "customer": "C-r9",
+          "cost": "1.00",
+          "note": "secret-r9"
+        }
+      ],
+      "at": "2026-10-17T02:00:00.000000Z"
+    },
+    {
+      "id": "own-orders-in-le1-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "self"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1"
+          ],
+          "fields": {
+            "r1": [
+              "customer",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "own-orders-in-le1-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "self"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r7": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r8": {
+            "visible": "unknown",
+            "fields": [],
+            "action": "false",
+            "read_error": "AUTHORIZATION_UNPROVABLE",
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [
+            "r2",
+            "r6",
+            "r7"
+          ],
+          "fields": {
+            "r2": [
+              "customer",
+              "number"
+            ],
+            "r6": [
+              "customer",
+              "number"
+            ],
+            "r7": [
+              "customer",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "dept-subtree-with-cost-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "tree",
+              "items": [
+                {
+                  "path": "org1/org2",
+                  "mode": "subtree"
+                }
+              ]
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "cost",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r3"
+          ],
+          "fields": {
+            "r1": [
+              "cost",
+              "number"
+            ],
+            "r3": [
+              "cost",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "dept-subtree-with-cost-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "tree",
+              "items": [
+                {
+                  "path": "org1/org2",
+                  "mode": "subtree"
+                }
+              ]
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "cost",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r3"
+          ],
+          "fields": {
+            "r1": [
+              "cost",
+              "number"
+            ],
+            "r3": [
+              "cost",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "two-grants-keep-their-pairing-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "tree",
+              "items": [
+                {
+                  "path": "org1/org2",
+                  "mode": "exact"
+                }
+              ]
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "cost",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        },
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE2"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r4": {
+            "visible": "true",
+            "fields": [
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "unknown",
+            "fields": [],
+            "action": "false",
+            "read_error": "AUTHORIZATION_UNPROVABLE",
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r3",
+            "r4"
+          ],
+          "fields": {
+            "r1": [
+              "cost",
+              "number"
+            ],
+            "r3": [
+              "number"
+            ],
+            "r4": [
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "two-grants-keep-their-pairing-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "tree",
+              "items": [
+                {
+                  "path": "org1/org2",
+                  "mode": "exact"
+                }
+              ]
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "cost",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        },
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE2"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r4": {
+            "visible": "true",
+            "fields": [
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "unknown",
+            "fields": [],
+            "action": "false",
+            "read_error": "AUTHORIZATION_UNPROVABLE",
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "cost",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r3",
+            "r4"
+          ],
+          "fields": {
+            "r1": [
+              "cost",
+              "number"
+            ],
+            "r3": [
+              "number"
+            ],
+            "r4": [
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "approve-up-to-10000-cny-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "note",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        },
+        {
+          "operation": "demo.order.approve",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "interval",
+              "currency": "CNY",
+              "lo": "0",
+              "lo_closed": true,
+              "hi": "10000",
+              "hi_closed": false
+            }
+          },
+          "read_fields": [],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r2": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r4": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r5": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r6": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r7": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r8": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "unknown",
+            "read_error": null,
+            "action_error": "AUTHORIZATION_UNPROVABLE"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r2",
+            "r3",
+            "r4",
+            "r5",
+            "r6",
+            "r7"
+          ],
+          "fields": {
+            "r1": [
+              "customer",
+              "number"
+            ],
+            "r2": [
+              "customer",
+              "number"
+            ],
+            "r3": [
+              "customer",
+              "number"
+            ],
+            "r4": [
+              "customer",
+              "number"
+            ],
+            "r5": [
+              "customer",
+              "number"
+            ],
+            "r6": [
+              "customer",
+              "number"
+            ],
+            "r7": [
+              "customer",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "approve-up-to-10000-cny-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "note",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        },
+        {
+          "operation": "demo.order.approve",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "interval",
+              "currency": "CNY",
+              "lo": "0",
+              "lo_closed": true,
+              "hi": "10000",
+              "hi_closed": false
+            }
+          },
+          "read_fields": [],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r2": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r3": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r4": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r5": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r6": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "false",
+            "read_error": null,
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r7": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r8": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "true",
+            "read_error": null,
+            "action_error": null
+          },
+          "r9": {
+            "visible": "true",
+            "fields": [
+              "customer",
+              "number"
+            ],
+            "action": "unknown",
+            "read_error": null,
+            "action_error": "AUTHORIZATION_UNPROVABLE"
+          }
+        },
+        "list": {
+          "ids": [
+            "r1",
+            "r2",
+            "r3",
+            "r4",
+            "r5",
+            "r6",
+            "r7"
+          ],
+          "fields": {
+            "r1": [
+              "customer",
+              "number"
+            ],
+            "r2": [
+              "customer",
+              "number"
+            ],
+            "r3": [
+              "customer",
+              "number"
+            ],
+            "r4": [
+              "customer",
+              "number"
+            ],
+            "r5": [
+              "customer",
+              "number"
+            ],
+            "r6": [
+              "customer",
+              "number"
+            ],
+            "r7": [
+              "customer",
+              "number"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-in-matches-nothing-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": []
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "unknown",
+            "fields": [],
+            "action": "false",
+            "read_error": "AUTHORIZATION_UNPROVABLE",
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "empty-in-matches-nothing-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": []
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "unknown",
+            "fields": [],
+            "action": "false",
+            "read_error": "AUTHORIZATION_UNPROVABLE",
+            "action_error": "PERMISSION_DENIED"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "expired-grant-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z",
+            "until": "2026-10-17T01:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "expired-grant-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z",
+            "until": "2026-10-17T01:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "approve-without-read-u1",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.approve",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "approve-without-read-u2",
+      "kind": "evaluate",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a2",
+      "segments": [
+        {
+          "operation": "demo.order.approve",
+          "atoms": {
+            "legal_entity": {
+              "kind": "all"
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "all"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "action": "demo.order.approve",
+      "expect": {
+        "records": {
+          "r1": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r2": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r3": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r4": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r5": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r6": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r7": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r8": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          },
+          "r9": {
+            "visible": "false",
+            "fields": [],
+            "action": "false",
+            "read_error": "NOT_FOUND",
+            "action_error": "NOT_FOUND"
+          }
+        },
+        "list": {
+          "ids": [],
+          "fields": {}
+        }
+      }
+    },
+    {
+      "id": "filter-outside-grant",
+      "kind": "list",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "self"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "filter": {
+        "legal_entity": "LE2"
+      },
+      "expect": {
+        "ids": []
+      }
+    },
+    {
+      "id": "filter-inside-grant",
+      "kind": "list",
+      "principal": "0190f3a1-0000-7000-8000-0000000000a1",
+      "segments": [
+        {
+          "operation": "demo.order.read",
+          "atoms": {
+            "legal_entity": {
+              "kind": "in",
+              "values": [
+                "LE1"
+              ]
+            },
+            "dept": {
+              "kind": "all"
+            },
+            "owner": {
+              "kind": "self"
+            },
+            "amount": {
+              "kind": "all"
+            }
+          },
+          "read_fields": [
+            "customer",
+            "number"
+          ],
+          "valid": {
+            "from": "2026-01-01T00:00:00.000000Z"
+          }
+        }
+      ],
+      "filter": {
+        "legal_entity": "LE1"
+      },
+      "expect": {
+        "ids": [
+          "r1"
+        ]
+      }
+    }
+  ]
+}

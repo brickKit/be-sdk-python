@@ -1,0 +1,384 @@
+{
+  "topic": "envelope",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P6.4",
+    "P6.9",
+    "P6.13",
+    "P6.17"
+  ],
+  "description": "一条发件行发布成什么：消息头（CloudEvents 二进制模式，ce- 前缀）、行摘要（SHA-256（事件身份、0 字节、载荷字节），小写十六进制）与主题。event.payload 是载荷的确切字节（UTF-8）；epoch 是（代次，时间线）。besubjects 是紧凑 JSON（无空白）。消息头逐个相等，不多不少。",
+  "fields": {
+    "event": "发件行的字段",
+    "expect.headers": "消息头",
+    "expect.digest": "行摘要",
+    "expect.subject": "主题"
+  },
+  "cases": [
+    {
+      "id": "full-state",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "full",
+        "hops": 0,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "0"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "caused-by-another-event",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "full",
+        "hops": 3,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}",
+        "causation": "0190f3a0-1111-7222-8333-444455556666"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "3",
+          "ce-becausation": "0190f3a0-1111-7222-8333-444455556666"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "transaction-fact-with-legal-entity",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "partial",
+        "hops": 0,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}",
+        "legal_entity": "LE1"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "partial",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "0",
+          "ce-belegalentity": "LE1"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "watermark-source-subjects",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "mdm/org",
+        "type": "mdm.org.unit_changed.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "mdm.org.units",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "full",
+        "hops": 0,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}",
+        "subjects": [
+          "acc:01",
+          "org:7"
+        ]
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:mdm/org",
+          "ce-type": "mdm.org.unit_changed.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "mdm.org.units",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "0",
+          "ce-besubjects": "[\"acc:01\",\"org:7\"]"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.mdm.org.units.3.mdm.org.unit_changed.v1"
+      }
+    },
+    {
+      "id": "delete",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 8,
+        "projection": "delete",
+        "hops": 0,
+        "payload": "{}"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "8",
+          "ce-beprojection": "delete",
+          "ce-bedigest": "3fa6bcc675f84f9d5b6269d9cdc50a76471702b1470ae0dbdf046a473aba3ff3",
+          "ce-behops": "0"
+        },
+        "digest": "3fa6bcc675f84f9d5b6269d9cdc50a76471702b1470ae0dbdf046a473aba3ff3",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "new-epoch",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          2,
+          3
+        ],
+        "seq": 1,
+        "version": 7,
+        "projection": "full",
+        "hops": 0,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "2.3",
+          "ce-beseq": "1",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "0"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "claim-check",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "full",
+        "hops": 0,
+        "payload": "{\"claim\":{\"uri\":\"s3://b/k\",\"size\":70000,\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}}",
+        "claim": true
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "66c8e1b1d12e5cd0189865ca271e834f8599c96ac805d0421ef887e03827f1aa",
+          "ce-behops": "0",
+          "ce-beclaim": "true"
+        },
+        "digest": "66c8e1b1d12e5cd0189865ca271e834f8599c96ac805d0421ef887e03827f1aa",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    },
+    {
+      "id": "with-trace",
+      "event": {
+        "event_id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+        "source": "erp/inventory",
+        "type": "erp.inventory.stock_moved.v1",
+        "time": "2026-10-17T08:30:00.123Z",
+        "record_id": "0190f3a1-0000-7000-8000-000000000001",
+        "stream": "erp.inventory.stock",
+        "partition": 3,
+        "impl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+        "epoch": [
+          1,
+          1
+        ],
+        "seq": 42,
+        "version": 7,
+        "projection": "full",
+        "hops": 0,
+        "payload": "{\"qty\":\"5.000\",\"sku\":\"A-1\"}",
+        "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+      },
+      "expect": {
+        "headers": {
+          "ce-specversion": "1.0",
+          "ce-id": "0190f3a1-7b2c-7def-8a01-23456789abcd",
+          "ce-source": "urn:be:erp/inventory",
+          "ce-type": "erp.inventory.stock_moved.v1",
+          "ce-time": "2026-10-17T08:30:00.123Z",
+          "ce-subject": "0190f3a1-0000-7000-8000-000000000001",
+          "ce-datacontenttype": "application/json",
+          "ce-bestream": "erp.inventory.stock",
+          "ce-bepartition": "3",
+          "ce-beimpl": "6f1c2d3e-4a5b-4c6d-8e7f-901234567890",
+          "ce-beepoch": "1.1",
+          "ce-beseq": "42",
+          "ce-beversion": "7",
+          "ce-beprojection": "full",
+          "ce-bedigest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+          "ce-behops": "0",
+          "ce-traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        },
+        "digest": "cab9385ae7249c9fd25aee29583838b3f284d6a36471241d17eb17d06aebf0ca",
+        "subject": "be.erp.inventory.stock.3.erp.inventory.stock_moved.v1"
+      }
+    }
+  ]
+}

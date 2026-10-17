@@ -1,0 +1,644 @@
+{
+  "topic": "errors",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P3.1",
+    "P3.2",
+    "P3.7",
+    "P3.9"
+  ],
+  "description": "平台原因目录与 gRPC 码、HTTP 状态、日志级别的对应。kind=reason：一个平台 reason；kind=code：没有指定 HTTP 的 reason 按 gRPC 码取 HTTP；kind=access_log：访问日志按 HTTP 状态定级别。retryable 取 no、yes、after_refresh（边缘换取新令牌后一次）、query_first（查询后再定）、none（不适用）；log_level 的 none 表示不按错误记。",
+  "fields": {
+    "kind": "reason | code | access_log",
+    "reason": "平台 reason",
+    "domain": "be",
+    "grpc_code": "gRPC 码名",
+    "http": "HTTP 状态",
+    "retryable": "见说明",
+    "log_level": "error | warn | info | none",
+    "type": "错误体的 type"
+  },
+  "cases": [
+    {
+      "id": "reason-request_invalid",
+      "kind": "reason",
+      "reason": "REQUEST_INVALID",
+      "domain": "be",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 400,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:REQUEST_INVALID"
+    },
+    {
+      "id": "reason-body_too_large",
+      "kind": "reason",
+      "reason": "BODY_TOO_LARGE",
+      "domain": "be",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 413,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:BODY_TOO_LARGE"
+    },
+    {
+      "id": "reason-cursor_invalid",
+      "kind": "reason",
+      "reason": "CURSOR_INVALID",
+      "domain": "be",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 400,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CURSOR_INVALID"
+    },
+    {
+      "id": "reason-batch_too_large",
+      "kind": "reason",
+      "reason": "BATCH_TOO_LARGE",
+      "domain": "be",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 400,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:BATCH_TOO_LARGE"
+    },
+    {
+      "id": "reason-token_invalid",
+      "kind": "reason",
+      "reason": "TOKEN_INVALID",
+      "domain": "be",
+      "grpc_code": "UNAUTHENTICATED",
+      "http": 401,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:TOKEN_INVALID"
+    },
+    {
+      "id": "reason-token_stale",
+      "kind": "reason",
+      "reason": "TOKEN_STALE",
+      "domain": "be",
+      "grpc_code": "UNAUTHENTICATED",
+      "http": 401,
+      "retryable": "after_refresh",
+      "log_level": "info",
+      "type": "urn:be:be:TOKEN_STALE"
+    },
+    {
+      "id": "reason-service_credential_invalid",
+      "kind": "reason",
+      "reason": "SERVICE_CREDENTIAL_INVALID",
+      "domain": "be",
+      "grpc_code": "UNAUTHENTICATED",
+      "http": 401,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:SERVICE_CREDENTIAL_INVALID"
+    },
+    {
+      "id": "reason-permission_denied",
+      "kind": "reason",
+      "reason": "PERMISSION_DENIED",
+      "domain": "be",
+      "grpc_code": "PERMISSION_DENIED",
+      "http": 403,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:PERMISSION_DENIED"
+    },
+    {
+      "id": "reason-containment_not_proven",
+      "kind": "reason",
+      "reason": "CONTAINMENT_NOT_PROVEN",
+      "domain": "be",
+      "grpc_code": "PERMISSION_DENIED",
+      "http": 403,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CONTAINMENT_NOT_PROVEN"
+    },
+    {
+      "id": "reason-not_found",
+      "kind": "reason",
+      "reason": "NOT_FOUND",
+      "domain": "be",
+      "grpc_code": "NOT_FOUND",
+      "http": 404,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:NOT_FOUND"
+    },
+    {
+      "id": "reason-query_not_completable",
+      "kind": "reason",
+      "reason": "QUERY_NOT_COMPLETABLE",
+      "domain": "be",
+      "grpc_code": "FAILED_PRECONDITION",
+      "http": 422,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:QUERY_NOT_COMPLETABLE"
+    },
+    {
+      "id": "reason-field_not_queryable",
+      "kind": "reason",
+      "reason": "FIELD_NOT_QUERYABLE",
+      "domain": "be",
+      "grpc_code": "FAILED_PRECONDITION",
+      "http": 422,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:FIELD_NOT_QUERYABLE"
+    },
+    {
+      "id": "reason-query_plan_changed",
+      "kind": "reason",
+      "reason": "QUERY_PLAN_CHANGED",
+      "domain": "be",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:QUERY_PLAN_CHANGED"
+    },
+    {
+      "id": "reason-change_key_conflict",
+      "kind": "reason",
+      "reason": "CHANGE_KEY_CONFLICT",
+      "domain": "be",
+      "grpc_code": "ALREADY_EXISTS",
+      "http": 409,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CHANGE_KEY_CONFLICT"
+    },
+    {
+      "id": "reason-change_revision_stale",
+      "kind": "reason",
+      "reason": "CHANGE_REVISION_STALE",
+      "domain": "be",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CHANGE_REVISION_STALE"
+    },
+    {
+      "id": "reason-last_admin_protected",
+      "kind": "reason",
+      "reason": "LAST_ADMIN_PROTECTED",
+      "domain": "be",
+      "grpc_code": "FAILED_PRECONDITION",
+      "http": 409,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:LAST_ADMIN_PROTECTED"
+    },
+    {
+      "id": "reason-idempotency_key_reused",
+      "kind": "reason",
+      "reason": "IDEMPOTENCY_KEY_REUSED",
+      "domain": "be",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 422,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:IDEMPOTENCY_KEY_REUSED"
+    },
+    {
+      "id": "reason-idempotency_in_progress",
+      "kind": "reason",
+      "reason": "IDEMPOTENCY_IN_PROGRESS",
+      "domain": "be",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "retryable": "yes",
+      "log_level": "info",
+      "type": "urn:be:be:IDEMPOTENCY_IN_PROGRESS"
+    },
+    {
+      "id": "reason-lock_timeout",
+      "kind": "reason",
+      "reason": "LOCK_TIMEOUT",
+      "domain": "be",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "retryable": "yes",
+      "log_level": "info",
+      "type": "urn:be:be:LOCK_TIMEOUT"
+    },
+    {
+      "id": "reason-tx_conflict",
+      "kind": "reason",
+      "reason": "TX_CONFLICT",
+      "domain": "be",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "retryable": "yes",
+      "log_level": "info",
+      "type": "urn:be:be:TX_CONFLICT"
+    },
+    {
+      "id": "reason-statement_timeout",
+      "kind": "reason",
+      "reason": "STATEMENT_TIMEOUT",
+      "domain": "be",
+      "grpc_code": "DEADLINE_EXCEEDED",
+      "http": 504,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:STATEMENT_TIMEOUT"
+    },
+    {
+      "id": "reason-service_busy",
+      "kind": "reason",
+      "reason": "SERVICE_BUSY",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:SERVICE_BUSY"
+    },
+    {
+      "id": "reason-outbound_limit",
+      "kind": "reason",
+      "reason": "OUTBOUND_LIMIT",
+      "domain": "be",
+      "grpc_code": "RESOURCE_EXHAUSTED",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "info",
+      "type": "urn:be:be:OUTBOUND_LIMIT"
+    },
+    {
+      "id": "reason-circuit_open",
+      "kind": "reason",
+      "reason": "CIRCUIT_OPEN",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:CIRCUIT_OPEN"
+    },
+    {
+      "id": "reason-dependency_unavailable",
+      "kind": "reason",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:DEPENDENCY_UNAVAILABLE"
+    },
+    {
+      "id": "reason-deadline_budget_exhausted",
+      "kind": "reason",
+      "reason": "DEADLINE_BUDGET_EXHAUSTED",
+      "domain": "be",
+      "grpc_code": "DEADLINE_EXCEEDED",
+      "http": 504,
+      "retryable": "no",
+      "log_level": "warn",
+      "type": "urn:be:be:DEADLINE_BUDGET_EXHAUSTED"
+    },
+    {
+      "id": "reason-deadline_exceeded",
+      "kind": "reason",
+      "reason": "DEADLINE_EXCEEDED",
+      "domain": "be",
+      "grpc_code": "DEADLINE_EXCEEDED",
+      "http": 504,
+      "retryable": "query_first",
+      "log_level": "warn",
+      "type": "urn:be:be:DEADLINE_EXCEEDED"
+    },
+    {
+      "id": "reason-request_cancelled",
+      "kind": "reason",
+      "reason": "REQUEST_CANCELLED",
+      "domain": "be",
+      "grpc_code": "CANCELLED",
+      "http": 499,
+      "retryable": "none",
+      "log_level": "none",
+      "type": "urn:be:be:REQUEST_CANCELLED"
+    },
+    {
+      "id": "reason-not_ready",
+      "kind": "reason",
+      "reason": "NOT_READY",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:NOT_READY"
+    },
+    {
+      "id": "reason-authorization_unprovable",
+      "kind": "reason",
+      "reason": "AUTHORIZATION_UNPROVABLE",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:AUTHORIZATION_UNPROVABLE"
+    },
+    {
+      "id": "reason-authorization_view_expired",
+      "kind": "reason",
+      "reason": "AUTHORIZATION_VIEW_EXPIRED",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:AUTHORIZATION_VIEW_EXPIRED"
+    },
+    {
+      "id": "reason-recovery_in_progress",
+      "kind": "reason",
+      "reason": "RECOVERY_IN_PROGRESS",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:RECOVERY_IN_PROGRESS"
+    },
+    {
+      "id": "reason-member_switch_in_progress",
+      "kind": "reason",
+      "reason": "MEMBER_SWITCH_IN_PROGRESS",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:MEMBER_SWITCH_IN_PROGRESS"
+    },
+    {
+      "id": "reason-capability_unsupported",
+      "kind": "reason",
+      "reason": "CAPABILITY_UNSUPPORTED",
+      "domain": "be",
+      "grpc_code": "UNIMPLEMENTED",
+      "http": 501,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CAPABILITY_UNSUPPORTED"
+    },
+    {
+      "id": "reason-result_unknown",
+      "kind": "reason",
+      "reason": "RESULT_UNKNOWN",
+      "domain": "be",
+      "grpc_code": "DEADLINE_EXCEEDED",
+      "http": 504,
+      "retryable": "query_first",
+      "log_level": "warn",
+      "type": "urn:be:be:RESULT_UNKNOWN"
+    },
+    {
+      "id": "reason-audit_capacity_exhausted",
+      "kind": "reason",
+      "reason": "AUDIT_CAPACITY_EXHAUSTED",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:AUDIT_CAPACITY_EXHAUSTED"
+    },
+    {
+      "id": "reason-internal",
+      "kind": "reason",
+      "reason": "INTERNAL",
+      "domain": "be",
+      "grpc_code": "INTERNAL",
+      "http": 500,
+      "retryable": "no",
+      "log_level": "error",
+      "type": "urn:be:be:INTERNAL"
+    },
+    {
+      "id": "code-invalid_argument",
+      "kind": "code",
+      "grpc_code": "INVALID_ARGUMENT",
+      "http": 400,
+      "log_level": "info"
+    },
+    {
+      "id": "code-failed_precondition",
+      "kind": "code",
+      "grpc_code": "FAILED_PRECONDITION",
+      "http": 400,
+      "log_level": "info"
+    },
+    {
+      "id": "code-out_of_range",
+      "kind": "code",
+      "grpc_code": "OUT_OF_RANGE",
+      "http": 400,
+      "log_level": "info"
+    },
+    {
+      "id": "code-unauthenticated",
+      "kind": "code",
+      "grpc_code": "UNAUTHENTICATED",
+      "http": 401,
+      "log_level": "info"
+    },
+    {
+      "id": "code-permission_denied",
+      "kind": "code",
+      "grpc_code": "PERMISSION_DENIED",
+      "http": 403,
+      "log_level": "info"
+    },
+    {
+      "id": "code-not_found",
+      "kind": "code",
+      "grpc_code": "NOT_FOUND",
+      "http": 404,
+      "log_level": "info"
+    },
+    {
+      "id": "code-already_exists",
+      "kind": "code",
+      "grpc_code": "ALREADY_EXISTS",
+      "http": 409,
+      "log_level": "info"
+    },
+    {
+      "id": "code-aborted",
+      "kind": "code",
+      "grpc_code": "ABORTED",
+      "http": 409,
+      "log_level": "info"
+    },
+    {
+      "id": "code-resource_exhausted",
+      "kind": "code",
+      "grpc_code": "RESOURCE_EXHAUSTED",
+      "http": 429,
+      "log_level": "info"
+    },
+    {
+      "id": "code-cancelled",
+      "kind": "code",
+      "grpc_code": "CANCELLED",
+      "http": 499,
+      "log_level": "none"
+    },
+    {
+      "id": "code-internal",
+      "kind": "code",
+      "grpc_code": "INTERNAL",
+      "http": 500,
+      "log_level": "error"
+    },
+    {
+      "id": "code-unknown",
+      "kind": "code",
+      "grpc_code": "UNKNOWN",
+      "http": 500,
+      "log_level": "error"
+    },
+    {
+      "id": "code-data_loss",
+      "kind": "code",
+      "grpc_code": "DATA_LOSS",
+      "http": 500,
+      "log_level": "error"
+    },
+    {
+      "id": "code-unimplemented",
+      "kind": "code",
+      "grpc_code": "UNIMPLEMENTED",
+      "http": 501,
+      "log_level": "info"
+    },
+    {
+      "id": "code-unavailable",
+      "kind": "code",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "log_level": "warn"
+    },
+    {
+      "id": "code-deadline_exceeded",
+      "kind": "code",
+      "grpc_code": "DEADLINE_EXCEEDED",
+      "http": 504,
+      "log_level": "warn"
+    },
+    {
+      "id": "access-200",
+      "kind": "access_log",
+      "http": 200,
+      "log_level": "info"
+    },
+    {
+      "id": "access-201",
+      "kind": "access_log",
+      "http": 201,
+      "log_level": "info"
+    },
+    {
+      "id": "access-202",
+      "kind": "access_log",
+      "http": 202,
+      "log_level": "info"
+    },
+    {
+      "id": "access-204",
+      "kind": "access_log",
+      "http": 204,
+      "log_level": "info"
+    },
+    {
+      "id": "access-400",
+      "kind": "access_log",
+      "http": 400,
+      "log_level": "info"
+    },
+    {
+      "id": "access-401",
+      "kind": "access_log",
+      "http": 401,
+      "log_level": "info"
+    },
+    {
+      "id": "access-403",
+      "kind": "access_log",
+      "http": 403,
+      "log_level": "info"
+    },
+    {
+      "id": "access-404",
+      "kind": "access_log",
+      "http": 404,
+      "log_level": "info"
+    },
+    {
+      "id": "access-409",
+      "kind": "access_log",
+      "http": 409,
+      "log_level": "info"
+    },
+    {
+      "id": "access-413",
+      "kind": "access_log",
+      "http": 413,
+      "log_level": "info"
+    },
+    {
+      "id": "access-422",
+      "kind": "access_log",
+      "http": 422,
+      "log_level": "info"
+    },
+    {
+      "id": "access-429",
+      "kind": "access_log",
+      "http": 429,
+      "log_level": "info"
+    },
+    {
+      "id": "access-499",
+      "kind": "access_log",
+      "http": 499,
+      "log_level": "info"
+    },
+    {
+      "id": "access-500",
+      "kind": "access_log",
+      "http": 500,
+      "log_level": "error"
+    },
+    {
+      "id": "access-501",
+      "kind": "access_log",
+      "http": 501,
+      "log_level": "info"
+    },
+    {
+      "id": "access-503",
+      "kind": "access_log",
+      "http": 503,
+      "log_level": "warn"
+    },
+    {
+      "id": "access-504",
+      "kind": "access_log",
+      "http": 504,
+      "log_level": "warn"
+    }
+  ]
+}

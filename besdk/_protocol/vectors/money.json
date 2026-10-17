@@ -1,0 +1,693 @@
+{
+  "topic": "money",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P5.25",
+    "P5.26",
+    "P5.27",
+    "P5.28"
+  ],
+  "description": "金额与十进制。kind=parse：契约中的十进制字符串在币种小数位 scale 下是否合格（-?整数部分[.小数部分]，整数部分无前导零，最多 38 位数字，不接受指数、正号、空格与非 ASCII 数字，不接受 -0；小数位多于 scale 且多出的不全是 0 时不合格），合格时 formatted 是按 scale 格式化的结果。kind=round：按 mode 舍入到 scale 位（half_away_from_zero 为四舍五入远离零，half_even 为银行家舍入）。kind=cash：先按 mode 舍入到 unit 的整数倍，再格式化到 scale 位。kind=allocate：最大余数法，按 weights 把 total 分成若干份，每份是最小单位（10^-scale）的整数倍，余下的最小单位依次给余数最大的份，余数相同给前面的；负数按绝对值分配后取负；各份之和恰好等于 total。全部数值以字符串表示，不经过浮点。",
+  "fields": {
+    "value": "输入的十进制字符串",
+    "scale": "小数位",
+    "mode": "舍入方式",
+    "unit": "现金舍入单位",
+    "result": "舍入后按 scale 格式化",
+    "parts": "分摊结果，按 scale 格式化"
+  },
+  "cases": [
+    {
+      "id": "parse-00",
+      "kind": "parse",
+      "value": "12.30",
+      "scale": 2,
+      "valid": true,
+      "formatted": "12.30"
+    },
+    {
+      "id": "parse-01",
+      "kind": "parse",
+      "value": "12.3",
+      "scale": 2,
+      "valid": true,
+      "formatted": "12.30"
+    },
+    {
+      "id": "parse-02",
+      "kind": "parse",
+      "value": "12",
+      "scale": 2,
+      "valid": true,
+      "formatted": "12.00"
+    },
+    {
+      "id": "parse-03",
+      "kind": "parse",
+      "value": "12.345",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-04",
+      "kind": "parse",
+      "value": "12.340",
+      "scale": 2,
+      "valid": true,
+      "formatted": "12.34"
+    },
+    {
+      "id": "parse-05",
+      "kind": "parse",
+      "value": "-0.01",
+      "scale": 2,
+      "valid": true,
+      "formatted": "-0.01"
+    },
+    {
+      "id": "parse-06",
+      "kind": "parse",
+      "value": "1e2",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-07",
+      "kind": "parse",
+      "value": "+1",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-08",
+      "kind": "parse",
+      "value": "01.5",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-09",
+      "kind": "parse",
+      "value": "1.",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-10",
+      "kind": "parse",
+      "value": ".5",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-11",
+      "kind": "parse",
+      "value": "",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-12",
+      "kind": "parse",
+      "value": "-0",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-13",
+      "kind": "parse",
+      "value": "0.000",
+      "scale": 0,
+      "valid": true,
+      "formatted": "0"
+    },
+    {
+      "id": "parse-14",
+      "kind": "parse",
+      "value": "12.5",
+      "scale": 0,
+      "valid": false
+    },
+    {
+      "id": "parse-15",
+      "kind": "parse",
+      "value": "999999999999999.9999",
+      "scale": 4,
+      "valid": true,
+      "formatted": "999999999999999.9999"
+    },
+    {
+      "id": "parse-16",
+      "kind": "parse",
+      "value": "111111111111111111111111111111111111111",
+      "scale": 0,
+      "valid": false
+    },
+    {
+      "id": "parse-17",
+      "kind": "parse",
+      "value": "100",
+      "scale": 3,
+      "valid": true,
+      "formatted": "100.000"
+    },
+    {
+      "id": "parse-18",
+      "kind": "parse",
+      "value": "1 000",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "parse-19",
+      "kind": "parse",
+      "value": "١٢",
+      "scale": 2,
+      "valid": false
+    },
+    {
+      "id": "round-00-half_away_from_zero",
+      "kind": "round",
+      "value": "2.345",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "2.35"
+    },
+    {
+      "id": "round-00-half_even",
+      "kind": "round",
+      "value": "2.345",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "2.34"
+    },
+    {
+      "id": "round-01-half_away_from_zero",
+      "kind": "round",
+      "value": "2.355",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "2.36"
+    },
+    {
+      "id": "round-01-half_even",
+      "kind": "round",
+      "value": "2.355",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "2.36"
+    },
+    {
+      "id": "round-02-half_away_from_zero",
+      "kind": "round",
+      "value": "-2.345",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "-2.35"
+    },
+    {
+      "id": "round-02-half_even",
+      "kind": "round",
+      "value": "-2.345",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "-2.34"
+    },
+    {
+      "id": "round-03-half_away_from_zero",
+      "kind": "round",
+      "value": "-2.355",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "-2.36"
+    },
+    {
+      "id": "round-03-half_even",
+      "kind": "round",
+      "value": "-2.355",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "-2.36"
+    },
+    {
+      "id": "round-04-half_away_from_zero",
+      "kind": "round",
+      "value": "2.3449999",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "2.34"
+    },
+    {
+      "id": "round-04-half_even",
+      "kind": "round",
+      "value": "2.3449999",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "2.34"
+    },
+    {
+      "id": "round-05-half_away_from_zero",
+      "kind": "round",
+      "value": "0.005",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "0.01"
+    },
+    {
+      "id": "round-05-half_even",
+      "kind": "round",
+      "value": "0.005",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "0.00"
+    },
+    {
+      "id": "round-06-half_away_from_zero",
+      "kind": "round",
+      "value": "-0.005",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "-0.01"
+    },
+    {
+      "id": "round-06-half_even",
+      "kind": "round",
+      "value": "-0.005",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "0.00"
+    },
+    {
+      "id": "round-07-half_away_from_zero",
+      "kind": "round",
+      "value": "1.0005",
+      "scale": 3,
+      "mode": "half_away_from_zero",
+      "result": "1.001"
+    },
+    {
+      "id": "round-07-half_even",
+      "kind": "round",
+      "value": "1.0005",
+      "scale": 3,
+      "mode": "half_even",
+      "result": "1.000"
+    },
+    {
+      "id": "round-08-half_away_from_zero",
+      "kind": "round",
+      "value": "12.5",
+      "scale": 0,
+      "mode": "half_away_from_zero",
+      "result": "13"
+    },
+    {
+      "id": "round-08-half_even",
+      "kind": "round",
+      "value": "12.5",
+      "scale": 0,
+      "mode": "half_even",
+      "result": "12"
+    },
+    {
+      "id": "round-09-half_away_from_zero",
+      "kind": "round",
+      "value": "13.5",
+      "scale": 0,
+      "mode": "half_away_from_zero",
+      "result": "14"
+    },
+    {
+      "id": "round-09-half_even",
+      "kind": "round",
+      "value": "13.5",
+      "scale": 0,
+      "mode": "half_even",
+      "result": "14"
+    },
+    {
+      "id": "round-10-half_away_from_zero",
+      "kind": "round",
+      "value": "-12.5",
+      "scale": 0,
+      "mode": "half_away_from_zero",
+      "result": "-13"
+    },
+    {
+      "id": "round-10-half_even",
+      "kind": "round",
+      "value": "-12.5",
+      "scale": 0,
+      "mode": "half_even",
+      "result": "-12"
+    },
+    {
+      "id": "round-11-half_away_from_zero",
+      "kind": "round",
+      "value": "0.125",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "0.13"
+    },
+    {
+      "id": "round-11-half_even",
+      "kind": "round",
+      "value": "0.125",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "0.12"
+    },
+    {
+      "id": "round-12-half_away_from_zero",
+      "kind": "round",
+      "value": "7",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "7.00"
+    },
+    {
+      "id": "round-12-half_even",
+      "kind": "round",
+      "value": "7",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "7.00"
+    },
+    {
+      "id": "round-13-half_away_from_zero",
+      "kind": "round",
+      "value": "123456789012345.67895",
+      "scale": 4,
+      "mode": "half_away_from_zero",
+      "result": "123456789012345.6790"
+    },
+    {
+      "id": "round-13-half_even",
+      "kind": "round",
+      "value": "123456789012345.67895",
+      "scale": 4,
+      "mode": "half_even",
+      "result": "123456789012345.6790"
+    },
+    {
+      "id": "cash-00-half_away_from_zero",
+      "kind": "cash",
+      "value": "1.02",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "1.00"
+    },
+    {
+      "id": "cash-00-half_even",
+      "kind": "cash",
+      "value": "1.02",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "1.00"
+    },
+    {
+      "id": "cash-01-half_away_from_zero",
+      "kind": "cash",
+      "value": "1.025",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "1.05"
+    },
+    {
+      "id": "cash-01-half_even",
+      "kind": "cash",
+      "value": "1.025",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "1.00"
+    },
+    {
+      "id": "cash-02-half_away_from_zero",
+      "kind": "cash",
+      "value": "1.075",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "1.10"
+    },
+    {
+      "id": "cash-02-half_even",
+      "kind": "cash",
+      "value": "1.075",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "1.10"
+    },
+    {
+      "id": "cash-03-half_away_from_zero",
+      "kind": "cash",
+      "value": "1.12",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "1.10"
+    },
+    {
+      "id": "cash-03-half_even",
+      "kind": "cash",
+      "value": "1.12",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "1.10"
+    },
+    {
+      "id": "cash-04-half_away_from_zero",
+      "kind": "cash",
+      "value": "-1.025",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "-1.05"
+    },
+    {
+      "id": "cash-04-half_even",
+      "kind": "cash",
+      "value": "-1.025",
+      "unit": "0.05",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "-1.00"
+    },
+    {
+      "id": "cash-05-half_away_from_zero",
+      "kind": "cash",
+      "value": "12.49",
+      "unit": "0.10",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "12.50"
+    },
+    {
+      "id": "cash-05-half_even",
+      "kind": "cash",
+      "value": "12.49",
+      "unit": "0.10",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "12.50"
+    },
+    {
+      "id": "cash-06-half_away_from_zero",
+      "kind": "cash",
+      "value": "12.50",
+      "unit": "1",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "13.00"
+    },
+    {
+      "id": "cash-06-half_even",
+      "kind": "cash",
+      "value": "12.50",
+      "unit": "1",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "12.00"
+    },
+    {
+      "id": "cash-07-half_away_from_zero",
+      "kind": "cash",
+      "value": "12.34",
+      "unit": "0.25",
+      "scale": 2,
+      "mode": "half_away_from_zero",
+      "result": "12.25"
+    },
+    {
+      "id": "cash-07-half_even",
+      "kind": "cash",
+      "value": "12.34",
+      "unit": "0.25",
+      "scale": 2,
+      "mode": "half_even",
+      "result": "12.25"
+    },
+    {
+      "id": "allocate-00",
+      "kind": "allocate",
+      "total": "100.00",
+      "weights": [
+        "1",
+        "1",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "33.34",
+        "33.33",
+        "33.33"
+      ]
+    },
+    {
+      "id": "allocate-01",
+      "kind": "allocate",
+      "total": "100.00",
+      "weights": [
+        "1",
+        "2",
+        "3"
+      ],
+      "scale": 2,
+      "parts": [
+        "16.67",
+        "33.33",
+        "50.00"
+      ]
+    },
+    {
+      "id": "allocate-02",
+      "kind": "allocate",
+      "total": "-100.00",
+      "weights": [
+        "1",
+        "1",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "-33.34",
+        "-33.33",
+        "-33.33"
+      ]
+    },
+    {
+      "id": "allocate-03",
+      "kind": "allocate",
+      "total": "0.05",
+      "weights": [
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "0.02",
+        "0.01",
+        "0.01",
+        "0.01"
+      ]
+    },
+    {
+      "id": "allocate-04",
+      "kind": "allocate",
+      "total": "10.000",
+      "weights": [
+        "0.3",
+        "0.3",
+        "0.4"
+      ],
+      "scale": 3,
+      "parts": [
+        "3.000",
+        "3.000",
+        "4.000"
+      ]
+    },
+    {
+      "id": "allocate-05",
+      "kind": "allocate",
+      "total": "1",
+      "weights": [
+        "1",
+        "1",
+        "1"
+      ],
+      "scale": 0,
+      "parts": [
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "id": "allocate-06",
+      "kind": "allocate",
+      "total": "99.99",
+      "weights": [
+        "2",
+        "0",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "66.66",
+        "0.00",
+        "33.33"
+      ]
+    },
+    {
+      "id": "allocate-07",
+      "kind": "allocate",
+      "total": "0.00",
+      "weights": [
+        "1",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "0.00",
+        "0.00"
+      ]
+    },
+    {
+      "id": "allocate-08",
+      "kind": "allocate",
+      "total": "1000",
+      "weights": [
+        "1"
+      ],
+      "scale": 0,
+      "parts": [
+        "1000"
+      ]
+    },
+    {
+      "id": "allocate-09",
+      "kind": "allocate",
+      "total": "12.34",
+      "weights": [
+        "1.5",
+        "1.5",
+        "1"
+      ],
+      "scale": 2,
+      "parts": [
+        "4.63",
+        "4.63",
+        "3.08"
+      ]
+    }
+  ]
+}

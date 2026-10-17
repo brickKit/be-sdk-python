@@ -1,0 +1,539 @@
+{
+  "topic": "call-outcomes",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P4.6",
+    "P4.8",
+    "P4.11",
+    "P4.18",
+    "P4.19"
+  ],
+  "description": "一次尝试的结果怎样计入。surface=grpc：code 为 gRPC 码，info 为 ErrorInfo 的 domain 与 reason（没有时为 null）；surface=http：status 为 HTTP 状态，problem 为 problem+json 正文的 domain 与 reason（正文不是 problem+json 时为 null）。http 回答的码：平台 reason 取目录中的码，其余按状态（502、503 为 UNAVAILABLE，504 为 DEADLINE_EXCEEDED）。connect_failed：请求发出之前连接失败；caller_cancelled：调用方自己的上下文已结束。expect.class：success、unavailable、connect_failed、deadline、relayed（依赖转述的更下游的故障）、other、cancelled；breaker 与 budget：熔断器与重试预算记下什么；retry_outcome：交给重试决定（向量 retry-decision）的结果，NONE 表示从不重试；upward：这是最后一次尝试时调用方向上答什么（unchanged 表示依赖的错误原样）。",
+  "fields": {
+    "surface": "grpc | http",
+    "code": "gRPC 码名",
+    "info": "ErrorInfo 的 domain 与 reason，或 null",
+    "status": "HTTP 状态，什么都没收到时为 null",
+    "problem": "problem 正文的 domain 与 reason",
+    "idempotent": "方法是否声明为幂等",
+    "dependency": "依赖的组件 ID",
+    "connect_failed": "发出之前失败",
+    "caller_cancelled": "调用方已取消",
+    "expect": "class、breaker、budget、retry_outcome、upward"
+  },
+  "cases": [
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "OK",
+      "info": null,
+      "id": "grpc-ok",
+      "expect": {
+        "class": "success",
+        "breaker": "success",
+        "budget": "success",
+        "retry_outcome": "NONE",
+        "upward": null
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": null,
+      "id": "grpc-unavailable-transport",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": {
+        "domain": "be",
+        "reason": "SERVICE_BUSY"
+      },
+      "id": "grpc-service-busy",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": {
+        "domain": "be",
+        "reason": "NOT_READY"
+      },
+      "id": "grpc-not-ready",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": {
+        "domain": "be",
+        "reason": "DEPENDENCY_UNAVAILABLE"
+      },
+      "id": "grpc-relayed-dependency-unavailable",
+      "expect": {
+        "class": "relayed",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": {
+        "domain": "be",
+        "reason": "CIRCUIT_OPEN"
+      },
+      "id": "grpc-relayed-circuit-open",
+      "expect": {
+        "class": "relayed",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "UNAVAILABLE",
+      "info": null,
+      "connect_failed": true,
+      "id": "grpc-connect-failed",
+      "expect": {
+        "class": "connect_failed",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "CONNECT_FAILED_BEFORE_SEND",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "DEADLINE_EXCEEDED",
+      "info": null,
+      "id": "grpc-attempt-timeout-idempotent",
+      "expect": {
+        "class": "deadline",
+        "breaker": "failure",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEADLINE_EXCEEDED",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": false,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "DEADLINE_EXCEEDED",
+      "info": null,
+      "id": "grpc-attempt-timeout-command",
+      "expect": {
+        "class": "deadline",
+        "breaker": "failure",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": {
+          "domain": "be",
+          "reason": "RESULT_UNKNOWN",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "DEADLINE_EXCEEDED",
+      "info": {
+        "domain": "be",
+        "reason": "DEADLINE_BUDGET_EXHAUSTED"
+      },
+      "id": "grpc-relayed-budget-exhausted",
+      "expect": {
+        "class": "relayed",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": false,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "DEADLINE_EXCEEDED",
+      "info": {
+        "domain": "be",
+        "reason": "RESULT_UNKNOWN"
+      },
+      "id": "grpc-relayed-result-unknown",
+      "expect": {
+        "class": "relayed",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "NOT_FOUND",
+      "info": {
+        "domain": "be",
+        "reason": "NOT_FOUND"
+      },
+      "id": "grpc-not-found",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "FAILED_PRECONDITION",
+      "info": {
+        "domain": "erp/inventory",
+        "reason": "STOCK_SHORT"
+      },
+      "id": "grpc-component-reason",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "RESOURCE_EXHAUSTED",
+      "info": {
+        "domain": "be",
+        "reason": "OUTBOUND_LIMIT"
+      },
+      "id": "grpc-outbound-limit",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "INTERNAL",
+      "info": {
+        "domain": "be",
+        "reason": "INTERNAL"
+      },
+      "id": "grpc-internal",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "grpc",
+      "code": "CANCELLED",
+      "info": null,
+      "caller_cancelled": true,
+      "id": "grpc-caller-cancelled",
+      "expect": {
+        "class": "cancelled",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": {
+          "domain": "be",
+          "reason": "REQUEST_CANCELLED"
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 200,
+      "problem": null,
+      "id": "http-ok",
+      "expect": {
+        "class": "success",
+        "breaker": "success",
+        "budget": "success",
+        "retry_outcome": "NONE",
+        "upward": null
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 503,
+      "problem": {
+        "domain": "be",
+        "reason": "SERVICE_BUSY"
+      },
+      "id": "http-service-busy",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 503,
+      "problem": {
+        "domain": "be",
+        "reason": "OUTBOUND_LIMIT"
+      },
+      "id": "http-outbound-limit-is-not-unavailable",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 503,
+      "problem": {
+        "domain": "be",
+        "reason": "DEPENDENCY_UNAVAILABLE"
+      },
+      "id": "http-relayed-dependency-unavailable",
+      "expect": {
+        "class": "relayed",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 503,
+      "problem": null,
+      "id": "http-503-without-problem",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 502,
+      "problem": null,
+      "id": "http-502-without-problem",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 504,
+      "problem": null,
+      "id": "http-504-without-problem",
+      "expect": {
+        "class": "deadline",
+        "breaker": "failure",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEADLINE_EXCEEDED",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 409,
+      "problem": {
+        "domain": "erp/sales",
+        "reason": "ORDER_LOCKED"
+      },
+      "id": "http-component-conflict",
+      "expect": {
+        "class": "other",
+        "breaker": "ignored",
+        "budget": "other",
+        "retry_outcome": "NONE",
+        "upward": "unchanged"
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": 503,
+      "problem": {
+        "domain": "erp/inventory",
+        "reason": "MAINTENANCE"
+      },
+      "id": "http-component-unavailable",
+      "expect": {
+        "class": "unavailable",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "UNAVAILABLE",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    },
+    {
+      "idempotent": true,
+      "dependency": "erp/inventory",
+      "surface": "http",
+      "status": null,
+      "problem": null,
+      "connect_failed": true,
+      "id": "http-connect-failed",
+      "expect": {
+        "class": "connect_failed",
+        "breaker": "failure",
+        "budget": "unavailable",
+        "retry_outcome": "CONNECT_FAILED_BEFORE_SEND",
+        "upward": {
+          "domain": "be",
+          "reason": "DEPENDENCY_UNAVAILABLE",
+          "metadata": {
+            "dependency": "erp/inventory"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,278 @@
+{
+  "topic": "jwt-verify",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P8.1",
+    "P8.3"
+  ],
+  "description": "用户访问凭据的核验。jwks 是签发方公布的公钥（第一项 kind=keys），now 是核验时刻（UNIX 秒），容许 60 秒时钟偏差；其余各项是一个凭据与期望：problem 为空表示合格，否则是第一个不合格的检查（format、alg、typ、kid、kid_unknown、signature、iss、aud、exp、nbf、iat、sub），对外一律答 TOKEN_INVALID。kid_unknown 表示刷新公钥之后仍不认识。每个用例只有一处缺陷。密钥只用于这些向量。",
+  "fields": {
+    "jwks、issuer、audience、now": "keys 项",
+    "token": "凭据",
+    "expect": "valid 与第一个不合格的检查"
+  },
+  "cases": [
+    {
+      "id": "keys",
+      "kind": "keys",
+      "jwks": {
+        "keys": [
+          {
+            "kty": "RSA",
+            "kid": "rsa-1",
+            "use": "sig",
+            "alg": "RS256",
+            "n": "3wR-PDaYDtfN4CMzRS4Xdoc9JB39azmE3nLmOZbULwbBPKo9Cm5EnTxrJ03XPEAtt9quX-8axBJ8RkglqRg_F4N9N58DV8oy0IUNTt6cYRsTVCoxQKIiJTXR8s3ASchTSkbqBaEIAbvsPIz9EUHi2S_o5QqQURO7RJOqH1HYzuco9TP76xWASu_EiN9r7X8ur5eaDfQAlat4-U5CXicmtTSYXDAlpac9yLxV7E5JjpBq2ngS9EamT5peHZI19XAMgqV1RD32r4DRrbkoRB6QjxORpwiF3q1puoG90ycpLquoYf1YQyWFSowWZJuT_93Iv6kRg9oylKbsZbTYDDAIXQ",
+            "e": "AQAB"
+          },
+          {
+            "kty": "EC",
+            "kid": "ec-1",
+            "use": "sig",
+            "alg": "ES256",
+            "crv": "P-256",
+            "x": "cNfRhVAqHiXZdJm5-phxBBsHRVNo__SUin6Klzy0Dp8",
+            "y": "bPEn1s9NbU3Le0ozDnuZW3YVJaYu1MkRmZ3g1ajwvxM"
+          },
+          {
+            "kty": "OKP",
+            "kid": "ed-1",
+            "use": "sig",
+            "alg": "EdDSA",
+            "crv": "Ed25519",
+            "x": "kgB9QKaQ6gExEqoDDaqw4Aq9yeWER0BcY4ZSb7mD5gU"
+          }
+        ]
+      },
+      "issuer": "https://iam.example.test/",
+      "audience": "be:deployment:0190f3a1-0000-7000-8000-00000000d001",
+      "now": 1792200000,
+      "skew_seconds": 60
+    },
+    {
+      "id": "valid-rs256",
+      "kind": "token",
+      "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZCI6InJzYS0xIn0.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.alb2u_De-22uStN-G3vC3lcQ7GaH_gAmrfzFkz0Yk2LJAEYFcw_YLxFEivQAmDIf0O1CTKoRXt7yNoiaJen6hEsWdJ__JibzXOJXKtHmJDdPNJdcDBsafTLiBLKh4jsI3jusYFQ3JOgdirqprSh8yZasvZi6LvAyFZtJqLnuvow8V3artpIGQz42pL3dVaH8ElgHa_vXBB08N9-eYym5NZQa6cLYWrSLkkEkGFPYKcW4Q2BqO7yUR8hEqKzfWLKcY7iu-q1XoO4ugDuMozmMuoV2jo_JbRNuj7o7Sq1BUzP50qO34GvHspl5L2FWHeRTW1vhwCaJwA4HM_wYUP9GWw",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "valid-es256",
+      "kind": "token",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVjLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.2Yz8UAZJKaTHxzQDxUiIyflMzkzybG4ro9jblisvUQJT_CHe_WHyVw6ajc5p5JlzdwSQPclxlS-zmu9LujOTWA",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "valid-eddsa",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.7bLgLcDNU3KiqrFUIJfwNU-A53AkiArkwZCMplJSp70JIqPu1fBkDbDTuV2NkwyQYSv0t4LW9BoasuPXq9tnBQ",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "audience-in-array",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjpbIm90aGVyIiwiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiXSwic3ViIjoiMDE5MGYzYTEtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMGExIiwiaWF0IjoxNzkyMTk5OTcwLCJleHAiOjE3OTIyMDA2MDAsImp0aSI6InQxIn0.eH5DzcKhzywfo8I2mvnvCXFNZOJrMv2T13tyKc-onPEWLg5_FtblHwuMPZflDWZWh4zIYwcGjcjcqPtlT5kqDQ",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "roles-claim-ignored",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEiLCJyb2xlcyI6WyJhZG1pbiJdLCJkZXB0Ijoib3JnMSJ9.QrcGKUf3ZmIYbnLI89BcH0Ynr-oak-QAodnhCnUkD3BpyZVUZBcjLZKgObgIdKj0RzbQCRQbC608aEEfe2cfCQ",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "expired-within-skew",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjE5OTk3MCwianRpIjoidDEifQ.fwSoT3Zlu-XeCtvmkhEgy-UeQHwtE6UUiOs0Caw0ZjVOYgGPyUK0Dm0UQU_BuKYo7GlziP3wsEiVOVpMTqKYCA",
+      "expect": {
+        "valid": true,
+        "problem": ""
+      }
+    },
+    {
+      "id": "expired",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjE5OTkzOSwianRpIjoidDEifQ.ustjtV7OdSj79fE8e5I3hgdjOcnDqBLIXFXk5H1g6w5_TKdRy3IfyHv3A2m6hX17AGWjSDx6EuEDjWNylznfBA",
+      "expect": {
+        "valid": false,
+        "problem": "exp"
+      }
+    },
+    {
+      "id": "no-exp",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImp0aSI6InQxIn0.tmwuFUSZg_zfE3vo2CQMsPB7rcIjytiu9sKjpjoIqHPWm6hjD6c6Toz4k3rzGQGu4vbwNFlSNqRJO-f3XXbkAg",
+      "expect": {
+        "valid": false,
+        "problem": "exp"
+      }
+    },
+    {
+      "id": "not-yet-valid",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEiLCJuYmYiOjE3OTIyMDAwNjF9.JieDKfNXtFShhh9WtvsDNg_Ept-OROMQZdIfaGiRGVSU76xGiyhDAjo48X-d0l9uykBptLn1UvPEMzYU-yEuBQ",
+      "expect": {
+        "valid": false,
+        "problem": "nbf"
+      }
+    },
+    {
+      "id": "issued-in-the-future",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIyMDAwNjEsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.QIvNd9OTdWlsf3YmUzPBLfnm-LlMBjomiaieQ_N4GITb1Tk0uamxNGA0v6lqjEfsumUpcw2T1dahuXv2ef97CA",
+      "expect": {
+        "valid": false,
+        "problem": "iat"
+      }
+    },
+    {
+      "id": "alg-none",
+      "kind": "token",
+      "token": "eyJhbGciOiJub25lIiwidHlwIjoiYXQrand0Iiwia2lkIjoiZWQtMSJ9.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.",
+      "expect": {
+        "valid": false,
+        "problem": "alg"
+      }
+    },
+    {
+      "id": "hs256-with-public-key",
+      "kind": "token",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZCI6InJzYS0xIn0.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.EG2Rv5aFgFk3cl9VmLuAodtMw_u7k6xVF7x1lR6I17c",
+      "expect": {
+        "valid": false,
+        "problem": "alg"
+      }
+    },
+    {
+      "id": "alg-does-not-match-key",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVjLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.54sxlb1LXMI3fz_eisN3Z6lYjrr9cayOucLNjkUWnisGrVUHfVNFrLaucVzaRv5fJnXAWRT7FZG6NOB5dNszDQ",
+      "expect": {
+        "valid": false,
+        "problem": "alg"
+      }
+    },
+    {
+      "id": "typ-jwt",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.1GWjuIdnUuAInqGB06oFq7ewPHTgjhEZilts4VoyBwQVCvr1ni0IjvUbGFky3AVTRMCUzcRW3v0CM-t-WD3JBA",
+      "expect": {
+        "valid": false,
+        "problem": "typ"
+      }
+    },
+    {
+      "id": "typ-missing",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.tR_XDrz0PWEVL_yDYqFwQHEI8GMz9oZiwNw6XUxYrkL3Dj9623JBPVe6IZMGNk8FkX7xHKz2D_A7OsI2FZ1UBA",
+      "expect": {
+        "valid": false,
+        "problem": "typ"
+      }
+    },
+    {
+      "id": "kid-missing",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCJ9.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.NFyxk2qkAyWaYCdSSespQ8nGplowWSMSlq9EBqRC0lZb5gSpY_H24qB9CwDmlb1uI2u2rfdjqy9EgFzzpp-AAA",
+      "expect": {
+        "valid": false,
+        "problem": "kid"
+      }
+    },
+    {
+      "id": "kid-unknown",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTkifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.9Fn5rMv_713212sXc-gd16bxm_0ZBWAUs1G981AmdxKxge6Sv1WoJ_GGhjx375XIdPqS3Z7yOa5RvM2sg6k9AQ",
+      "expect": {
+        "valid": false,
+        "problem": "kid_unknown"
+      }
+    },
+    {
+      "id": "wrong-issuer",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2V2aWwuZXhhbXBsZS50ZXN0LyIsImF1ZCI6ImJlOmRlcGxveW1lbnQ6MDE5MGYzYTEtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDBkMDAxIiwic3ViIjoiMDE5MGYzYTEtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMGExIiwiaWF0IjoxNzkyMTk5OTcwLCJleHAiOjE3OTIyMDA2MDAsImp0aSI6InQxIn0.ogUWvmIOaVC-5xFxx9b7NlV7H-Bivy7JnYVzeodzYPXxOMQhtUrE38raCS6uceudtKgLkkgsyA_elTCJUXtLAg",
+      "expect": {
+        "valid": false,
+        "problem": "iss"
+      }
+    },
+    {
+      "id": "wrong-audience",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDpvdGhlciIsInN1YiI6IjAxOTBmM2ExLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDBhMSIsImlhdCI6MTc5MjE5OTk3MCwiZXhwIjoxNzkyMjAwNjAwLCJqdGkiOiJ0MSJ9.nNbFil4Fup32NzkEpwEcVd6h8LrjOAg2HWDMVIj0EoFaMVzrMTpARLU-D2gdvh98mp3EK-tqPJiNSl9FKGsACg",
+      "expect": {
+        "valid": false,
+        "problem": "aud"
+      }
+    },
+    {
+      "id": "no-audience",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwic3ViIjoiMDE5MGYzYTEtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMGExIiwiaWF0IjoxNzkyMTk5OTcwLCJleHAiOjE3OTIyMDA2MDAsImp0aSI6InQxIn0.1vQlm-V3uq6fEL42gVFdqjvMXdetWI-sjnDF_g3Pd0-28I5arKDQ1lzxy043QKab_BS3VNG9Z7ns1dbfRAM0Aw",
+      "expect": {
+        "valid": false,
+        "problem": "aud"
+      }
+    },
+    {
+      "id": "subject-not-uuid",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiJhbGljZUBleGFtcGxlLnRlc3QiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.tCj-OEkHYT-iDgez2ehi3afF8YRVmrHWbz8ffdxEFHfgSBTOnh1TTDbK6Qu47MH78ilbKNeDZDnvMHVvRpEpAw",
+      "expect": {
+        "valid": false,
+        "problem": "sub"
+      }
+    },
+    {
+      "id": "subject-upper-case",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwRjNBMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwQTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.Zc7vysb-X-2s9m3GapnCHvVqkKH21l-Iz5s0kU0Z-WEJWLQqPvW058v9Gn7BuqBEm3MEgg3azBRgqj4tIqqzDg",
+      "expect": {
+        "valid": false,
+        "problem": "sub"
+      }
+    },
+    {
+      "id": "tampered-payload",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTIiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.7bLgLcDNU3KiqrFUIJfwNU-A53AkiArkwZCMplJSp70JIqPu1fBkDbDTuV2NkwyQYSv0t4LW9BoasuPXq9tnBQ",
+      "expect": {
+        "valid": false,
+        "problem": "signature"
+      }
+    },
+    {
+      "id": "signed-by-another-key",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ.yAIId7XIZ2gr43zEdaNW7hD4Ff6KFHjN0bwOmwHoxvnEo3tomlRZV-eyUugzM68NLnQfQvB7mhpJaM85qwzWDA",
+      "expect": {
+        "valid": false,
+        "problem": "signature"
+      }
+    },
+    {
+      "id": "two-parts",
+      "kind": "token",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCIsImtpZCI6ImVkLTEifQ.eyJpc3MiOiJodHRwczovL2lhbS5leGFtcGxlLnRlc3QvIiwiYXVkIjoiYmU6ZGVwbG95bWVudDowMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMGQwMDEiLCJzdWIiOiIwMTkwZjNhMS0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpYXQiOjE3OTIxOTk5NzAsImV4cCI6MTc5MjIwMDYwMCwianRpIjoidDEifQ",
+      "expect": {
+        "valid": false,
+        "problem": "format"
+      }
+    }
+  ]
+}

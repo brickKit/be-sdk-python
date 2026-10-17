@@ -1,0 +1,174 @@
+{
+  "topic": "retry-decision",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P4.6",
+    "P4.7"
+  ],
+  "description": "一次尝试失败后是否再试。没有 kind 的项：给出方法是否幂等、这次的结果、已做的尝试次数（含刚失败的这次）、预算是否允许、退避之后的剩余毫秒，期望 retry 或 stop。kind=backoff：失败 n 次后退避的上限（实际退避在 [0, 上限] 内随机）。",
+  "fields": {
+    "idempotent": "契约是否声明无副作用或幂等",
+    "outcome": "这次尝试的结果（gRPC 码名，或 CONNECT_FAILED_BEFORE_SEND）",
+    "attempts_made": "已做的尝试次数",
+    "budget_allows": "重试预算是否允许（P4.8）",
+    "remaining_ms_after_backoff": "退避之后的剩余毫秒，null 为没有",
+    "expect": "retry | stop",
+    "failed_attempts": "已失败的次数",
+    "max_backoff_ms": "退避上限"
+  },
+  "cases": [
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "unavailable-first-failure",
+      "expect": "retry"
+    },
+    {
+      "idempotent": true,
+      "outcome": "CONNECT_FAILED_BEFORE_SEND",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "connect-failed-before-send",
+      "expect": "retry"
+    },
+    {
+      "idempotent": false,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "not-idempotent",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "DEADLINE_EXCEEDED",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "deadline-exceeded",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "RESOURCE_EXHAUSTED",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "resource-exhausted",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "FAILED_PRECONDITION",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "business-error",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "INTERNAL",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "internal",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 2,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "second-failure",
+      "expect": "retry"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 3,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 5000,
+      "id": "third-failure-is-last",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": false,
+      "remaining_ms_after_backoff": 5000,
+      "id": "budget-exhausted",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 49,
+      "id": "no-time-after-backoff",
+      "expect": "stop"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": 50,
+      "id": "just-enough-time",
+      "expect": "retry"
+    },
+    {
+      "idempotent": true,
+      "outcome": "UNAVAILABLE",
+      "attempts_made": 1,
+      "budget_allows": true,
+      "remaining_ms_after_backoff": null,
+      "id": "deadline-gone",
+      "expect": "stop"
+    },
+    {
+      "id": "backoff-cap-after-1",
+      "kind": "backoff",
+      "failed_attempts": 1,
+      "max_backoff_ms": 100
+    },
+    {
+      "id": "backoff-cap-after-2",
+      "kind": "backoff",
+      "failed_attempts": 2,
+      "max_backoff_ms": 200
+    },
+    {
+      "id": "backoff-cap-after-3",
+      "kind": "backoff",
+      "failed_attempts": 3,
+      "max_backoff_ms": 400
+    },
+    {
+      "id": "backoff-cap-after-4",
+      "kind": "backoff",
+      "failed_attempts": 4,
+      "max_backoff_ms": 800
+    },
+    {
+      "id": "backoff-cap-after-5",
+      "kind": "backoff",
+      "failed_attempts": 5,
+      "max_backoff_ms": 1000
+    },
+    {
+      "id": "backoff-cap-after-6",
+      "kind": "backoff",
+      "failed_attempts": 6,
+      "max_backoff_ms": 1000
+    }
+  ]
+}

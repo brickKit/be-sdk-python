@@ -1,0 +1,189 @@
+{
+  "topic": "search",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P9.6",
+    "P9.7"
+  ],
+  "description": "列表内搜索的规范化（版本 1）：一个字段值折叠为 NFKC、小写、去掉控制与格式字符（Unicode 类别 Cc、Cf）；全拼把每个汉字换成 data/pinyin.tsv 中的读音（每字首选读音、无声调），其他字符不变；首字母取读音的首字母。搜索列 = 各字段的（折叠原文、全拼、首字母）依次用 U+001F 连接。查询 q 同样折叠并去掉首尾空白，为空即没有条件；匹配 = q 是搜索列中某一段的子串（不跨段），% 与 _ 按字面。kind=text 给出搜索列，query 给出规范化的 q，match 给出是否匹配。",
+  "fields": {
+    "values": "组成搜索列的字段值",
+    "q": "查询",
+    "expect": "搜索列文本、规范化的 q，或是否匹配"
+  },
+  "cases": [
+    {
+      "id": "text-chinese",
+      "kind": "text",
+      "values": [
+        "中国银行"
+      ],
+      "expect": "中国银行\u001fzhongguoyinxing\u001fzgyx"
+    },
+    {
+      "id": "text-mixed",
+      "kind": "text",
+      "values": [
+        "ERP系统 v2"
+      ],
+      "expect": "erp系统 v2\u001ferpxitong v2\u001ferpxt v2"
+    },
+    {
+      "id": "text-full-width",
+      "kind": "text",
+      "values": [
+        "ＡＢＣ１２３"
+      ],
+      "expect": "abc123\u001fabc123\u001fabc123"
+    },
+    {
+      "id": "text-polyphonic-first-reading",
+      "kind": "text",
+      "values": [
+        "重庆",
+        "乐行"
+      ],
+      "expect": "重庆\u001fzhongqing\u001fzq\u001f乐行\u001flexing\u001flx"
+    },
+    {
+      "id": "text-several-fields",
+      "kind": "text",
+      "values": [
+        "上海",
+        "Acme 有限公司"
+      ],
+      "expect": "上海\u001fshanghai\u001fsh\u001facme 有限公司\u001facme youxiangongsi\u001facme yxgs"
+    },
+    {
+      "id": "text-controls-dropped",
+      "kind": "text",
+      "values": [
+        "a\tb\u0001c"
+      ],
+      "expect": "abc\u001fabc\u001fabc"
+    },
+    {
+      "id": "query-blank",
+      "kind": "query",
+      "q": "  ",
+      "expect": ""
+    },
+    {
+      "id": "query-upper",
+      "kind": "query",
+      "q": "ZhongGuo",
+      "expect": "zhongguo"
+    },
+    {
+      "id": "query-full-width",
+      "kind": "query",
+      "q": "ＺＧ",
+      "expect": "zg"
+    },
+    {
+      "id": "query-literal-percent",
+      "kind": "query",
+      "q": "50%_off",
+      "expect": "50%_off"
+    },
+    {
+      "id": "match-by-han",
+      "kind": "match",
+      "values": [
+        "中国银行"
+      ],
+      "q": "银行",
+      "expect": true
+    },
+    {
+      "id": "match-by-full-pinyin",
+      "kind": "match",
+      "values": [
+        "中国银行"
+      ],
+      "q": "zhongguo",
+      "expect": true
+    },
+    {
+      "id": "match-by-initials",
+      "kind": "match",
+      "values": [
+        "中国银行"
+      ],
+      "q": "zgyx",
+      "expect": true
+    },
+    {
+      "id": "match-polyphone-takes-the-first-reading",
+      "kind": "match",
+      "values": [
+        "中国银行"
+      ],
+      "q": "zgyh",
+      "expect": false
+    },
+    {
+      "id": "match-by-latin",
+      "kind": "match",
+      "values": [
+        "ERP系统"
+      ],
+      "q": "erp",
+      "expect": true
+    },
+    {
+      "id": "match-no-match-across-parts",
+      "kind": "match",
+      "values": [
+        "中国银行"
+      ],
+      "q": "zhonggyh",
+      "expect": false
+    },
+    {
+      "id": "match-blank-matches-all",
+      "kind": "match",
+      "values": [
+        "x"
+      ],
+      "q": " ",
+      "expect": true
+    },
+    {
+      "id": "match-percent-is-literal",
+      "kind": "match",
+      "values": [
+        "100% cotton"
+      ],
+      "q": "100%",
+      "expect": true
+    },
+    {
+      "id": "match-percent-not-wildcard",
+      "kind": "match",
+      "values": [
+        "100 cotton"
+      ],
+      "q": "100%",
+      "expect": false
+    },
+    {
+      "id": "match-underscore-literal",
+      "kind": "match",
+      "values": [
+        "a_b"
+      ],
+      "q": "a_b",
+      "expect": true
+    },
+    {
+      "id": "match-underscore-not-wildcard",
+      "kind": "match",
+      "values": [
+        "axb"
+      ],
+      "q": "a_b",
+      "expect": false
+    }
+  ]
+}

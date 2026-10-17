@@ -1,0 +1,4258 @@
+{
+  "topic": "circuit-breaker",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P4.11",
+    "P4.12",
+    "P4.13",
+    "P4.14"
+  ],
+  "description": "熔断器的状态转换。steps 依次执行：kind=start 是一次要发出的调用（expect 为 sent 或 rejected），kind=end 是这次调用的结果（outcome 为 success、failure 或 ignored，ignored 表示不计入的结果，如业务错误）；expect_state 是这一步之后的状态。",
+  "fields": {
+    "steps[].at_ms": "这一步的时刻（毫秒，单调时钟）",
+    "steps[].kind": "start | end",
+    "steps[].call": "调用的标识",
+    "steps[].outcome": "success | failure | ignored",
+    "steps[].expect": "sent | rejected",
+    "steps[].expect_state": "closed | open | half_open"
+  },
+  "cases": [
+    {
+      "id": "ten-of-twenty-stays-closed",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "success",
+          "expect_state": "closed"
+        }
+      ]
+    },
+    {
+      "id": "eleven-of-twenty-opens",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "success",
+          "expect_state": "open"
+        }
+      ]
+    },
+    {
+      "id": "nineteen-failures-not-yet-full",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        }
+      ]
+    },
+    {
+      "id": "ignored-results-do-not-count",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "ignored",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c20",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c20",
+          "outcome": "ignored",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c21",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c21",
+          "outcome": "ignored",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c22",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c22",
+          "outcome": "ignored",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c23",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c23",
+          "outcome": "ignored",
+          "expect_state": "closed"
+        }
+      ]
+    },
+    {
+      "id": "sliding-window",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c20",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c20",
+          "outcome": "failure",
+          "expect_state": "open"
+        }
+      ]
+    },
+    {
+      "id": "open-rejects-before-cooldown",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 29999,
+          "kind": "start",
+          "call": "x",
+          "expect": "rejected",
+          "expect_state": "open"
+        }
+      ]
+    },
+    {
+      "id": "half-open-after-cooldown-one-trial",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "t2",
+          "expect": "rejected",
+          "expect_state": "half_open"
+        }
+      ]
+    },
+    {
+      "id": "three-trial-successes-close",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t0",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t0",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t1",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t2",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t2",
+          "outcome": "success",
+          "expect_state": "closed"
+        }
+      ]
+    },
+    {
+      "id": "two-trial-successes-stay-half-open",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t0",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t0",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t1",
+          "outcome": "success",
+          "expect_state": "half_open"
+        }
+      ]
+    },
+    {
+      "id": "trial-failure-reopens-and-restarts-timer",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t0",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t0",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t1",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 59999,
+          "kind": "start",
+          "call": "y",
+          "expect": "rejected",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 60000,
+          "kind": "start",
+          "call": "z",
+          "expect": "sent",
+          "expect_state": "half_open"
+        }
+      ]
+    },
+    {
+      "id": "ignored-trial-frees-the-slot",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "t1",
+          "outcome": "ignored",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30002,
+          "kind": "start",
+          "call": "t2",
+          "expect": "sent",
+          "expect_state": "half_open"
+        }
+      ]
+    },
+    {
+      "id": "late-result-while-open-is-dropped",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "slow",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 100,
+          "kind": "end",
+          "call": "slow",
+          "outcome": "success",
+          "expect_state": "open"
+        }
+      ]
+    },
+    {
+      "id": "closed-again-starts-empty",
+      "steps": [
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "start",
+          "call": "c19",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 0,
+          "kind": "end",
+          "call": "c19",
+          "outcome": "failure",
+          "expect_state": "open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t0",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t0",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t1",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t1",
+          "outcome": "success",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "start",
+          "call": "t2",
+          "expect": "sent",
+          "expect_state": "half_open"
+        },
+        {
+          "at_ms": 30000,
+          "kind": "end",
+          "call": "t2",
+          "outcome": "success",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d0",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d0",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d1",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d1",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d2",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d2",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d3",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d3",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d4",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d4",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d5",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d5",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d6",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d6",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d7",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d7",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d8",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d8",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d9",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d9",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d10",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d10",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d11",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d11",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d12",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d12",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d13",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d13",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d14",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d14",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d15",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d15",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d16",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d16",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d17",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d17",
+          "outcome": "failure",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "start",
+          "call": "d18",
+          "expect": "sent",
+          "expect_state": "closed"
+        },
+        {
+          "at_ms": 30001,
+          "kind": "end",
+          "call": "d18",
+          "outcome": "failure",
+          "expect_state": "closed"
+        }
+      ]
+    }
+  ]
+}

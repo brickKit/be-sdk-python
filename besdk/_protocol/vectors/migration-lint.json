@@ -1,0 +1,143 @@
+{
+  "topic": "migration-lint",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P5.13"
+  ],
+  "description": "迁移文件与迁移入口检查的拒绝项。语句按顶层分号切分；注释、字符串字面量与美元引号包起来的正文不单独算语句；含点号的双引号标识符是一个名字。文件按名字排序检查，语句按文件中的顺序，同一语句内按下面规则列出的顺序。不以 .sql 结尾的文件忽略。规则：NAME: 文件名不是 <版本>_<小写下划线标题>.up.sql；DOWN: 回退迁移（生产只向前）；DUP_VERSION: 两个文件版本相同；SET: 语句以 SET 或 RESET 开头；TX_CONTROL: 语句以 BEGIN、START TRANSACTION、COMMIT、END、ROLLBACK、SAVEPOINT 或 RELEASE 开头；GRANT: 语句以 GRANT、REVOKE 或 REASSIGN 开头；ROLE_SCHEMA: CREATE、ALTER 或 DROP 一个 ROLE、USER、GROUP 或 SCHEMA；DEFAULT_PRIVILEGES: ALTER DEFAULT PRIVILEGES；DROP_OWNED: DROP OWNED；OWNER: 语句中任何位置的 OWNER TO；CONCURRENTLY: 语句中任何位置的 CONCURRENTLY（不能在文件的事务中执行）；SCHEMA_NAME: 用组件自己的 schema 名限定名字（<schema>. 或带双引号的 \"<schema>\".）。",
+  "fields": {
+    "schema": "组件的 schema",
+    "files": "文件名到内容",
+    "refused": "按顺序期望的拒绝项：文件与规则"
+  },
+  "cases": [
+    {
+      "id": "plain-structure",
+      "schema": "sales",
+      "files": {
+        "0001_orders.up.sql": "CREATE TABLE orders (id uuid PRIMARY KEY, status text NOT NULL);\nALTER TABLE orders ALTER COLUMN status SET DEFAULT 'draft';\nCREATE INDEX orders_status ON orders (status);"
+      },
+      "refused": []
+    },
+    {
+      "id": "comments-and-literals-ignored",
+      "schema": "sales",
+      "files": {
+        "0001_a.up.sql": "-- SET search_path = x;\n/* GRANT ALL */ CREATE TABLE a (note text DEFAULT 'COMMIT; SET x');\nALTER TABLE a ADD COLUMN \"sales.x\" int;"
+      },
+      "refused": []
+    },
+    {
+      "id": "function-body-is-one-statement",
+      "schema": "sales",
+      "files": {
+        "0001_f.up.sql": "CREATE FUNCTION f() RETURNS void LANGUAGE plpgsql AS $body$\nBEGIN\n  SET LOCAL lock_timeout = '1s';\n  PERFORM 1;\nEND $body$;"
+      },
+      "refused": []
+    },
+    {
+      "id": "session-and-transaction-control",
+      "schema": "sales",
+      "files": {
+        "0001_a.up.sql": "SET search_path = public;\nBEGIN;\nCREATE TABLE a (id int);\nCOMMIT;\nreset all;"
+      },
+      "refused": [
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SET"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "TX_CONTROL"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "TX_CONTROL"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SET"
+        }
+      ]
+    },
+    {
+      "id": "provisioning-statements",
+      "schema": "sales",
+      "files": {
+        "0001_a.up.sql": "GRANT SELECT ON a TO x;\ncreate role r;\nDROP SCHEMA s;\nALTER DEFAULT PRIVILEGES GRANT SELECT ON TABLES TO x;\nDROP OWNED BY x;\nALTER TABLE a OWNER TO y;"
+      },
+      "refused": [
+        {
+          "file": "0001_a.up.sql",
+          "rule": "GRANT"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "ROLE_SCHEMA"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "ROLE_SCHEMA"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "DEFAULT_PRIVILEGES"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "DROP_OWNED"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "OWNER"
+        }
+      ]
+    },
+    {
+      "id": "concurrently-and-own-schema",
+      "schema": "sales",
+      "files": {
+        "0001_a.up.sql": "CREATE INDEX CONCURRENTLY i ON a (id);\nCREATE TABLE sales.b (id int);\nCREATE TABLE \"sales\".c (id int);\nCREATE TABLE wholesales.d (id int);"
+      },
+      "refused": [
+        {
+          "file": "0001_a.up.sql",
+          "rule": "CONCURRENTLY"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SCHEMA_NAME"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SCHEMA_NAME"
+        }
+      ]
+    },
+    {
+      "id": "file-names",
+      "schema": "sales",
+      "files": {
+        "0001_a.down.sql": "DROP TABLE a;",
+        "2_Bad-Name.up.sql": "SELECT 1;",
+        "0003_x.up.sql": "SELECT 1;",
+        "3_y.up.sql": "SELECT 1;",
+        "README.md": "not a migration"
+      },
+      "refused": [
+        {
+          "file": "0001_a.down.sql",
+          "rule": "DOWN"
+        },
+        {
+          "file": "2_Bad-Name.up.sql",
+          "rule": "NAME"
+        },
+        {
+          "file": "3_y.up.sql",
+          "rule": "DUP_VERSION"
+        }
+      ]
+    }
+  ]
+}

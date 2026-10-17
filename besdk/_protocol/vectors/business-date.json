@@ -1,0 +1,87 @@
+{
+  "topic": "business-date",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P5.29"
+  ],
+  "description": "业务日期：时刻 instant（UTC）在法人的 IANA 时区 tz 中的本地日期（YYYY-MM-DD）；“今天”就是当前时刻的业务日期。期望值由 zoneinfo 计算。",
+  "fields": {
+    "instant": "UTC 时刻",
+    "tz": "法人时区",
+    "date": "业务日期"
+  },
+  "cases": [
+    {
+      "id": "date-00",
+      "instant": "2026-10-17T23:30:00Z",
+      "tz": "Europe/Madrid",
+      "date": "2026-10-18"
+    },
+    {
+      "id": "date-01",
+      "instant": "2026-10-17T21:59:59Z",
+      "tz": "Europe/Madrid",
+      "date": "2026-10-17"
+    },
+    {
+      "id": "date-02",
+      "instant": "2026-10-17T22:00:00Z",
+      "tz": "Europe/Madrid",
+      "date": "2026-10-18"
+    },
+    {
+      "id": "date-03",
+      "instant": "2026-10-17T15:59:59Z",
+      "tz": "Asia/Shanghai",
+      "date": "2026-10-17"
+    },
+    {
+      "id": "date-04",
+      "instant": "2026-10-17T16:00:00Z",
+      "tz": "Asia/Shanghai",
+      "date": "2026-10-18"
+    },
+    {
+      "id": "date-05",
+      "instant": "2026-03-08T07:30:00Z",
+      "tz": "America/New_York",
+      "date": "2026-03-08"
+    },
+    {
+      "id": "date-06",
+      "instant": "2026-11-01T04:30:00Z",
+      "tz": "America/New_York",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "date-07",
+      "instant": "2026-11-01T05:30:00Z",
+      "tz": "America/New_York",
+      "date": "2026-11-01"
+    },
+    {
+      "id": "date-08",
+      "instant": "2026-12-31T10:00:00Z",
+      "tz": "Pacific/Kiritimati",
+      "date": "2027-01-01"
+    },
+    {
+      "id": "date-09",
+      "instant": "2026-01-01T10:59:59Z",
+      "tz": "Pacific/Pago_Pago",
+      "date": "2025-12-31"
+    },
+    {
+      "id": "date-10",
+      "instant": "2026-06-30T23:59:59Z",
+      "tz": "UTC",
+      "date": "2026-06-30"
+    },
+    {
+      "id": "date-11",
+      "instant": "2026-03-29T00:59:59Z",
+      "tz": "Europe/Madrid",
+      "date": "2026-03-29"
+    }
+  ]
+}

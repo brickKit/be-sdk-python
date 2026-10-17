@@ -1,0 +1,337 @@
+{
+  "topic": "config-parse",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P2.4",
+    "P2.5"
+  ],
+  "description": "配置值的严格解析。value 为 null 表示未设置；expect.value 是解析结果（duration 以毫秒表示），expect.error 是错误类别（missing、invalid、unknown_enum）。不合法的值不回退到缺省值。",
+  "fields": {
+    "type": "string | integer | boolean | duration | enum",
+    "value": "原始字符串或 null",
+    "required": "是否必填",
+    "default": "声明的缺省值",
+    "values": "enum 的取值",
+    "expect": "{value} 或 {error}"
+  },
+  "cases": [
+    {
+      "id": "string-plain",
+      "type": "string",
+      "value": "abc",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": "abc"
+      }
+    },
+    {
+      "id": "string-spaces-kept",
+      "type": "string",
+      "value": " a b ",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": " a b "
+      }
+    },
+    {
+      "id": "required-unset",
+      "type": "string",
+      "value": null,
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "missing"
+      }
+    },
+    {
+      "id": "required-empty",
+      "type": "string",
+      "value": "",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "missing"
+      }
+    },
+    {
+      "id": "optional-unset-default",
+      "type": "string",
+      "value": null,
+      "required": false,
+      "default": "x",
+      "expect": {
+        "value": "x"
+      }
+    },
+    {
+      "id": "optional-empty-default",
+      "type": "integer",
+      "value": "",
+      "required": false,
+      "default": 7,
+      "expect": {
+        "value": 7
+      }
+    },
+    {
+      "id": "int-zero",
+      "type": "integer",
+      "value": "0",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 0
+      }
+    },
+    {
+      "id": "int-negative",
+      "type": "integer",
+      "value": "-42",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": -42
+      }
+    },
+    {
+      "id": "int-plus",
+      "type": "integer",
+      "value": "+1",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "int-leading-zero",
+      "type": "integer",
+      "value": "007",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "int-space",
+      "type": "integer",
+      "value": " 1",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "int-minus-zero",
+      "type": "integer",
+      "value": "-0",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "int-invalid-not-default",
+      "type": "integer",
+      "value": "abc",
+      "required": false,
+      "default": 7,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "bool-true",
+      "type": "boolean",
+      "value": "true",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "bool-false",
+      "type": "boolean",
+      "value": "false",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "bool-upper",
+      "type": "boolean",
+      "value": "TRUE",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "bool-one",
+      "type": "boolean",
+      "value": "1",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "bool-yes",
+      "type": "boolean",
+      "value": "yes",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "dur-ms",
+      "type": "duration",
+      "value": "1500ms",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 1500
+      }
+    },
+    {
+      "id": "dur-s",
+      "type": "duration",
+      "value": "3s",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 3000
+      }
+    },
+    {
+      "id": "dur-m",
+      "type": "duration",
+      "value": "2m",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 120000
+      }
+    },
+    {
+      "id": "dur-h",
+      "type": "duration",
+      "value": "1h",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 3600000
+      }
+    },
+    {
+      "id": "dur-zero",
+      "type": "duration",
+      "value": "0s",
+      "required": true,
+      "default": null,
+      "expect": {
+        "value": 0
+      }
+    },
+    {
+      "id": "dur-fraction",
+      "type": "duration",
+      "value": "1.5s",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "dur-compound",
+      "type": "duration",
+      "value": "1m30s",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "dur-no-unit",
+      "type": "duration",
+      "value": "30",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "dur-us",
+      "type": "duration",
+      "value": "10us",
+      "required": true,
+      "default": null,
+      "expect": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "enum-ok",
+      "type": "enum",
+      "value": "warn",
+      "required": true,
+      "default": null,
+      "values": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "expect": {
+        "value": "warn"
+      }
+    },
+    {
+      "id": "enum-case",
+      "type": "enum",
+      "value": "WARN",
+      "required": true,
+      "default": null,
+      "values": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "expect": {
+        "error": "unknown_enum"
+      }
+    },
+    {
+      "id": "enum-unset-default",
+      "type": "enum",
+      "value": null,
+      "required": false,
+      "default": "info",
+      "values": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "expect": {
+        "value": "info"
+      }
+    }
+  ]
+}

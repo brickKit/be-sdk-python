@@ -1,0 +1,94 @@
+{
+  "topic": "db-errors",
+  "protocol": "3.0.0-alpha.1",
+  "rules": [
+    "P5.7",
+    "P5.8"
+  ],
+  "description": "到达事务入口的数据库错误：哪些重试（重做整个事务，最多 3 次尝试），最终答哪个 reason。sqlstate 为 connect 表示还没有 SQLSTATE 的连接失败。DEPENDENCY_UNAVAILABLE 带 metadata dependency=db。模块自己返回的错误原样传出。",
+  "fields": {
+    "sqlstate": "SQLSTATE，或 connect",
+    "reason": "domain 为 be 的 reason",
+    "retried": "是否在事务入口内重试",
+    "note": "说明"
+  },
+  "cases": [
+    {
+      "id": "db-40001",
+      "sqlstate": "40001",
+      "reason": "TX_CONFLICT",
+      "retried": true,
+      "note": "serialization failure; retried, then TX_CONFLICT"
+    },
+    {
+      "id": "db-40P01",
+      "sqlstate": "40P01",
+      "reason": "TX_CONFLICT",
+      "retried": true,
+      "note": "deadlock; retried, then TX_CONFLICT"
+    },
+    {
+      "id": "db-55P03",
+      "sqlstate": "55P03",
+      "reason": "LOCK_TIMEOUT",
+      "retried": false,
+      "note": "lock_timeout"
+    },
+    {
+      "id": "db-57014",
+      "sqlstate": "57014",
+      "reason": "STATEMENT_TIMEOUT",
+      "retried": false,
+      "note": "statement_timeout (query canceled)"
+    },
+    {
+      "id": "db-53300",
+      "sqlstate": "53300",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "retried": false,
+      "note": "too many connections"
+    },
+    {
+      "id": "db-57P01",
+      "sqlstate": "57P01",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "retried": false,
+      "note": "admin shutdown"
+    },
+    {
+      "id": "db-57P02",
+      "sqlstate": "57P02",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "retried": false,
+      "note": "crash shutdown"
+    },
+    {
+      "id": "db-57P03",
+      "sqlstate": "57P03",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "retried": false,
+      "note": "cannot connect now"
+    },
+    {
+      "id": "db-23505",
+      "sqlstate": "23505",
+      "reason": "INTERNAL",
+      "retried": false,
+      "note": "unique violation the module did not handle"
+    },
+    {
+      "id": "db-42P01",
+      "sqlstate": "42P01",
+      "reason": "INTERNAL",
+      "retried": false,
+      "note": "undefined table"
+    },
+    {
+      "id": "db-connect",
+      "sqlstate": "connect",
+      "reason": "DEPENDENCY_UNAVAILABLE",
+      "retried": false,
+      "note": "no connection could be made (not an SQLSTATE)"
+    }
+  ]
+}
