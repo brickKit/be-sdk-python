@@ -9,8 +9,8 @@ import random
 import time
 from typing import Any, Awaitable, Callable
 
+import aiohttp
 import grpc
-import httpx
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
 from besdk import errs, errwire, reqctx
@@ -115,8 +115,8 @@ class Dependency:
 class HTTP:
     """Calls one dependency's user surface; build it with Member.http."""
 
-    def __init__(self, dep: Dependency, base: str, client: httpx.AsyncClient):
-        self.dep, self.base, self._client = dep, base.rstrip("/"), client
+    def __init__(self, dep: Dependency, base: str, session: Callable[[], aiohttp.ClientSession]):
+        self.dep, self.base, self._session = dep, base.rstrip("/"), session
 
     async def do(self, method: str, path: str, body: Any = None, *, idempotent: bool = False,
                  idempotency_key: str = "", forward_user: bool = False) -> Any:
@@ -141,21 +141,22 @@ class HTTP:
                 headers["Authorization"] = auth
             PROPAGATOR.inject(headers)
             try:
-                resp = await self._client.request(method, self.base + path, content=content, headers=headers)
-            except httpx.ConnectError as e:
+                async with self._session().request(method, self.base + path, data=content, headers=headers) as resp:
+                    status, ctype, retry = resp.status, resp.headers.get("content-type", ""), resp.headers.get("retry-after", "")
+                    raw = (await resp.read())[:MAX_RESPONSE]
+            except aiohttp.ClientConnectorError as e:
                 return Result(err=e, code=errs.Code.UNAVAILABLE.value, connect_failed=True)
-            except httpx.TimeoutException as e:
+            except aiohttp.ServerTimeoutError as e:
                 return Result(err=e, code=errs.Code.DEADLINE_EXCEEDED.value)
-            except httpx.TransportError as e:
+            except aiohttp.ClientError as e:
                 return Result(err=e, code=errs.Code.UNAVAILABLE.value)
-            if resp.status_code < 300:
-                answer.append(resp.content[:MAX_RESPONSE])
+            if status < 300:
+                answer.append(raw)
                 return Result()
-            remote, code = errwire.from_http(resp.status_code, resp.headers.get("content-type", ""),
-                                             resp.headers.get("retry-after", ""), resp.content[:MAX_RESPONSE])
+            remote, code = errwire.from_http(status, ctype, retry, raw)
             if remote is not None:
                 return Result(err=remote, code=code, remote=remote)
-            return Result(err=RuntimeError(f"{self.dep.id} answered {resp.status_code}"), code=code)
+            return Result(err=RuntimeError(f"{self.dep.id} answered {status}"), code=code)
 
         await self.dep.do(idempotent or method in ("GET", "HEAD"), attempt)
         if answer and answer[-1]:
@@ -275,7 +276,7 @@ class Member:
     def __init__(self, registry: CollectorRegistry | None = None):
         self._metrics = _Metrics(registry)
         self._deps: dict[tuple[str, str], Dependency] = {}
-        self._client: httpx.AsyncClient | None = None
+        self._client: aiohttp.ClientSession | None = None
         self._channels: dict[tuple[str, str], _TLSChannel] = {}
         self.tls: Any = None  # the member's mTLS identity (besdk.identity.ServiceTLS)
 
@@ -290,10 +291,17 @@ class Member:
         return self._deps[key]
 
     def http(self, id: str, base: str) -> HTTP:
+        return HTTP(self.dependency(id, "http"), base, self._session)
+
+    def _session(self) -> aiohttp.ClientSession:
+        """The member's one HTTP client, made at its first request: aiohttp binds it to the running loop, and a
+        component may take its clients while it is being wired, before the loop runs."""
         if self._client is None:
-            self._client = httpx.AsyncClient(trust_env=False, timeout=None, limits=httpx.Limits(
-                max_connections=policy.OUTBOUND_LIMIT, keepalive_expiry=90))
-        return HTTP(self.dependency(id, "http"), base, self._client)
+            # each attempt's deadline is the call policy's (asyncio.timeout around it), so no client timeout of its own
+            self._client = aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(limit=policy.OUTBOUND_LIMIT, keepalive_timeout=90),
+                timeout=aiohttp.ClientTimeout(total=None), trust_env=False)
+        return self._client
 
     def grpc(self, id: str, target: str, options: list[tuple[str, Any]] | None = None) -> Any:
         """The member's channel to a dependency's system surface at target (host:port), over mTLS only: the client
@@ -308,6 +316,6 @@ class Member:
 
     async def close(self) -> None:
         if self._client is not None:
-            await self._client.aclose()
+            await self._client.close()
         await asyncio.gather(*(c.close() for c in self._channels.values()))
         self._channels.clear()
