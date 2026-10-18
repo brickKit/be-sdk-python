@@ -23,6 +23,7 @@ from besdk.obs import Logger
 MAX_MESSAGE = 1 << 20
 DEFAULT_POLL = 0.1
 ADVANCE_BATCH = 500
+GIVE_UP_EVERY = 5.0  # spaces the deletion of exhausted deliveries whose lease ran out; claims skip them meanwhile
 NOTIFY_CHANNEL = "be_bus_notify"
 FIRST_PURGE_AFTER, PURGE_EVERY = 60.0, 3600.0
 
@@ -115,21 +116,28 @@ class Transport:
         return not s.filters or any(subject_matches(f, subj) for f in s.filters)
 
     async def _work(self, s: SubscriptionSpec, h: Handler) -> None:
+        """Claims first and moves the read position only when nothing is due (P6.28): one advance queues a batch,
+        which the next claims take, so a message costs its claim and its outcome; advancing before every claim cost
+        a transaction of several round trips a message."""
+        loop = asyncio.get_running_loop()
+        gave_up = None
         while True:
             try:
-                moved = await self._advance(s)
+                if gave_up is None or loop.time() - gave_up >= GIVE_UP_EVERY:
+                    gave_up = loop.time()
+                    await self._give_up(s)
                 claimed = await self._claim(s)
+                if claimed is None:
+                    # the position moved: more may follow at once, so only an idle round waits (the queue is shared
+                    # by every stream, and waiting after each batch read past capped a subscription at batch/poll)
+                    if not await self._advance(s):
+                        await asyncio.sleep(self.poll)
+                    continue
             except asyncio.CancelledError:
                 raise
             except Exception as e:  # noqa: BLE001 - reported, then tried again
                 self._report(e)
                 await asyncio.sleep(self.poll)
-                continue
-            if claimed is None:
-                # the position moved: more may follow at once, so only an idle round waits (the queue is shared by
-                # every stream, and waiting after each batch read past capped a subscription at batch/poll a second)
-                if not moved:
-                    await asyncio.sleep(self.poll)
                 continue
             d, token = claimed
 
@@ -167,15 +175,18 @@ class Transport:
                 WHERE durable = $1""", s.durable, rows[-1]["x"], rows[-1]["seq"])
             return True
 
+    async def _give_up(self, s: SubscriptionSpec) -> None:
+        """Deletes exhausted deliveries whose lease ran out (their last attempt was never settled). It looks only at
+        in-flight rows (a partial index), so its cost does not grow with the backlog."""
+        await self.pool.execute(f"""DELETE FROM {self.t('be_bus_delivery')} WHERE durable = $1 AND in_flight
+            AND lease_until < clock_timestamp() AND attempts >= $2""", s.durable, s.max_deliver)
+
     async def _claim(self, s: SubscriptionSpec) -> tuple[Delivery, str] | None:
-        """One due delivery: ready and past its backoff, or in flight past its lease with deliveries left. Exhausted
-        deliveries whose lease expired are given up. The cost does not grow with the backlog: the give-up looks only
-        at in-flight rows (a partial index), and a delivery whose message the retention purge removed (P6.27; the
-        purge removes the deliveries with it, this covers one queued meanwhile) is dropped when it is claimed,
-        instead of every claim checking the whole backlog for such rows first."""
+        """One due delivery: ready and past its backoff, or in flight past its lease with deliveries left (an
+        exhausted one waits for _give_up). The cost does not grow with the backlog: a delivery whose message the
+        retention purge removed (P6.27; the purge removes the deliveries with it, this covers one queued meanwhile)
+        is dropped when it is claimed, instead of every claim checking the whole backlog for such rows first."""
         dlv, msg = self.t("be_bus_delivery"), self.t("be_bus_message")
-        await self.pool.execute(f"""DELETE FROM {dlv} WHERE durable = $1 AND in_flight AND lease_until < clock_timestamp()
-            AND attempts >= $2""", s.durable, s.max_deliver)
         token = uuid.uuid7()
         # two paths, each along its own index in position order, and the claimed row located by its key (P6.28): a
         # condition joined with OR, or a join to the chosen row, let the planner read the whole backlog when the
@@ -183,13 +194,13 @@ class Transport:
         r = await self.pool.fetchrow(f"""WITH ready AS (SELECT seq FROM {dlv} WHERE durable = $1 AND NOT in_flight
                     AND not_before <= clock_timestamp() ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED),
                 expired AS (SELECT seq FROM {dlv} WHERE durable = $1 AND in_flight AND lease_until < clock_timestamp()
-                    ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED),
+                    AND attempts < $4 ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED),
                 due AS (SELECT min(seq) AS seq FROM (SELECT seq FROM ready UNION ALL SELECT seq FROM expired) c),
             claimed AS (UPDATE {dlv} d SET in_flight = true, attempts = d.attempts + 1, lease_token = $2,
                 lease_until = clock_timestamp() + make_interval(secs => $3)
                 WHERE d.durable = $1 AND d.seq = (SELECT seq FROM due) RETURNING d.seq, d.attempts)
             SELECT c.seq, c.attempts, m.subject, m.headers, m.data FROM claimed c LEFT JOIN {msg} m ON m.seq = c.seq""",
-                                     s.durable, token, s.ack_wait)
+                                     s.durable, token, s.ack_wait, s.max_deliver)
         if r is None:
             return None
         if r["subject"] is None:  # its message is gone: nothing to deliver

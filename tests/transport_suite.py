@@ -137,6 +137,26 @@ async def max_deliver_stops_the_deliveries(tr, stream, subs):
     assert [d.attempt for d in rec.got] == [1, 2, 3]
 
 
+async def a_last_attempt_that_never_settles_is_not_delivered_again(tr, stream, subs):  # P6.20
+    # the third delivery's handler never answers, so its lease runs out; a second worker is free to claim, and it
+    # must not take the exhausted delivery again (even before any cleanup of exhausted deliveries runs)
+    rec = Recorder()
+
+    async def h(d):
+        rec.got.append(d)
+        if d.attempt < 3:
+            return Outcome.NAK
+        await asyncio.Event().wait()  # never settles while the case runs (cancelled when the subscription stops)
+
+    s = spec(stream, "stuck")
+    s.concurrency = 2
+    subs.append(await tr.subscribe(s, h))
+    await tr.publish(msg(stream, 0, "demo.thing_happened.v1", "stuck"))
+    await eventually(10, lambda: len(rec.got) == 3, "three deliveries")
+    await asyncio.sleep(2 * ACK_WAIT + 1)
+    assert len(rec.got) == 3, f"{len(rec.got)} deliveries, the limit is 3"
+
+
 async def term_ends_the_deliveries_at_once(tr, stream, subs):
     rec = Recorder()
     subs.append(await tr.subscribe(spec(stream, "term"), ack_into(rec, Outcome.TERM)))
@@ -243,7 +263,7 @@ CASES = [offline_consumer_receives_what_was_published_meanwhile, instances_of_on
          an_acknowledged_message_is_never_delivered_again, a_nak_is_redelivered_after_the_backoff,
          an_unacknowledged_message_is_redelivered_after_the_ack_wait,
          in_progress_keeps_a_slow_message_from_being_redelivered, max_deliver_stops_the_deliveries,
-         term_ends_the_deliveries_at_once, creating_a_durable_again_keeps_its_settings,
+         a_last_attempt_that_never_settles_is_not_delivered_again, term_ends_the_deliveries_at_once, creating_a_durable_again_keeps_its_settings,
          headers_and_payload_round_trip_unchanged, a_message_over_the_limit_fails_to_publish,
          the_same_message_id_is_delivered_once, two_durables_each_receive_a_copy, filters_select_subjects,
          a_subscriber_may_start_before_any_producer, notifications_are_neither_stored_nor_redelivered]
