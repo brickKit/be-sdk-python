@@ -52,6 +52,19 @@ class Runtime:
         ep = self.dependency_port(component_id, "grpc")
         return None if ep is None or self.outbound is None else self.outbound.grpc(component_id, ep.host)
 
+    def http_at(self, component_id: str, address: str) -> Any:
+        """The client for a component's user surface at an address the configuration gives (a $endpoint: reference,
+        protocol P4.26): the same call policy as a dependency's, counted per component ID. None: no address."""
+        return None if not address or self.outbound is None else self.outbound.http(component_id, address)
+
+    def grpc_at(self, component_id: str, address: str) -> Any:
+        """The channel to a component's system surface at an address the configuration gives (http://host:port as
+        $endpoint:<id>:grpc derives it, or host:port; protocol P4.26), over mTLS like any system call. None: no
+        address."""
+        if not address or self.outbound is None:
+            return None
+        return self.outbound.grpc(component_id, urlsplit(address).netloc or address)
+
     def dependency(self, component_id: str) -> Endpoint | None:
         """The address of a dependency's main port; None means the dependency is absent (an optional one that is not
         installed): degrade as the boundary card says. It is never an empty string."""

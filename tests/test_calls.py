@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import io
 import time
 
 import pytest
@@ -8,6 +9,9 @@ from besdk import errs, reqctx
 from besdk.calls import policy
 from besdk.calls.client import Member
 from besdk.calls.outcome import Result
+from besdk.obs import Member as ObsMember, new_logger, new_registry
+from besdk.runtime import Runtime
+from besdk.testing import World
 
 
 def new_dep():
@@ -150,3 +154,17 @@ async def test_an_attempt_past_its_timeout_counts_as_a_deadline():
     with deadline(0.3), pytest.raises(errs.Error) as e:
         await d.do(False, hangs)
     assert e.value.reason == "RESULT_UNKNOWN"
+
+
+
+def test_configured_addresses(tmp_path):  # P4.26
+    out = Member()
+    rt = Runtime(ObsMember("test/probe-py", "3.1.0"), None, new_logger(ObsMember("test/probe-py", "3.1.0"), "info",  # type: ignore[arg-type]
+                 io.StringIO()), new_registry(), None, outbound=out)  # type: ignore[arg-type]
+    assert rt.http_at("test/probe-py2", "http://test-probe-py2-3-1-0:8605") is not None
+    assert rt.http_at("test/probe-py2", "") is None and rt.grpc_at("test/probe-py2", "") is None
+    with pytest.raises(ValueError, match="no service identity"):
+        rt.grpc_at("test/probe-py2", "http://test-probe-py2-3-1-0:9605")  # never plaintext
+    out.set_tls(World(tmp_path).tls("test/probe-py"))
+    ch = rt.grpc_at("test/probe-py2", "http://test-probe-py2-3-1-0:9605")
+    assert ch is rt.grpc_at("test/probe-py2", "test-probe-py2-3-1-0:9605"), "one channel per component and address"
