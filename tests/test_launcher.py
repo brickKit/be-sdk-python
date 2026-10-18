@@ -218,15 +218,15 @@ async def test_serves_the_system_surface_and_stops_it_gracefully(world):
 
 
 def test_the_http_stack_uses_its_accelerators():
-    # measured on the probes at 100/s: without sniffio, httpcore retries a failing import for every connection lock
-    # (a full search of the import path each time); with httptools the server parses requests in C. Together 17% less
-    # CPU per proxied HTTP request, 8% per gRPC one. The server names httptools, so a missing wheel fails at start
-    # instead of quietly falling back to the slower parser.
-    import importlib.util
+    # measured on the probes at 100/s: the server parses requests in C with httptools, and outbound HTTP on aiohttp
+    # (its C parser) takes about 40% less CPU a call than httpx did. The server names httptools, so a missing wheel
+    # fails at start instead of quietly falling back to the slower parser; aiohttp falls back silently, so this checks
+    # that its extension is the one in use.
+    from aiohttp import http_parser
 
     from besdk import host
 
-    assert importlib.util.find_spec("sniffio") is not None
+    assert http_parser.HttpResponseParser is getattr(http_parser, "HttpResponseParserC", None)
     server = host.HTTPServer(object(), host.listen(0, "127.0.0.1"))
     try:
         assert server.server.config.http == "httptools"
