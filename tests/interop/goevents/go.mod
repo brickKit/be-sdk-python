@@ -2,7 +2,7 @@ module example.test/goevents
 
 go 1.26.0
 
-require github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.3
+require github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.4
 
 require (
 	github.com/MicahParks/jwkset v0.11.3 // indirect

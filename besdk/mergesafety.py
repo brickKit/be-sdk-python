@@ -62,6 +62,7 @@ _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 # component code) its fake members and the provisioning of test databases.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
+    "besdk/__init__.py": {"os.environ"},
     "besdk/db/pool.py": {"asyncpg.create_pool"},
     "besdk/db/migrate.py": {"asyncpg.connect"},
     "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel"},

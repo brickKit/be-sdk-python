@@ -29,7 +29,8 @@
       "evidence": [
         "test_obs::test_log_lines_and_access_lines",
         "test_obs::test_the_outbound_families",
-        "test_shell::test_hosts_members_on_their_own_ports"
+        "test_shell::test_hosts_members_on_their_own_ports",
+        "test_obs::test_grpc_core_stays_off_the_log_stream"
       ]
     },
     "shell": {

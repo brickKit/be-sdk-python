@@ -1,7 +1,10 @@
 """Observability output (be-protocol chapter 10): log lines and the metrics' families, labels and bounds."""
 import io
 import json
+import os
 import re
+import subprocess
+import sys
 
 import httpx
 from fastapi.responses import JSONResponse
@@ -55,3 +58,13 @@ def test_the_outbound_families():  # P10.6
     families = {f.name: f.type for f in text_string_to_metric_families(text)}
     assert families.get("be_outbound_attempts") == "counter" and families.get("be_outbound_breaker_open") == "gauge"
     assert families.get("be_outbound_rejected") == "counter"
+
+
+def test_grpc_core_stays_off_the_log_stream():  # P10.1
+    probe = "import besdk, os; print(os.environ['GRPC_VERBOSITY'])"
+    r = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                       env={k: v for k, v in os.environ.items() if k != "GRPC_VERBOSITY"})
+    assert r.stdout.strip() == "NONE"
+    r = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                       env={**os.environ, "GRPC_VERBOSITY": "DEBUG"})
+    assert r.stdout.strip() == "DEBUG", "an operator's setting is kept"

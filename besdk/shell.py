@@ -350,6 +350,10 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
         except Exception as e:  # noqa: BLE001
             return await fail(m.definition.id, "a member could not start", e)
         m.state = host.READY
+        # each member says it is ready, with its own identity, as it does alone (P1.12; protocol 17: a member alone
+        # and in a shell behaves the same)
+        m.logger.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
+                      startup_ms=int((time.monotonic() - started) * 1000))
     log.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
              members=len(members), startup_ms=int((time.monotonic() - started) * 1000))
     await stop.wait()

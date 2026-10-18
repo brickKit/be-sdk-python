@@ -3,7 +3,7 @@ module example.test/gochain
 go 1.26.0
 
 require (
-	github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.3
+	github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.4
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 )

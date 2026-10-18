@@ -95,6 +95,8 @@ async def test_hosts_members_on_their_own_ports():
         assert '"component_id":"be/py-render"' in desc and '"demo/beta"' in desc
         metrics = (await c.get(base + "/metrics")).text
         assert 'component="demo/alpha"' in metrics and 'component="demo/beta"' in metrics
+    ready = [json.loads(line) for line in out.getvalue().splitlines() if '"event":"ready"' in line]
+    assert {r["component"] for r in ready} == {"demo/alpha", "demo/beta", SELF.id}, "each member says it is ready (P1.12)"
     stop.set()
     assert await run == 0
     async with httpx.AsyncClient() as c:
