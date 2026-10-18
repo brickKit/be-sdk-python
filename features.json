@@ -182,7 +182,9 @@
       "evidence": [
         "test_events_integration::test_large_payloads_travel_by_claim_check",
         "test_events_integration::test_claim_uploads_overlap_and_publishing_keeps_its_order",
-        "test_events_integration::test_one_s3_client_while_the_secret_stays",
+        "test_events_integration::test_a_rotated_secret_is_used_from_the_next_upload",
+        "test_sigv4::test_a_presigned_get_equals_botocores",
+        "test_sigv4::test_a_signed_put_equals_botocores",
         "test_events_interop::test_python_to_go"
       ]
     },

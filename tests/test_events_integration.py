@@ -303,7 +303,7 @@ async def test_claim_uploads_overlap_and_publishing_keeps_its_order():  # P6.10,
         await pool.close()
 
 
-async def test_one_s3_client_while_the_secret_stays():  # P6.14
+async def test_a_rotated_secret_is_used_from_the_next_upload():  # P6.14
     url, access, secret = (os.environ.get(k, "") for k in ("BE_SDK_TEST_S3_URL", "BE_SDK_TEST_S3_ACCESS_KEY",
                                                            "BE_SDK_TEST_S3_SECRET_KEY"))
     assert url and access and secret, "BE_SDK_TEST_S3_* must name object storage"
@@ -316,16 +316,19 @@ async def test_one_s3_client_while_the_secret_stays():  # P6.14
             return self.v
 
     s = Rotating(secret)
-    store = S3Store(url, "us-east-1", "be-sdk-test", "py-clients/", access, s)
+    store = S3Store(url, "us-east-1", "be-sdk-test", "py-rotate/", access, s)
+    claims = HTTPClaims()
     try:
-        for _ in range(3):
+        uri = await store.put(str(uuid.uuid4()), b'{"n":1}')
+        assert await claims.get(uri) == b'{"n":1}', "the presigned address reads the object back"
+        s.v = secret + "-rotated-away"  # the secret file now holds a key the store does not know
+        with pytest.raises(OSError, match="403"):
             await store.put(str(uuid.uuid4()), b"{}")
-        assert store.clients_built == 1, "building a client per upload cost more than the upload"
-        s.v = secret + " "  # a rotated secret file: a new client (that this one is wrong does not matter here)
-        await store._s3()
-        assert store.clients_built == 2
+        s.v = secret
+        await store.put(str(uuid.uuid4()), b"{}")
     finally:
         await store.close()
+        await claims.close()
 
 
 async def test_the_commit_wakes_the_forwarder():  # P6.29
