@@ -2,7 +2,7 @@
 import os
 
 # Version is this SDK's version, reported in the self-description (protocol P1.8).
-Version = "3.0.0-alpha.3"
+Version = "3.0.0-alpha.4"
 
 # gRPC's C core writes its own plain-text lines to stderr (TLS handshake notes and the like): they would break "one
 # JSON object per line" (P10.1), and the SDK reports every call itself. Set before any SDK module imports grpc; an

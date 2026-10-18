@@ -1,6 +1,6 @@
 {
   "topic": "idempotency",
-  "protocol": "3.0.0-alpha.3",
+  "protocol": "3.0.0-alpha.4",
   "rules": [
     "P4.21",
     "P4.22"

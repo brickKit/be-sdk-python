@@ -131,6 +131,32 @@ async def test_serve_ready_and_graceful_stop():
             pass
 
 
+async def test_responses_are_not_held_back_on_a_kept_alive_connection():
+    # a response leaves in more than one write; with Nagle on, the second waits for the client's delayed ACK (about
+    # 40 ms on Linux), so every request on a kept-alive connection takes 40 ms whatever the work (P1.18)
+    port = free_port()
+    stop = asyncio.Event()
+    run = asyncio.create_task(launcher.run(definition(Demo()), launcher.Options(env=env(
+        {"COMPONENT_ID": "demo/alpha", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "0s"}),
+        stdout=io.StringIO(), stderr=io.StringIO(), host="127.0.0.1"), stop))
+    async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}") as client:
+        for _ in range(500):
+            try:
+                if (await client.get("/readyz")).status_code == 200:
+                    break
+            except httpx.ConnectError:
+                pass
+            await asyncio.sleep(0.01)
+        took = []
+        for _ in range(20):
+            started = time.perf_counter()
+            assert (await client.get("/api/hello")).status_code == 200
+            took.append(time.perf_counter() - started)
+    stop.set()
+    await run
+    assert sorted(took)[len(took) // 2] < 0.015, f"median {sorted(took)[len(took) // 2] * 1000:.1f} ms"
+
+
 async def test_serves_the_system_surface_and_stops_it_gracefully(world):
     import grpc
     from google.protobuf import wrappers_pb2

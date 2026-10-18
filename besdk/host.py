@@ -381,7 +381,9 @@ class GRPCServer:
 
 
 def listen(port: int, host: str = "0.0.0.0") -> socket.socket:
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # IPPROTO_TCP, not 0: asyncio turns Nagle off (TCP_NODELAY) only on connections whose socket says TCP, and
+    # accepted connections inherit it from here (P1.18)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
     sock.listen(1024)
