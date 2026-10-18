@@ -1,12 +1,14 @@
 [project]
 name = "be-sdk"
-version = "3.0.0a6"
+version = "3.0.0a7"
 description = "The official Python SDK of the component protocol (be-protocol)"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi",
     "uvicorn",
+    "httptools",  # the server parses HTTP in C (named in host.HTTPServer, so a missing wheel fails at start)
     "httpx",
+    "sniffio",  # httpcore imports it for every connection lock: missing, each attempt searches the whole path
     "grpcio",
     "grpcio-status",
     "protobuf",

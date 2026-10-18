@@ -247,3 +247,24 @@ async def test_a_cancelled_task_stays_cancelled():  # the forwarder and consumer
             await task
     finally:
         await pool.close()
+
+
+async def test_after_commit_runs_only_on_commit():  # P6.29
+    v, _ = await migrated("py_after")
+    d, pool = await open_db("py_after", v)
+    ran: list[str] = []
+    try:
+        async def ok(tx):
+            tx.after_commit(lambda: ran.append("committed"))
+            assert ran == [], "not before the commit"
+
+        async def fails(tx):
+            tx.after_commit(lambda: ran.append("rolled back"))
+            raise ValueError("roll back")
+
+        await d.tx(ok)
+        with pytest.raises(Exception):
+            await d.tx(fails)
+        assert ran == ["committed"]
+    finally:
+        await pool.close()

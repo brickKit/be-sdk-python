@@ -326,3 +326,34 @@ async def test_one_s3_client_while_the_secret_stays():  # P6.14
         assert store.clients_built == 2
     finally:
         await store.close()
+
+
+async def test_the_commit_wakes_the_forwarder():  # P6.29
+    # at a low rate every event used to wait for the next poll (about 120 ms at 50/s with a 250 ms poll); the commit
+    # that wrote it now wakes the member's own forwarder
+    from besdk.events.core import SubscriptionSpec
+
+    own = Stream("demo.wake" + uuid.uuid4().hex[:6], 1)
+    d, pool, p = await source("py_ev10", stream=own)
+    tr = await pg_transport()
+    f = Forwarder(d, p, tr, "demo/py_ev10", str(uuid.uuid4()), LOG)
+    f.poll = 10.0
+    got = asyncio.Event()
+
+    async def h(dl: Delivery) -> Outcome:
+        got.set()
+        return Outcome.ACK
+
+    sub = await tr.subscribe(SubscriptionSpec("py_ev10_" + uuid.uuid4().hex[:8], [own.name]), h)
+    await f.start()
+    try:
+        await asyncio.sleep(0.3)  # the forwarder's first round is over; the next poll is 10 s away
+        written = asyncio.get_running_loop().time()
+        await emit(d, p, 1)
+        await asyncio.wait_for(got.wait(), 5)
+        assert asyncio.get_running_loop().time() - written < 1, "published right after the commit"
+    finally:
+        await f.stop()
+        await sub.stop()
+        await tr.close()
+        await pool.close()

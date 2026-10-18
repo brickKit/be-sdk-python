@@ -340,7 +340,8 @@ class HTTPServer:
 
     def __init__(self, app: FastAPI, sock: socket.socket):
         self.sock, self.name = sock, "http %s:%d" % sock.getsockname()[:2]
-        self.server = _Server(uvicorn.Config(app, log_config=None, access_log=False, lifespan="off"))
+        # httptools: requests parsed in C (h11, the pure-Python fallback, cost about 5% more CPU per request)
+        self.server = _Server(uvicorn.Config(app, http="httptools", log_config=None, access_log=False, lifespan="off"))
         self.task: asyncio.Task | None = None
 
     async def start(self) -> None:

@@ -215,3 +215,20 @@ async def test_serves_the_system_surface_and_stops_it_gracefully(world):
     assert await slow == "echo slow", "a call in flight finishes during the stop"
     assert await run == launcher.EXIT_OK
     await out.close()
+
+
+def test_the_http_stack_uses_its_accelerators():
+    # measured on the probes at 100/s: without sniffio, httpcore retries a failing import for every connection lock
+    # (a full search of the import path each time); with httptools the server parses requests in C. Together 17% less
+    # CPU per proxied HTTP request, 8% per gRPC one. The server names httptools, so a missing wheel fails at start
+    # instead of quietly falling back to the slower parser.
+    import importlib.util
+
+    from besdk import host
+
+    assert importlib.util.find_spec("sniffio") is not None
+    server = host.HTTPServer(object(), host.listen(0, "127.0.0.1"))
+    try:
+        assert server.server.config.http == "httptools"
+    finally:
+        server.sock.close()

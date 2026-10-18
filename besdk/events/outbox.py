@@ -52,6 +52,7 @@ class Producer:
         for s in streams:
             s.validate()
         self.source, self.streams, self.claims = source, {s.name: s for s in streams}, claims
+        self.written = asyncio.Event()  # a commit wrote outbox rows: the member's forwarder starts at once (P6.29)
 
     async def emit(self, tx: Tx, stream: str, ev: Event) -> str:
         """One event into the outbox inside the business transaction (P6.2); returns its event ID."""
@@ -83,6 +84,7 @@ class Producer:
                          None if ev.subjects is None else json.dumps(ev.subjects),
                          uuid.UUID(causation) if causation else None, hops, json.dumps(trace) if trace else None,
                          payload, digest(eid, payload))
+        tx.after_commit(self.written.set)
         return eid
 
 
@@ -155,7 +157,10 @@ class Forwarder:
                 self.log.warn("forwarding events failed; retrying", error=repr(e))
                 n = 0
             if n == 0:
-                await asyncio.sleep(self.poll)
+                # until a commit of this member writes rows (P6.29); the poll covers other replicas' rows and retries
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(self.producer.written.wait(), self.poll)
+                self.producer.written.clear()
 
     async def once(self) -> int:
         """Forward every partition once; returns how many messages were published."""

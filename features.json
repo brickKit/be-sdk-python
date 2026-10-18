@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.5",
+  "protocol": "3.0.0-alpha.6",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -16,6 +16,7 @@
         "test_launcher_process::test_sigterm_stops_the_process_gracefully",
         "test_launcher::test_serves_the_system_surface_and_stops_it_gracefully",
         "test_launcher::test_responses_are_not_held_back_on_a_kept_alive_connection",
+        "test_launcher::test_the_http_stack_uses_its_accelerators",
         "test_mergesafety::test_the_sdk_is_merge_safe"
       ],
       "pending": [
@@ -155,6 +156,8 @@
       "evidence": [
         "test_events_vectors::test_partition_vectors",
         "test_events_integration::test_emit_only_with_the_business_commit",
+        "test_events_integration::test_the_commit_wakes_the_forwarder",
+        "test_db_integration::test_after_commit_runs_only_on_commit",
         "test_events_integration::test_two_numberers_never_share_a_position",
         "test_events_integration::test_a_new_epoch_restarts_positions_and_records_the_fork",
         "test_events_integration::test_the_forwarder_publishes_in_order_once_numbered",

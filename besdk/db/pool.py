@@ -114,6 +114,13 @@ class Tx:
 
     def __init__(self, conn: asyncpg.Connection, prefix: str):
         self._conn, self._prefix = conn, prefix
+        self._after: list[Callable[[], None]] = []
+
+    def after_commit(self, fn: Callable[[], None]) -> None:
+        """Run fn once the transaction has committed, never when it rolls back; a retried transaction keeps only what
+        the attempt that committed registered. Meant for in-process signals, such as waking the outbox forwarder
+        (P6.29): fn must not block or fail."""
+        self._after.append(fn)
 
     async def execute(self, sql: str, *args: Any) -> str:
         """Runs a statement; returns its status, e.g. "UPDATE 3" (rows_affected reads the count)."""
@@ -201,6 +208,7 @@ class DB:
     async def _once(self, fn: Callable[[Tx], Awaitable[T]], o: TxOptions, statement: float, lock: float, idle: float,
                     native: bool) -> T:
         async with self.pool._pool.acquire() as conn:
+            tx = Tx(conn, self._prefix)
             async with conn.transaction(isolation="serializable" if o.serializable else "read_committed"):
                 # everything LOCAL: it ends with the transaction and never stays on the pooled connection (0-12)
                 await conn.execute(self._prefix + "SELECT set_config('role', $1, true), set_config('search_path', $2, true), "
@@ -214,7 +222,7 @@ class DB:
                                        _ms(o.transaction_timeout))
                 token = _in_tx.set(True)
                 try:
-                    result = await fn(Tx(conn, self._prefix))
+                    result = await fn(tx)
                 finally:
                     _in_tx.reset(token)
                 if (cutoff := reqctx.cutoff()) is not None:
@@ -225,7 +233,9 @@ class DB:
                     if clock.since_boot() >= cutoff:
                         raise errs.new("AUTHORIZATION_VIEW_EXPIRED",
                                        "the authorization expired before the change could be committed")
-                return result
+            for f in tx._after:  # committed
+                f()
+            return result
 
 
 def _ms(seconds: float) -> str:
