@@ -9,7 +9,7 @@ import hashlib
 import json
 
 import aioboto3
-import httpx
+import aiohttp
 from botocore.config import Config
 
 from besdk.config import Key, Type, Values
@@ -85,18 +85,21 @@ class HTTPClaims:
     """The subscriber side: a plain GET of the presigned address, with the member's own client."""
 
     def __init__(self) -> None:
-        self._client = httpx.AsyncClient(trust_env=False, timeout=30)
+        self._client: aiohttp.ClientSession | None = None  # made at the first fetch, inside the running loop
 
     async def get(self, uri: str) -> bytes:
         if not uri.startswith(("http://", "https://")):
             raise ValueError("a claim reference is not an http(s) address")
-        resp = await self._client.get(uri)
-        if resp.status_code != 200:
-            raise ValueError(f"the claimed object answered {resp.status_code}")
-        return resp.content
+        if self._client is None:
+            self._client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30), trust_env=False)
+        async with self._client.get(uri) as resp:
+            if resp.status != 200:
+                raise ValueError(f"the claimed object answered {resp.status}")
+            return await resp.read()
 
     async def close(self) -> None:
-        await self._client.aclose()
+        if self._client is not None:
+            await self._client.close()
 
 
 async def resolve_claim(m: Message, reader: HTTPClaims | None) -> bytes:

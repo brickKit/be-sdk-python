@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Iterator
 
-import httpx
+import aiohttp
 import jwt
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
@@ -64,9 +64,9 @@ def refusal(err: BaseException) -> errs.Error:
 class KeySet:
     """The issuer's public keys, fetched only from the configured URL. One per process (protocol 17)."""
 
-    def __init__(self, url: str, client: httpx.AsyncClient | None = None, now: Callable[[], float] = time.monotonic):
+    def __init__(self, url: str, now: Callable[[], float] = time.monotonic):
         self.url, self._now = url, now
-        self._client = client or httpx.AsyncClient(trust_env=False, timeout=10)
+        self._client: aiohttp.ClientSession | None = None  # made at the first fetch, inside the running loop
         self._keys: dict[str, jwt.PyJWK] = {}
         self._fetched_at: float | None = None
         self.last_unknown: float | None = None
@@ -94,14 +94,19 @@ class KeySet:
 
     async def refresh(self) -> None:
         async with self._lock:
-            async with self._client.stream("GET", self.url) as resp:
-                if resp.status_code != 200:
-                    raise OSError(f"fetching the issuer's keys: status {resp.status_code}")
-                body = b""
-                async for chunk in resp.aiter_bytes():
-                    body += chunk
-                    if len(body) > MAX_JWKS:
-                        raise OSError("fetching the issuer's keys: the answer is too large")
+            if self._client is None:
+                self._client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10), trust_env=False)
+            try:
+                async with self._client.get(self.url) as resp:
+                    if resp.status != 200:
+                        raise OSError(f"fetching the issuer's keys: status {resp.status}")
+                    body = b""
+                    async for chunk in resp.content.iter_chunked(64 << 10):
+                        body += chunk
+                        if len(body) > MAX_JWKS:
+                            raise OSError("fetching the issuer's keys: the answer is too large")
+            except (aiohttp.ClientError, TimeoutError) as e:
+                raise OSError(f"fetching the issuer's keys: {e}") from e
             try:
                 entries = json.loads(body)["keys"]
             except (ValueError, KeyError, TypeError) as e:
@@ -117,7 +122,8 @@ class KeySet:
             self._keys, self._fetched_at = keys, self._now()
 
     async def aclose(self) -> None:
-        await self._client.aclose()
+        if self._client is not None:
+            await self._client.close()
 
     async def key(self, kid: str) -> jwt.PyJWK:
         """A token's key: an unknown kid refreshes the set at most once per 30 s; keys older than an hour are not

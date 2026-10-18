@@ -48,7 +48,7 @@ RULES: dict[tuple[str, str], str] = {
     ("grpc.aio", "secure_channel"): _CALL, ("requests", "*"): _CALL,
     **{("httpx", n): _CALL for n in ("AsyncClient", "Client", "get", "post", "put", "patch", "delete", "head",
                                      "options", "request", "stream")},
-    ("urllib.request", "urlopen"): _CALL, ("aiohttp", "ClientSession"): _CALL,
+    ("urllib.request", "urlopen"): _CALL, ("aiohttp", "ClientSession"): _CALL, ("aiohttp", "request"): _CALL,
 }
 # metric constructors are fine with an explicit registry= and a violation without one
 _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
@@ -65,13 +65,13 @@ SDK_ALLOW: dict[str, set[str]] = {
     "besdk/__init__.py": {"os.environ"},
     "besdk/db/pool.py": {"asyncpg.create_pool"},
     "besdk/db/migrate.py": {"asyncpg.connect"},
-    "besdk/calls/client.py": {"httpx.AsyncClient", "grpc.aio.secure_channel"},
+    "besdk/calls/client.py": {"aiohttp.ClientSession", "grpc.aio.secure_channel"},
     "besdk/system.py": {"grpc.aio.server"},
-    "besdk/identity/token.py": {"httpx.AsyncClient"},
+    "besdk/identity/token.py": {"aiohttp.ClientSession"},
     "besdk/testing.py": {"grpc.aio.server", "asyncpg.connect"},
     "besdk/events/jetstream.py": {"nats.connect"},
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
-    "besdk/events/objectstore.py": {"aioboto3.Session", "httpx.AsyncClient"},
+    "besdk/events/objectstore.py": {"aioboto3.Session", "aiohttp.ClientSession"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},
