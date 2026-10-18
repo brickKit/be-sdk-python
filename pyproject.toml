@@ -15,7 +15,6 @@ dependencies = [
     "asyncpg",
     "nats-py",
     "pyjwt[crypto]>=2.10.1",  # 2.10.0 matched the issuer as a substring (CVE-2024-53861)
-    "aioboto3",
     "prometheus-client",
     "opentelemetry-api",
     "opentelemetry-sdk",
@@ -24,7 +23,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "pytest-asyncio", "hypothesis", "httpx"]  # httpx: the tests' own client
+dev = ["pytest", "pytest-asyncio", "hypothesis", "httpx", "botocore"]  # httpx: the tests' client; botocore: the reference signer
 
 [build-system]
 requires = ["hatchling"]

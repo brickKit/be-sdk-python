@@ -3,17 +3,14 @@ read-only GET; the subscriber fetches it with a plain GET, holding no storage cr
 digest."""
 from __future__ import annotations
 
-import asyncio
-import contextlib
 import hashlib
 import json
 
-import aioboto3
 import aiohttp
-from botocore.config import Config
 
 from besdk.config import Key, Type, Values
 from besdk.events.core import H_CLAIM, TRANSPORT_RETENTION, Message
+from besdk.events.sigv4 import Signer
 
 CLAIM_TTL = int(TRANSPORT_RETENTION)  # the transport retention, also SigV4's maximum
 
@@ -30,17 +27,14 @@ def store_keys() -> list[Key]:
 
 
 class S3Store:
-    """The producer side. One client is kept while the secret stays the same: building one loads the service model
-    and cost about 17 ms per upload against 9 ms for the upload itself; the secret is read at every request, so a
-    rotated file gets a new client."""
+    """The producer side: PUT the payload under the member's prefix and presign a GET of it, signed with SigV4
+    (besdk.events.sigv4) over the member's own HTTP client. The secret is read at every upload, so a rotated secret
+    file is used from the next one."""
 
     def __init__(self, url: str, region: str, bucket: str, prefix: str, access: str, secret):
-        self.url, self.region, self.bucket, self.prefix, self.access, self.secret = url, region, bucket, prefix, access, secret
-        self._session = aioboto3.Session()
-        self._lock = asyncio.Lock()
-        self._current: tuple[str, object] | None = None  # (the secret it was built with, the client)
-        self._stack = contextlib.AsyncExitStack()  # every client built, closed by close()
-        self.clients_built = 0
+        self.bucket, self.prefix, self.secret = bucket, prefix, secret
+        self._signer = Signer(url, region, access)
+        self._client: aiohttp.ClientSession | None = None  # made at the first upload, inside the running loop
 
     @staticmethod
     def from_values(v: Values) -> S3Store | None:
@@ -54,31 +48,22 @@ class S3Store:
         return S3Store(v.string("OBJECT_STORE_URL"), v.string("OBJECT_STORE_REGION"), v.string("OBJECT_STORE_BUCKET"),
                        v.string("OBJECT_STORE_PREFIX"), v.string("OBJECT_STORE_ACCESS_KEY"), secret)
 
-    def _client(self):
-        return self._session.client("s3", endpoint_url=self.url, region_name=self.region,
-                                    aws_access_key_id=self.access, aws_secret_access_key=self.secret.value(),
-                                    config=Config(signature_version="s3v4", s3={"addressing_style": "path"}))
-
-    async def _s3(self):
-        secret = self.secret.value()
-        async with self._lock:
-            if self._current is None or self._current[0] != secret:
-                # the client built with the previous secret is closed with the store: a request may still use it
-                self._current = (secret, await self._stack.enter_async_context(self._client()))
-                self.clients_built += 1
-            return self._current[1]
-
     async def put(self, event_id: str, data: bytes) -> str:
         key = f"{self.prefix}events/{event_id}"
-        s3 = await self._s3()
-        await s3.put_object(Bucket=self.bucket, Key=key, Body=data, ContentLength=len(data),
-                            ContentType="application/json")
-        return await s3.generate_presigned_url("get_object", Params={"Bucket": self.bucket, "Key": key},
-                                               ExpiresIn=CLAIM_TTL)
+        secret = self.secret.value()
+        url, headers = self._signer.put_headers(secret, self.bucket, key, sha256_hex(data), "application/json")
+        if self._client is None:
+            self._client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30), trust_env=False)
+        async with self._client.put(url, data=data, headers=headers) as resp:
+            if resp.status != 200:
+                # the answer says why (a wrong secret, a missing bucket); it never carries the secret
+                raise OSError(f"object storage answered {resp.status} to the upload of {key}: "
+                              f"{(await resp.text())[:300]}")
+        return self._signer.presign_get(secret, self.bucket, key, CLAIM_TTL)
 
     async def close(self) -> None:
-        self._current = None
-        await self._stack.aclose()
+        if self._client is not None:
+            await self._client.close()
 
 
 class HTTPClaims:

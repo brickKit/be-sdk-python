@@ -71,7 +71,7 @@ SDK_ALLOW: dict[str, set[str]] = {
     "besdk/testing.py": {"grpc.aio.server", "asyncpg.connect"},
     "besdk/events/jetstream.py": {"nats.connect"},
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
-    "besdk/events/objectstore.py": {"aioboto3.Session", "aiohttp.ClientSession"},
+    "besdk/events/objectstore.py": {"aiohttp.ClientSession"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},
