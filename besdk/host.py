@@ -335,13 +335,20 @@ class _Server(uvicorn.Server):
         pass
 
 
+# An idle keep-alive connection stays open longer than any caller's client keeps one (P1.20): a server that closes
+# first races the client reusing the connection, and a request that cannot be retried fails with EOF (uvicorn's
+# default is 5 s; at 200/s on a saturated server, 2 in 2000 requests failed that way).
+SERVER_IDLE_TIMEOUT = 120
+
+
 class HTTPServer:
     """A member's user surface on a socket bound before start, so a busy port fails before anything is ready."""
 
     def __init__(self, app: FastAPI, sock: socket.socket):
         self.sock, self.name = sock, "http %s:%d" % sock.getsockname()[:2]
         # httptools: requests parsed in C (h11, the pure-Python fallback, cost about 5% more CPU per request)
-        self.server = _Server(uvicorn.Config(app, http="httptools", log_config=None, access_log=False, lifespan="off"))
+        self.server = _Server(uvicorn.Config(app, http="httptools", log_config=None, access_log=False, lifespan="off",
+                                             timeout_keep_alive=SERVER_IDLE_TIMEOUT))
         self.task: asyncio.Task | None = None
 
     async def start(self) -> None:

@@ -232,3 +232,17 @@ def test_the_http_stack_uses_its_accelerators():
         assert server.server.config.http == "httptools"
     finally:
         server.sock.close()
+
+
+def test_servers_keep_idle_connections_longer_than_clients():  # P1.20
+    # a server that closes an idle keep-alive connection first races the client reusing it: the request fails with
+    # EOF, and a POST is not retried (measured: 2 in 2000 at 200/s on a saturated server that closed at 5 s)
+    from besdk import host
+    from besdk.calls import client
+
+    server = host.HTTPServer(object(), host.listen(0, "127.0.0.1"))
+    try:
+        assert server.server.config.timeout_keep_alive >= 120
+        assert server.server.config.timeout_keep_alive > client.CLIENT_IDLE_TIMEOUT
+    finally:
+        server.sock.close()

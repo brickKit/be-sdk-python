@@ -20,6 +20,8 @@ from besdk.db.pool import in_tx
 from besdk.obs import PROPAGATOR
 
 HEADER_REQUEST_ID, HEADER_TIMEOUT_MS, HEADER_IDEMPOTENCY_KEY = "X-Request-Id", "Be-Timeout-Ms", "Idempotency-Key"
+# an idle outbound connection is dropped after this; servers keep theirs longer (P1.20), so the client lets it go
+CLIENT_IDLE_TIMEOUT = 90
 METADATA_REQUEST_ID, METADATA_IDEMPOTENCY_KEY = "x-request-id", "idempotency-key"
 MAX_RESPONSE = 16 << 20
 # reserved metadata the client interceptor reads and strips: per-call flags for generated stubs
@@ -299,7 +301,7 @@ class Member:
         if self._client is None:
             # each attempt's deadline is the call policy's (asyncio.timeout around it), so no client timeout of its own
             self._client = aiohttp.ClientSession(
-                connector=aiohttp.TCPConnector(limit=policy.OUTBOUND_LIMIT, keepalive_timeout=90),
+                connector=aiohttp.TCPConnector(limit=policy.OUTBOUND_LIMIT, keepalive_timeout=CLIENT_IDLE_TIMEOUT),
                 timeout=aiohttp.ClientTimeout(total=None), trust_env=False)
         return self._client
 
