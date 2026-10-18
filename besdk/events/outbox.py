@@ -19,6 +19,9 @@ from besdk.events.objectstore import sha256_hex
 from besdk.obs import PROPAGATOR, Logger
 
 NUMBER_LOCK_WAIT, NUMBER_TX_LIMIT = 2.0, 5.0  # P6.5
+# the claim-check uploads of one batch in flight at once (P6.14): one at a time would cap a partition at
+# 1/upload-time events a second whatever the machine
+CLAIM_CONCURRENCY = 8
 _cause: contextvars.ContextVar[tuple[str, int] | None] = contextvars.ContextVar("be_event_cause", default=None)
 
 
@@ -184,14 +187,28 @@ class Forwarder:
         rows = await self._unpublished(s.name, p)
         done: list[int] = []
         claimed: list[int] = []
+        # the messages are prepared in the background and published in position order as each is ready: the
+        # claim-check uploads do not depend on each other, only the publishing order is fixed (P6.10)
+        slots = asyncio.Semaphore(CLAIM_CONCURRENCY)
+
+        async def prepared(r: Row) -> tuple[Message, bool]:
+            if len(r.payload) <= MAX_PAYLOAD:
+                return await self._message(r)
+            async with slots:
+                return await self._message(r)
+
+        tasks = [asyncio.create_task(prepared(r)) for r in rows]
         try:
-            for r in rows:
-                m, is_claim = await self._message(r)
+            for r, t in zip(rows, tasks):
+                m, is_claim = await t
                 await self.transport.publish(m)  # published again later if this fails: at least once (P6.10)
                 done.append(r.ord)
                 if is_claim:
                     claimed.append(r.ord)
         finally:
+            for t in tasks:
+                t.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
             if done:
                 await self.db.background_tx(lambda tx: tx.execute(
                     """UPDATE be_outbox SET published_at = now(), claim = coalesce(ord = ANY($2), false)

@@ -161,6 +161,8 @@ class Member:
             await asyncio.gather(*(s.stop() for s in self._subs), return_exceptions=True)
             if self.forwarder is not None:
                 await self.forwarder.stop()  # type: ignore[attr-defined]
+                if (store := self.forwarder.producer.claims) is not None:  # type: ignore[attr-defined]
+                    await store.close()
             if isinstance(self.module, Stopper):
                 await self.module.stop()
         finally:

@@ -178,6 +178,8 @@
       "status": "verified",
       "evidence": [
         "test_events_integration::test_large_payloads_travel_by_claim_check",
+        "test_events_integration::test_claim_uploads_overlap_and_publishing_keeps_its_order",
+        "test_events_integration::test_one_s3_client_while_the_secret_stays",
         "test_events_interop::test_python_to_go"
       ]
     },

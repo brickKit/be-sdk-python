@@ -252,3 +252,77 @@ async def test_large_payloads_travel_by_claim_check():  # P6.14, CK-EV-06
         assert got and b'"blob":"' + big.encode() in got[0]
     finally:
         await asyncio.gather(claims.close(), tr.close(), pool.close(), cpool.close())
+
+
+class SlowClaims:
+    """Object storage that takes a while per upload and records how many uploads overlapped."""
+
+    def __init__(self, delay: float):
+        self.delay, self.now, self.peak = delay, 0, 0
+
+    async def put(self, event_id: str, data: bytes) -> str:
+        self.now += 1
+        self.peak = max(self.peak, self.now)
+        await asyncio.sleep(self.delay)
+        self.now -= 1
+        return "s3://claims/" + event_id
+
+
+async def test_claim_uploads_overlap_and_publishing_keeps_its_order():  # P6.10, P6.14
+    from besdk.events.outbox import CLAIM_CONCURRENCY
+
+    claims, n = SlowClaims(0.04), 12
+    own = Stream("demo.slowclaims" + uuid.uuid4().hex[:6], 1)
+    d, pool, p = await source("py_ev9", claims, own)
+    tr = await pg_transport()
+    try:
+        for _ in range(n):
+            await emit(d, p, data={"blob": "x" * (64 * 1024 + 10)})
+        seen: list[int] = []
+
+        async def h(dl: Delivery) -> Outcome:
+            seen.append(int(dl.headers["ce-beseq"]))
+            return Outcome.ACK
+
+        from besdk.events.core import SubscriptionSpec
+
+        sub = await tr.subscribe(SubscriptionSpec("py_ev9_" + uuid.uuid4().hex[:8], [own.name]), h)
+        started = asyncio.get_running_loop().time()
+        assert await forwarded(d, p, tr, "py_ev9") == n
+        took = asyncio.get_running_loop().time() - started
+        for _ in range(100):
+            if len(seen) >= n:
+                break
+            await asyncio.sleep(0.05)
+        await sub.stop()
+        assert 1 < claims.peak <= CLAIM_CONCURRENCY, "uploads of one batch overlap, within the bound"
+        assert took < n * claims.delay / 2, "one upload at a time caps a partition at 1/delay events a second"
+        assert seen == sorted(seen) == list(range(1, n + 1)), "published in position order"
+    finally:
+        await tr.close()
+        await pool.close()
+
+
+async def test_one_s3_client_while_the_secret_stays():  # P6.14
+    url, access, secret = (os.environ.get(k, "") for k in ("BE_SDK_TEST_S3_URL", "BE_SDK_TEST_S3_ACCESS_KEY",
+                                                           "BE_SDK_TEST_S3_SECRET_KEY"))
+    assert url and access and secret, "BE_SDK_TEST_S3_* must name object storage"
+
+    class Rotating:
+        def __init__(self, v):
+            self.v = v
+
+        def value(self):
+            return self.v
+
+    s = Rotating(secret)
+    store = S3Store(url, "us-east-1", "be-sdk-test", "py-clients/", access, s)
+    try:
+        for _ in range(3):
+            await store.put(str(uuid.uuid4()), b"{}")
+        assert store.clients_built == 1, "building a client per upload cost more than the upload"
+        s.v = secret + " "  # a rotated secret file: a new client (that this one is wrong does not matter here)
+        await store._s3()
+        assert store.clients_built == 2
+    finally:
+        await store.close()
