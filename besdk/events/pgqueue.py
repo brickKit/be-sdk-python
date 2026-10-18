@@ -117,7 +117,7 @@ class Transport:
     async def _work(self, s: SubscriptionSpec, h: Handler) -> None:
         while True:
             try:
-                await self._advance(s)
+                moved = await self._advance(s)
                 claimed = await self._claim(s)
             except asyncio.CancelledError:
                 raise
@@ -126,7 +126,10 @@ class Transport:
                 await asyncio.sleep(self.poll)
                 continue
             if claimed is None:
-                await asyncio.sleep(self.poll)
+                # the position moved: more may follow at once, so only an idle round waits (the queue is shared by
+                # every stream, and waiting after each batch read past capped a subscription at batch/poll a second)
+                if not moved:
+                    await asyncio.sleep(self.poll)
                 continue
             d, token = claimed
 
@@ -145,9 +148,9 @@ class Transport:
                 out = Outcome.NAK
             await asyncio.shield(self._settle(s, d, token, out))
 
-    async def _advance(self, s: SubscriptionSpec) -> None:
+    async def _advance(self, s: SubscriptionSpec) -> bool:
         """Move the read position over committed messages below pg_snapshot_xmin, queueing a delivery for every
-        matching one (P6.23)."""
+        matching one (P6.23). True when the position moved."""
         async with self.pool.acquire() as conn, conn.transaction():
             pos = await conn.fetchrow(f"""SELECT pos_xid::text::bigint AS x, pos_seq AS q FROM {self.t('be_bus_subscription')}
                 WHERE durable = $1 FOR UPDATE""", s.durable)
@@ -155,33 +158,43 @@ class Transport:
                 WHERE (xid, seq) > ($1::bigint::text::xid8, $2) AND xid < pg_snapshot_xmin(pg_current_snapshot())
                 ORDER BY xid, seq LIMIT $3""", pos["x"], pos["q"], ADVANCE_BATCH)
             if not rows:
-                return
+                return False
             seqs = [r["seq"] for r in rows if self._matches(s, r["subject"])]
             if seqs:
                 await conn.execute(f"""INSERT INTO {self.t('be_bus_delivery')} (durable, seq)
                     SELECT $1, unnest($2::bigint[]) ON CONFLICT DO NOTHING""", s.durable, seqs)
             await conn.execute(f"""UPDATE {self.t('be_bus_subscription')} SET pos_xid = $2::bigint::text::xid8, pos_seq = $3
                 WHERE durable = $1""", s.durable, rows[-1]["x"], rows[-1]["seq"])
+            return True
 
     async def _claim(self, s: SubscriptionSpec) -> tuple[Delivery, str] | None:
-        """One due delivery: ready and past its backoff, or in flight past its lease with deliveries left."""
-        # exhausted leases go, and so do deliveries whose message the retention purge removed (P6.27)
-        await self.pool.execute(f"""DELETE FROM {self.t('be_bus_delivery')} d WHERE durable = $1 AND (
-            (in_flight AND lease_until < clock_timestamp() AND attempts >= $2) OR
-            NOT EXISTS (SELECT 1 FROM {self.t('be_bus_message')} m WHERE m.seq = d.seq))""", s.durable, s.max_deliver)
-        token = uuid.uuid7()
+        """One due delivery: ready and past its backoff, or in flight past its lease with deliveries left. Exhausted
+        deliveries whose lease expired are given up. The cost does not grow with the backlog: the give-up looks only
+        at in-flight rows (a partial index), and a delivery whose message the retention purge removed (P6.27; the
+        purge removes the deliveries with it, this covers one queued meanwhile) is dropped when it is claimed,
+        instead of every claim checking the whole backlog for such rows first."""
         dlv, msg = self.t("be_bus_delivery"), self.t("be_bus_message")
-        r = await self.pool.fetchrow(f"""WITH due AS (SELECT seq FROM {dlv} WHERE durable = $1
-                AND ((NOT in_flight AND not_before <= clock_timestamp()) OR (in_flight AND lease_until < clock_timestamp()))
-                ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED)
-            UPDATE {dlv} d SET in_flight = true, attempts = d.attempts + 1, lease_token = $2,
+        await self.pool.execute(f"""DELETE FROM {dlv} WHERE durable = $1 AND in_flight AND lease_until < clock_timestamp()
+            AND attempts >= $2""", s.durable, s.max_deliver)
+        token = uuid.uuid7()
+        # two paths, each along its own index in position order, and the claimed row located by its key (P6.28): a
+        # condition joined with OR, or a join to the chosen row, let the planner read the whole backlog when the
+        # statistics lagged behind it
+        r = await self.pool.fetchrow(f"""WITH ready AS (SELECT seq FROM {dlv} WHERE durable = $1 AND NOT in_flight
+                    AND not_before <= clock_timestamp() ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED),
+                expired AS (SELECT seq FROM {dlv} WHERE durable = $1 AND in_flight AND lease_until < clock_timestamp()
+                    ORDER BY seq LIMIT 1 FOR UPDATE SKIP LOCKED),
+                due AS (SELECT min(seq) AS seq FROM (SELECT seq FROM ready UNION ALL SELECT seq FROM expired) c),
+            claimed AS (UPDATE {dlv} d SET in_flight = true, attempts = d.attempts + 1, lease_token = $2,
                 lease_until = clock_timestamp() + make_interval(secs => $3)
-            FROM due WHERE d.durable = $1 AND d.seq = due.seq
-            RETURNING d.seq, d.attempts,
-                (SELECT subject FROM {msg} m WHERE m.seq = d.seq) AS subject,
-                (SELECT headers FROM {msg} m WHERE m.seq = d.seq) AS headers,
-                (SELECT data FROM {msg} m WHERE m.seq = d.seq) AS data""", s.durable, token, s.ack_wait)
+                WHERE d.durable = $1 AND d.seq = (SELECT seq FROM due) RETURNING d.seq, d.attempts)
+            SELECT c.seq, c.attempts, m.subject, m.headers, m.data FROM claimed c LEFT JOIN {msg} m ON m.seq = c.seq""",
+                                     s.durable, token, s.ack_wait)
         if r is None:
+            return None
+        if r["subject"] is None:  # its message is gone: nothing to deliver
+            await self.pool.execute(f"DELETE FROM {dlv} WHERE durable = $1 AND lease_token = $2 AND in_flight",
+                                    s.durable, token)
             return None
         headers = json.loads(r["headers"]) if isinstance(r["headers"], str) else dict(r["headers"])
         return Delivery(r["subject"], headers, bytes(r["data"]), r["attempts"]), str(token)

@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.4",
+  "protocol": "3.0.0-alpha.5",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -187,7 +187,10 @@
       "status": "verified",
       "evidence": [
         "test_transports::test_transport_suite",
-        "test_transports::test_the_suite_fails_an_adapter_that_loses_acks"
+        "test_transports::test_the_suite_fails_an_adapter_that_loses_acks",
+        "test_transports::test_a_backlog_does_not_slow_each_claim",
+        "test_transports::test_a_claim_whose_message_was_purged_is_dropped",
+        "test_transports::test_a_subscription_crosses_other_streams_without_waiting"
       ]
     },
     "consumers": {
