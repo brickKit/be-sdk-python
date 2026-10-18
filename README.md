@@ -24,7 +24,7 @@ be-sdk = { git = "https://github.com/brickKit/be-sdk-python", tag = "v3.0.0a7" }
 
 ## 依赖
 
-Python 3.14；依赖由 `uv` 管理，`uv.lock` 锁定精确版本。技术栈按装配项目的“锁定的技术栈”：FastAPI 跑在 uvicorn 上（单进程、单事件循环）、`grpc.aio`、`asyncpg` 与手写 SQL、`nats-py`、PyJWT、`aioboto3`、标准 `logging`、每个成员一个 Prometheus 注册表、OpenTelemetry；迁移入口由 SDK 自带（A111），与 Go SDK 读写同一份迁移状态。
+Python 3.15；依赖由 `uv` 管理，`uv.lock` 锁定精确版本。技术栈按装配项目的“锁定的技术栈”：FastAPI 跑在 uvicorn 上（单进程、单事件循环）、`grpc.aio`、`asyncpg` 与手写 SQL、`nats-py`、PyJWT、`aioboto3`、标准 `logging`、每个成员一个 Prometheus 注册表、OpenTelemetry；迁移入口由 SDK 自带（A111），与 Go SDK 读写同一份迁移状态。
 
 ## 协议的机器可读部分
 
