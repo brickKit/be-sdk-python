@@ -196,3 +196,37 @@ async def test_a_subscription_crosses_other_streams_without_waiting():  # P6.23,
     finally:
         await tr.close()
         await forget(durable, other)
+
+
+async def test_a_publish_wakes_an_idle_reader_without_waiting_for_the_poll():  # P6.30
+    import asyncio
+
+    from besdk.events.core import Message, Stream, SubscriptionSpec
+
+    tr = await pg_transport()
+    tr.poll = 3600.0  # only the wake can pick the message up
+    stream = "wake" + uuid.uuid4().hex[:8]
+    subject = f"be.{stream}.0.x.v1"
+    durable = "wake_" + stream
+    try:
+        await tr.ensure_stream(Stream(stream, 1))
+        got: asyncio.Queue[float] = asyncio.Queue()
+
+        async def h(d):
+            got.put_nowait(time.perf_counter())
+            return Outcome.ACK
+
+        sub = await tr.subscribe(SubscriptionSpec(durable, [stream]), h)
+        await asyncio.sleep(0.5)  # listening, and the reader has read past the bus and is idle
+        for i in range(2):
+            published = time.perf_counter()
+            await tr.publish(Message(subject, {"ce-id": str(uuid.uuid4())}, b"{}"))
+            try:
+                at = await asyncio.wait_for(got.get(), 10)
+            except TimeoutError:
+                pytest.fail(f"message {i} was not delivered without a poll")
+            assert at - published < 2, f"message {i}: delivered on the wake"
+        await sub.stop()
+    finally:
+        await tr.close()
+        await forget(durable, subject)

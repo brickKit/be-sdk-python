@@ -25,6 +25,11 @@ DEFAULT_POLL = 0.1
 ADVANCE_BATCH = 500
 GIVE_UP_EVERY = 5.0  # spaces the deletion of exhausted deliveries whose lease ran out; claims skip them meanwhile
 NOTIFY_CHANNEL = "be_bus_notify"
+# P6.30: a publish NOTIFYs WAKE_CHANNEL with the subject; one LISTEN connection per transport wakes the idle readers of
+# the matching subscriptions. The poll stays for a lost connection, a pooler in transaction mode and the xmin barrier.
+# Without it every message waited half a poll at low load (arrival p50 about 55 ms at 0.1 s, about 3 ms on JetStream).
+WAKE_CHANNEL = "be_bus_wake"
+RELISTEN_FROM, RELISTEN_MAX = 1.0, 30.0
 FIRST_PURGE_AFTER, PURGE_EVERY = 60.0, 3600.0
 
 
@@ -49,13 +54,22 @@ def _redact(s: str) -> str:
 
 
 class _Workers:
-    def __init__(self, tasks: list[asyncio.Task]):
-        self.tasks = tasks
+    def __init__(self, tasks: list[asyncio.Task], done: Callable[[], None]):
+        self.tasks, self._done = tasks, done
 
     async def stop(self) -> None:
         for t in self.tasks:
             t.cancel()
         await asyncio.gather(*self.tasks, return_exceptions=True)
+        self._done()
+
+
+class _Waker:
+    """One reader's wake signal (P6.30): set on a notification for its subscription, cleared before each claim so a
+    wake during the claim is not lost."""
+
+    def __init__(self, spec: SubscriptionSpec):
+        self.spec, self.event = spec, asyncio.Event()
 
 
 class Transport:
@@ -63,6 +77,8 @@ class Transport:
         self.pool, self._args, self.schema, self.poll = pool, args, schema, DEFAULT_POLL
         self.on_error: Callable[[BaseException], None] | None = None
         self._purge = asyncio.create_task(self._purge_loop())
+        self._wakers: list[_Waker] = []
+        self._listen: asyncio.Task | None = None
 
     @staticmethod
     async def connect(bus_url: str, name: str, max_conns: int = 8) -> Transport:
@@ -89,12 +105,13 @@ class Transport:
         await self.pool.execute(f"INSERT INTO {self.t('be_bus_stream')} (name) VALUES ($1) ON CONFLICT DO NOTHING", s.name)
 
     async def publish(self, m: Message) -> None:
-        """The insert's commit is the acknowledgement; a repeated message ID is a no-op."""
+        """The insert's commit is the acknowledgement; a repeated message ID is a no-op. A new message NOTIFYs the
+        readers in the same statement (P6.30); NOTIFY is delivered on commit."""
         if len(m.data) + len(m.subject) + sum(len(k) + len(v) for k, v in m.headers.items()) > MAX_MESSAGE:
             raise TooLarge()
-        await self.pool.execute(f"""INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
-            VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (msg_id) WHERE msg_id IS NOT NULL DO NOTHING""",
-                                m.id or None, m.subject, json.dumps(m.headers), m.data)
+        await self.pool.execute(f"""WITH m AS (INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
+            VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (msg_id) WHERE msg_id IS NOT NULL DO NOTHING RETURNING 1)
+            SELECT pg_notify($5, $2) FROM m""", m.id or None, m.subject, json.dumps(m.headers), m.data, WAKE_CHANNEL)
 
     async def subscribe(self, spec: SubscriptionSpec, h: Handler) -> _Workers:
         """The durable is created with spec when missing; otherwise its stored settings apply."""
@@ -107,7 +124,15 @@ class Transport:
             FROM {self.t('be_bus_subscription')} WHERE durable = $1""", spec.durable)
         stored = SubscriptionSpec(spec.durable, list(row["streams"]), list(row["filters"]), row["max_deliver"],
                                   row["ack_wait_ms"] / 1000, [b / 1000 for b in row["backoff_ms"]], spec.concurrency).defaults()
-        return _Workers([asyncio.create_task(self._work(stored, h)) for _ in range(stored.concurrency)])
+        wakers = [_Waker(stored) for _ in range(stored.concurrency)]
+        self._wakers.extend(wakers)
+        if self._listen is None:
+            self._listen = asyncio.create_task(self._listen_loop())
+
+        def done() -> None:
+            self._wakers = [w for w in self._wakers if w not in wakers]
+
+        return _Workers([asyncio.create_task(self._work(stored, h, w)) for w in wakers], done)
 
     @staticmethod
     def _matches(s: SubscriptionSpec, subj: str) -> bool:
@@ -115,13 +140,14 @@ class Transport:
             return False
         return not s.filters or any(subject_matches(f, subj) for f in s.filters)
 
-    async def _work(self, s: SubscriptionSpec, h: Handler) -> None:
+    async def _work(self, s: SubscriptionSpec, h: Handler, w: _Waker) -> None:
         """Claims first and moves the read position only when nothing is due (P6.28): one advance queues a batch,
         which the next claims take, so a message costs its claim and its outcome; advancing before every claim cost
-        a transaction of several round trips a message."""
+        a transaction of several round trips a message. An idle round waits for the poll or the wake (P6.30)."""
         loop = asyncio.get_running_loop()
         gave_up = None
         while True:
+            w.event.clear()
             try:
                 if gave_up is None or loop.time() - gave_up >= GIVE_UP_EVERY:
                     gave_up = loop.time()
@@ -131,7 +157,10 @@ class Transport:
                     # the position moved: more may follow at once, so only an idle round waits (the queue is shared
                     # by every stream, and waiting after each batch read past capped a subscription at batch/poll)
                     if not await self._advance(s):
-                        await asyncio.sleep(self.poll)
+                        try:
+                            await asyncio.wait_for(w.event.wait(), self.poll)
+                        except TimeoutError:
+                            pass
                     continue
             except asyncio.CancelledError:
                 raise
@@ -247,6 +276,38 @@ class Transport:
 
         return _Listener()
 
+    def _wake(self, subject: str) -> None:
+        for w in self._wakers:
+            if self._matches(w.spec, subject):
+                w.event.set()
+
+    async def _listen_loop(self) -> None:
+        """One LISTEN connection until the transport closes, reconnected with a growing pause; every connect wakes all
+        readers once, for what was published while it was down."""
+        pause = RELISTEN_FROM
+        while True:
+            conn = None
+            try:
+                conn = await asyncpg.connect(**self._args)
+                lost = asyncio.Event()
+                conn.add_termination_listener(lambda _c: lost.set())
+                await conn.add_listener(WAKE_CHANNEL, lambda _c, _pid, _ch, subject: self._wake(subject))
+                pause = RELISTEN_FROM
+                for w in self._wakers:
+                    w.event.set()
+                await lost.wait()
+                err: BaseException = ConnectionError("the bus wake listener's connection closed")
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001 - reported; the poll carries on
+                err = e
+            finally:
+                if conn is not None and not conn.is_closed():
+                    conn.terminate()
+            self._report(ConnectionError(f"bus wake listener (the poll carries on): {err}"))
+            await asyncio.sleep(pause)
+            pause = min(pause * 2, RELISTEN_MAX)
+
     async def purge(self, retention: float = TRANSPORT_RETENTION) -> int:
         """Messages older than retention whether or not every subscription read them, with their deliveries (P6.27)."""
         return await self.pool.fetchval(f"""WITH gone AS (DELETE FROM {self.t('be_bus_message')}
@@ -266,8 +327,10 @@ class Transport:
             await asyncio.sleep(PURGE_EVERY)
 
     async def close(self) -> None:
-        self._purge.cancel()
-        await asyncio.gather(self._purge, return_exceptions=True)
+        tasks = [self._purge] + ([self._listen] if self._listen else [])
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         await self.pool.close()
 
 
