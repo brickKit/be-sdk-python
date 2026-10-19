@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.13",
+  "protocol": "3.0.0-alpha.14",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {

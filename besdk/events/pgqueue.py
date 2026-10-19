@@ -26,8 +26,9 @@ DEFAULT_POLL = 0.1
 ADVANCE_BATCH = 500
 GIVE_UP_EVERY = 5.0  # spaces the deletion of exhausted deliveries whose lease ran out; claims skip them meanwhile
 NOTIFY_CHANNEL = "be_bus_notify"
-# P6.30: a publish NOTIFYs WAKE_CHANNEL with the subject; one LISTEN connection per transport wakes the idle readers of
-# the matching subscriptions. The poll stays for a lost connection, a pooler in transaction mode and the xmin barrier.
+# P6.30: a publish NOTIFYs WAKE_CHANNEL with the subject after its insert committed (see publish); one LISTEN connection
+# per transport wakes the idle readers of the matching subscriptions. The poll stays for a lost connection, a pooler in
+# transaction mode and the xmin barrier.
 # Without it every message waited half a poll at low load (arrival p50 about 55 ms at 0.1 s, about 3 ms on JetStream).
 WAKE_CHANNEL = "be_bus_wake"
 RELISTEN_FROM, RELISTEN_MAX = 1.0, 30.0
@@ -114,13 +115,22 @@ class Transport:
         await self.pool.execute(f"INSERT INTO {self.t('be_bus_stream')} (name) VALUES ($1) ON CONFLICT DO NOTHING", s.name)
 
     async def publish(self, m: Message) -> None:
-        """The insert's commit is the acknowledgement; a repeated message ID is a no-op. A new message NOTIFYs the
-        readers in the same statement (P6.30); NOTIFY is delivered on commit."""
+        """The insert's commit is the acknowledgement; a repeated message ID is a no-op. A new message then NOTIFYs the
+        readers in a statement of its own (P6.30): a transaction that NOTIFYs takes an instance-wide lock at commit and
+        holds it until its commit record is flushed, so publishes that NOTIFY in the inserting transaction commit one at
+        a time (measured: about 435 a second from 8 publishers against about 2000 without); a NOTIFY alone writes
+        nothing. A NOTIFY that fails is reported, not raised: the message is stored and the poll reads it."""
         if len(m.data) + len(m.subject) + sum(len(k) + len(v) for k, v in m.headers.items()) > MAX_MESSAGE:
             raise TooLarge()
-        await self.pool.execute(f"""WITH m AS (INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
-            VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (msg_id) WHERE msg_id IS NOT NULL DO NOTHING RETURNING 1)
-            SELECT pg_notify($5, $2) FROM m""", m.id or None, m.subject, json.dumps(m.headers), m.data, WAKE_CHANNEL)
+        status = await self.pool.execute(f"""INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
+            VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (msg_id) WHERE msg_id IS NOT NULL DO NOTHING""",
+                                         m.id or None, m.subject, json.dumps(m.headers), m.data)
+        if status.endswith(" 0"):
+            return
+        try:
+            await self.pool.execute("SELECT pg_notify($1, $2)", WAKE_CHANNEL, m.subject)
+        except Exception as e:  # noqa: BLE001 - the message is stored; the poll reads it
+            self._report(ConnectionError(f"bus wake after a publish (the poll reads the message): {e}"))
 
     async def subscribe(self, spec: SubscriptionSpec, h: Handler) -> _Workers:
         """The durable is created with spec when missing; otherwise its stored settings apply."""
