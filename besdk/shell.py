@@ -215,15 +215,15 @@ def process_keys_agree(members: list[Planned]) -> list[Problem]:
 async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.Event) -> int:
     """Run the shell until stop is set and return the exit code."""
     if o.args and o.args[0] != "serve":
-        o.stderr.write(json.dumps({"level": "ERROR", "msg": "a shell only serves; migrations run from each member's "
-                                   f"own image (entry {o.args[0]!r})"}) + "\n")
+        obs.new_logger(obs.Member(self.id, self.version), "info", o.stderr).error(
+            "a shell only serves; migrations run from each member's own image", entry=o.args[0])
         return host.EXIT_USAGE
     started = time.monotonic()
     problems: list[Problem] = []
     try:
         sv = config.parse_platform(SHELL_KEYS, o.env)
     except ConfigError as e:
-        host.report_config(o.stderr, self.id, e.problems)
+        host.report_config(o.stderr, obs.Member(self.id, self.version), e.problems)
         return host.EXIT_CONFIGURATION
     if sv.string("COMPONENT_ID") != self.id:
         problems.append(Problem("COMPONENT_ID", "invalid", self.id, sv.string("COMPONENT_ID")))
@@ -236,7 +236,7 @@ async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.
         refusals.append(_refusal(self.id, "PG_SHELL_USER", "missing",
                                  "the shell's login role and PG_SHELL_PASSWORD: a hosted member owns a database"))
     if problems or refusals:
-        host.report_config(o.stderr, self.id, problems + refusals)
+        host.report_config(o.stderr, obs.Member(self.id, self.version), problems + refusals)
         return host.EXIT_CONFIGURATION
     log = obs.new_logger(obs.Member(self.id, self.version), sv.string("LOG_LEVEL"), o.stdout)
     for w in warnings:
@@ -313,7 +313,7 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
             m = await host.build(p.definition, p.values, host.Shared(MapSource(p.served.config), o.env.read_file, o.stdout,
                                                                      db=database, transport=transport, keys=keys))
         except host.ConfigError as e:
-            host.report_config(o.stderr, p.definition.id, e.problems)
+            host.report_config(o.stderr, obs.Member(p.definition.id, p.definition.version), e.problems)
             await asyncio.gather(*(s.shutdown(0) for s in servers))
             return host.EXIT_CONFIGURATION
         except (host.BuildError, ValueError) as e:
@@ -345,18 +345,22 @@ async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned]
         if (code := await ready_exit(pool, log, stop)) is not None:
             await asyncio.gather(*(s.shutdown(0) for s in servers))
             return code
+    # each member says it is ready, with its own identity, as it does alone (P1.12; protocol 17: a member alone and in
+    # a shell behaves the same); the shell says so when the last of them is
+    pending = [len(members)]
+
+    def shell_ready() -> None:
+        pending[0] -= 1
+        if pending[0] == 0:
+            log.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
+                     members=len(members), startup_ms=int((time.monotonic() - started) * 1000))
+
     for m in members:  # in the order BrickKit lists them
         try:
             await m.start(o.env.read_file)
         except Exception as e:  # noqa: BLE001
             return await fail(m.definition.id, "a member could not start", e)
-        m.state = host.READY
-        # each member says it is ready, with its own identity, as it does alone (P1.12; protocol 17: a member alone
-        # and in a shell behaves the same)
-        m.logger.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
-                      startup_ms=int((time.monotonic() - started) * 1000))
-    log.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
-             members=len(members), startup_ms=int((time.monotonic() - started) * 1000))
+        m.mark_ready(started, shell_ready)
     await stop.wait()
     # the shell's stop grace is never shorter than any member's (P1.17)
     drain = max([sv.duration("STOP_DRAIN_DELAY")] + [m.values.duration("STOP_DRAIN_DELAY") for m in members])

@@ -1,6 +1,7 @@
 import asyncio
 import io
 import json
+import re
 import socket
 import time
 
@@ -56,6 +57,20 @@ async def test_unknown_entry():
     code = await launcher.run(definition(Demo()), launcher.Options(args=["dance"], env=env({}), stderr=err,
                                                                    stdout=io.StringIO()), asyncio.Event())
     assert code == launcher.EXIT_USAGE and "dance" in err.getvalue()
+    structured_lines(err.getvalue())
+
+
+TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+
+
+def structured_lines(out: str) -> None:
+    """Every line is a structured log line (P10.2): RFC 3339 UTC time to the millisecond, level, msg, component and
+    version."""
+    for line in out.strip().splitlines():
+        r = json.loads(line)
+        assert TIME.fullmatch(r.get("time", "")), line
+        for k in ("level", "msg", "component", "version"):
+            assert r.get(k), f"{k} missing: {line}"
 
 
 async def test_configuration_errors_all_at_once():
@@ -66,6 +81,7 @@ async def test_configuration_errors_all_at_once():
     assert code == launcher.EXIT_CONFIGURATION
     for want in ['"key":"PORT"', '"key":"LOG_LEVEL"', '"key":"COMPONENT_VERSION"']:
         assert want in err.getvalue()
+    structured_lines(err.getvalue())
 
 
 async def test_module_failures_do_not_crash():

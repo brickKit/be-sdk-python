@@ -257,6 +257,7 @@ async def test_not_ready_until_the_definitions_are_accepted(world):  # T5.3: sub
         async with httpx.AsyncClient(base_url=base) as c:
             assert (await c.get("/readyz")).status_code == 503, "refused definitions: not ready"
             assert "refused this version's definitions" in out.getvalue()
+            assert '"event":"ready"' not in out.getvalue(), "the ready line is written when the member is ready (P1.12)"
             assert "demo/orders@3.0.0" not in world.submitted
             world.refuse_definitions = ""
             for _ in range(100):
@@ -264,6 +265,7 @@ async def test_not_ready_until_the_definitions_are_accepted(world):  # T5.3: sub
                     break
                 await asyncio.sleep(0.05)
             assert (await c.get("/readyz")).status_code == 200, "ready once a retry is accepted"
+            assert out.getvalue().count('"event":"ready"') == 1, "and then the ready line, once"
         sealed = ORDERS.records(world.deployment, "3.0.0")
         assert world.submitted["demo/orders@3.0.0"] == set_digest("demo/orders", "3.0.0", sealed)
     finally:

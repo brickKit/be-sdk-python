@@ -110,9 +110,14 @@ async def test_members_share_one_pool_and_never_each_others_schema():  # P5.1, C
 
     stop = asyncio.Event()
     full = {**base, "PG_SHELL_USER": "sdk_py_shell2", "PG_SHELL_PASSWORD": "shell2-pw"}
-    run = asyncio.create_task(shell.run(self, defs, shell.Options(env=env(full), stdout=io.StringIO(), stderr=io.StringIO(),
+    out, err = io.StringIO(), io.StringIO()
+    run = asyncio.create_task(shell.run(self, defs, shell.Options(env=env(full), stdout=out, stderr=err,
                                                                   host="127.0.0.1", installed_of=lookup), stop))
-    await wait_ready(f"http://127.0.0.1:{ps}")
+    try:
+        await wait_ready(f"http://127.0.0.1:{ps}")
+    except AssertionError:  # what the shell said, to tell a slow start from a failed one
+        state = f"exited {run.result()!r}" if run.done() and not run.exception() else repr(run.exception()) if run.done() else "running"
+        raise AssertionError(f"never ready; ports {pa} {pb} {ps}; shell {state}\n{out.getvalue()[-3000:]}\n{err.getvalue()[-2000:]}")
     async with httpx.AsyncClient() as c:
         assert (await c.get(f"http://127.0.0.1:{pa}/api/who")).json() == {"u": "sdk_py_sh_a_rw", "s": "py_sh_a", "n": 0}
         assert (await c.get(f"http://127.0.0.1:{pb}/api/who")).json() == {"u": "sdk_py_sh_b_rw", "s": "py_sh_b", "n": 0}

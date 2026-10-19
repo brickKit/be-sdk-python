@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
-import json
 import socket
 import time
 import traceback
@@ -80,11 +79,11 @@ class BuildError(Exception):
     """The module could not be built; the launcher exits 1."""
 
 
-def report_config(out: IO[str], member: str, problems: list[Problem]) -> None:
-    """Configuration problems, one JSON line each (P2.6), naming the member."""
+def report_config(out: IO[str], member: obs.Member, problems: list[Problem]) -> None:
+    """Configuration problems, one structured line each (P2.6, P10.2), naming the member."""
+    log = obs.new_logger(member, "info", out)
     for p in problems:
-        out.write(json.dumps({"level": "ERROR", "msg": "configuration", "component": member, "key": p.key,
-                              "kind": p.kind, "expected": p.expected, "got": p.got}, separators=(",", ":")) + "\n")
+        log.error("configuration", key=p.key, kind=p.kind, expected=p.expected, got=p.got)
     out.flush()
 
 
@@ -123,6 +122,10 @@ class Member:
     audit_sender: object = None  # the audit component's system surface, None without AUDIT_GRPC_URL
     definitions: object = None  # with protected routes: the authorization member's DefinitionService stub
     defs_accepted: bool = False  # readiness waits for it when there are protected routes
+    # set by mark_ready: the ready line (P1.12) is written once, when the member is ready
+    _started: float = 0.0
+    _on_ready: Callable[[], None] | None = None
+    _announced: bool = False
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -158,6 +161,24 @@ class Member:
             else:
                 self._tasks.append(asyncio.create_task(self._submit_until_accepted()))
 
+    def mark_ready(self, started: float, then: Callable[[], None] | None = None) -> None:
+        """Enters the ready state. The ready line (P1.12) is written, and then is called, when the member is ready: at
+        once, or, while its definitions wait for the authorization member, when they are accepted."""
+        self._started, self._on_ready = started, then
+        self.state = READY
+        self._announce()
+
+    def _announce(self) -> None:
+        """Writes the ready line once the member is ready; mark_ready and the accepted submission both call it, so
+        whichever comes second writes it."""
+        if self._announced or not self.is_ready()[0]:
+            return
+        self._announced = True
+        self.logger.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
+                         startup_ms=int((time.monotonic() - self._started) * 1000))
+        if self._on_ready is not None:
+            self._on_ready()
+
     def is_ready(self) -> tuple[bool, str, list[str]]:
         """The member's readiness: started, and with protected routes its definitions accepted."""
         if self.state == READY and self.holder is not None and not self.defs_accepted:
@@ -180,6 +201,7 @@ class Member:
             self.logger.warn("the definitions could not be submitted yet; the member stays not ready", error=str(e))
             return False
         self.defs_accepted = True
+        self._announce()
         return True
 
     async def _submit_until_accepted(self) -> None:

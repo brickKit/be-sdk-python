@@ -4,7 +4,6 @@ all of that as arguments so it can be tested."""
 from __future__ import annotations
 
 import asyncio
-import json
 import signal
 import sys
 import time
@@ -13,8 +12,7 @@ from typing import IO
 
 import asyncpg
 
-import besdk
-from besdk import clock, config, db, host, obs, protocol
+from besdk import clock, config, db, host, obs
 from besdk.db import migrate
 from besdk.db.pool import DB, CredentialsError, Pool, StartCheckError, StoppedWaiting
 from besdk.events.bus import open_bus
@@ -60,7 +58,7 @@ async def run(d: Definition, o: Options, stop: asyncio.Event) -> int:
         return await _serve(d, o, stop)
     if entry == "migrate":
         return await _migrate(d, o)
-    o.stderr.write(json.dumps({"level": "ERROR", "msg": f"unknown entry {entry!r}; use serve or migrate"}) + "\n")
+    obs.new_logger(obs.Member(d.id, d.version), "info", o.stderr).error("unknown entry; use serve or migrate", entry=entry)
     return EXIT_USAGE
 
 
@@ -88,7 +86,7 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
     started = time.monotonic()
     values, plat, problems = _parse_all(d, o.env)
     if problems:
-        host.report_config(o.stderr, d.id, problems)
+        host.report_config(o.stderr, obs.Member(d.id, d.version), problems)
         return EXIT_CONFIGURATION
     assert values is not None and plat is not None
     pool = database = None
@@ -135,11 +133,12 @@ async def _serve_built(d: Definition, o: Options, stop: asyncio.Event, values: c
         m = await host.build(d, values, host.Shared(o.env, o.env.read_file, o.stdout, db=database, transport=transport,
                                                     keys=keys))
     except host.ConfigError as e:
-        host.report_config(o.stderr, d.id, e.problems)
+        host.report_config(o.stderr, obs.Member(d.id, d.version), e.problems)
         return EXIT_CONFIGURATION
     except (host.BuildError, ValueError) as e:
         if not isinstance(e, host.BuildError):
-            o.stdout.write(json.dumps({"level": "ERROR", "component": d.id, "msg": str(e)}) + "\n")
+            obs.new_logger(obs.Member(d.id, d.version), "info", o.stdout).error("the member could not be built",
+                                                                               error=str(e))
         return EXIT_FAILURE
     log = m.logger
     try:
@@ -175,9 +174,7 @@ async def _serve_built(d: Definition, o: Options, stop: asyncio.Event, values: c
         log.error("the module could not start", error=repr(e))
         await asyncio.gather(*(s.shutdown(0) for s in servers))
         return EXIT_FAILURE
-    m.state = host.READY
-    log.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
-             startup_ms=int((time.monotonic() - started) * 1000))
+    m.mark_ready(started)
     waiter = asyncio.create_task(stop.wait())
     done, _ = await asyncio.wait({waiter, server.task}, return_when=asyncio.FIRST_COMPLETED)  # type: ignore[arg-type]
     if server.task in done:
@@ -206,17 +203,17 @@ async def _migrate(d: Definition, o: Options) -> int:
     """The migrate entry (P1.1, P1.2): the SDK's tables, then the component's, as the owner role directly on the
     database. Only the database keys are read, so the entry does not depend on the rest of the configuration."""
     if d.migrations is None:
-        o.stderr.write(json.dumps({"level": "ERROR", "component": d.id, "msg": "migrate: this component has no database"}) + "\n")
+        obs.new_logger(obs.Member(d.id, d.version), "info", o.stderr).error("migrate: this component has no database")
         return EXIT_USAGE
     try:
         values = config.parse([*db.migrate_keys(), host.sdk_keys()[0]], o.env)
     except ConfigError as e:
-        host.report_config(o.stderr, d.id, e.problems)
+        host.report_config(o.stderr, obs.Member(d.id, d.version), e.problems)
         return EXIT_CONFIGURATION
     log = obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout)
     cfg, problems = migrate.config_from(d.id, values, log)
     if problems:
-        host.report_config(o.stderr, d.id, problems)
+        host.report_config(o.stderr, obs.Member(d.id, d.version), problems)
         return EXIT_CONFIGURATION
     try:
         await migrate.migrate(cfg, migrate.sdk_migrations(), migrate.MigrationSet(d.id, "schema_migrations", d.migrations))
