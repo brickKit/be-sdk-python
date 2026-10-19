@@ -12,6 +12,7 @@ import asyncpg
 from besdk import clock, errs, reqctx
 from besdk.config import Secret
 from besdk.db import Settings, Target
+from besdk.db.session import guard, no_reset
 from besdk.obs import Logger
 
 FOREGROUND_WAIT = 2.0  # how long a foreground transaction waits for a connection before SERVICE_BUSY
@@ -42,7 +43,8 @@ class Pool:
         pool = await asyncpg.create_pool(
             host=target.host, port=target.port, database=target.database, user=user,
             password=(lambda: password.value()) if password else None, min_size=0, max_size=max(max_conns, 1),
-            statement_cache_size=100 if prepared else 0, server_settings={"application_name": app_name, "timezone": "UTC"})
+            statement_cache_size=100 if prepared else 0, server_settings={"application_name": app_name, "timezone": "UTC"},
+            reset=no_reset)
         return Pool(target, pool)
 
     async def close(self) -> None:
@@ -123,16 +125,21 @@ class Tx:
         self._after.append(fn)
 
     async def execute(self, sql: str, *args: Any) -> str:
-        """Runs a statement; returns its status, e.g. "UPDATE 3" (rows_affected reads the count)."""
+        """Runs a statement; returns its status, e.g. "UPDATE 3" (rows_affected reads the count). A statement that
+        would leave state on the pooled connection fails (P5.30), here and in the other methods."""
+        guard(sql)
         return await self._conn.execute(self._prefix + sql, *args)
 
     async def fetch(self, sql: str, *args: Any) -> list[asyncpg.Record]:
+        guard(sql)
         return await self._conn.fetch(self._prefix + sql, *args)
 
     async def fetchrow(self, sql: str, *args: Any) -> asyncpg.Record | None:
+        guard(sql)
         return await self._conn.fetchrow(self._prefix + sql, *args)
 
     async def fetchval(self, sql: str, *args: Any) -> Any:
+        guard(sql)
         return await self._conn.fetchval(self._prefix + sql, *args)
 
 

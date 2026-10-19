@@ -268,3 +268,27 @@ async def test_after_commit_runs_only_on_commit():  # P6.29
         assert ran == ["committed"]
     finally:
         await pool.close()
+
+
+async def test_a_session_setting_is_refused_and_nothing_reaches_the_next_transaction():  # P5.30, P5.5
+    v, _ = await migrated("py_session")
+    d, pool = await open_db("py_session", v)
+    try:
+        async def session_set(tx):
+            await tx.execute("SET work_mem = '7MB'")
+
+        with pytest.raises(Exception):
+            await d.tx(session_set)
+
+        async def local_set(tx):
+            await tx.execute("SET LOCAL work_mem = '7MB'")
+            assert await tx.fetchval("SELECT current_setting('work_mem')") == "7MB"
+
+        async def read(tx):
+            return await tx.fetchval("SELECT current_setting('work_mem')")
+
+        for _ in range(3):  # the pool keeps its connections without a session reset on release
+            await d.tx(local_set)
+            assert await d.tx(read) != "7MB", "a transaction's setting reached the next transaction"
+    finally:
+        await pool.close()

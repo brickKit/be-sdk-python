@@ -198,7 +198,8 @@ async def test_a_subscription_crosses_other_streams_without_waiting():  # P6.23,
         await forget(durable, other)
 
 
-async def test_a_publish_wakes_an_idle_reader_without_waiting_for_the_poll():  # P6.30
+@pytest.mark.parametrize("readers", [1, 4])  # one reader, and a token per message among several
+async def test_a_publish_wakes_an_idle_reader_without_waiting_for_the_poll(readers):  # P6.30
     import asyncio
 
     from besdk.events.core import Message, Stream, SubscriptionSpec
@@ -216,9 +217,9 @@ async def test_a_publish_wakes_an_idle_reader_without_waiting_for_the_poll():  #
             got.put_nowait(time.perf_counter())
             return Outcome.ACK
 
-        sub = await tr.subscribe(SubscriptionSpec(durable, [stream]), h)
-        await asyncio.sleep(0.5)  # listening, and the reader has read past the bus and is idle
-        for i in range(2):
+        sub = await tr.subscribe(SubscriptionSpec(durable, [stream], concurrency=readers), h)
+        await asyncio.sleep(0.5)  # listening, and the readers have read past the bus and are idle
+        for i in range(3):
             published = time.perf_counter()
             await tr.publish(Message(subject, {"ce-id": str(uuid.uuid4())}, b"{}"))
             try:

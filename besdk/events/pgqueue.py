@@ -16,6 +16,7 @@ from besdk import protocol
 from besdk.config import Secret
 from besdk.db import Target
 from besdk.db.migrate import MigrateConfig, MigrationSet, migrate
+from besdk.db.session import no_reset
 from besdk.events.core import (TRANSPORT_RETENTION, Delivery, Handler, Message, Outcome, Stream, SubscriptionSpec,
                                TooLarge, subject_matches)
 from besdk.obs import Logger
@@ -65,11 +66,18 @@ class _Workers:
 
 
 class _Waker:
-    """One reader's wake signal (P6.30): set on a notification for its subscription, cleared before each claim so a
-    wake during the claim is not lost."""
+    """One subscription's wake signal (P6.30): a token per matching notification, at most one per reader, so one
+    message wakes one idle reader rather than all of them. A token left while every reader is busy is taken at the
+    next idle round, so a notification during a claim is not lost."""
 
     def __init__(self, spec: SubscriptionSpec):
-        self.spec, self.event = spec, asyncio.Event()
+        self.spec, self.tokens = spec, asyncio.Queue(maxsize=max(spec.concurrency, 1))
+
+    def fire(self) -> None:
+        try:
+            self.tokens.put_nowait(None)
+        except asyncio.QueueFull:  # every reader already has a wake waiting
+            pass
 
 
 class Transport:
@@ -85,7 +93,8 @@ class Transport:
         args, schema = parse(bus_url)
         try:
             pool = await asyncpg.create_pool(**args, min_size=0, max_size=max(max_conns, 4), statement_cache_size=0,
-                                             server_settings={"application_name": name + " bus", "timezone": "UTC"})
+                                             server_settings={"application_name": name + " bus", "timezone": "UTC"},
+                                             reset=no_reset)  # the bus never sets session state (P5.30)
         except Exception as e:  # noqa: BLE001
             raise ConnectionError(f"bus {_redact(bus_url)}: {e}") from e
         return Transport(pool, args, schema)
@@ -124,15 +133,15 @@ class Transport:
             FROM {self.t('be_bus_subscription')} WHERE durable = $1""", spec.durable)
         stored = SubscriptionSpec(spec.durable, list(row["streams"]), list(row["filters"]), row["max_deliver"],
                                   row["ack_wait_ms"] / 1000, [b / 1000 for b in row["backoff_ms"]], spec.concurrency).defaults()
-        wakers = [_Waker(stored) for _ in range(stored.concurrency)]
-        self._wakers.extend(wakers)
+        w = _Waker(stored)
+        self._wakers.append(w)
         if self._listen is None:
             self._listen = asyncio.create_task(self._listen_loop())
 
         def done() -> None:
-            self._wakers = [w for w in self._wakers if w not in wakers]
+            self._wakers = [x for x in self._wakers if x is not w]
 
-        return _Workers([asyncio.create_task(self._work(stored, h, w)) for w in wakers], done)
+        return _Workers([asyncio.create_task(self._work(stored, h, w)) for _ in range(stored.concurrency)], done)
 
     @staticmethod
     def _matches(s: SubscriptionSpec, subj: str) -> bool:
@@ -143,11 +152,10 @@ class Transport:
     async def _work(self, s: SubscriptionSpec, h: Handler, w: _Waker) -> None:
         """Claims first and moves the read position only when nothing is due (P6.28): one advance queues a batch,
         which the next claims take, so a message costs its claim and its outcome; advancing before every claim cost
-        a transaction of several round trips a message. An idle round waits for the poll or the wake (P6.30)."""
+        a transaction of several round trips a message. An idle round waits for the poll or a wake token (P6.30)."""
         loop = asyncio.get_running_loop()
         gave_up = None
         while True:
-            w.event.clear()
             try:
                 if gave_up is None or loop.time() - gave_up >= GIVE_UP_EVERY:
                     gave_up = loop.time()
@@ -158,7 +166,7 @@ class Transport:
                     # by every stream, and waiting after each batch read past capped a subscription at batch/poll)
                     if not await self._advance(s):
                         try:
-                            await asyncio.wait_for(w.event.wait(), self.poll)
+                            await asyncio.wait_for(w.tokens.get(), self.poll)
                         except TimeoutError:
                             pass
                     continue
@@ -279,7 +287,7 @@ class Transport:
     def _wake(self, subject: str) -> None:
         for w in self._wakers:
             if self._matches(w.spec, subject):
-                w.event.set()
+                w.fire()
 
     async def _listen_loop(self) -> None:
         """One LISTEN connection until the transport closes, reconnected with a growing pause; every connect wakes all
@@ -294,7 +302,8 @@ class Transport:
                 await conn.add_listener(WAKE_CHANNEL, lambda _c, _pid, _ch, subject: self._wake(subject))
                 pause = RELISTEN_FROM
                 for w in self._wakers:
-                    w.event.set()
+                    for _ in range(w.tokens.maxsize):
+                        w.fire()
                 await lost.wait()
                 err: BaseException = ConnectionError("the bus wake listener's connection closed")
             except asyncio.CancelledError:
