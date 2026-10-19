@@ -194,7 +194,8 @@ def targets_agree(members: list[Planned]) -> list[Problem]:
 
 
 def process_keys_agree(members: list[Planned]) -> list[Problem]:
-    """Every key marked process has the same value in every member that declares it (P2.11)."""
+    """Every key marked process has the same value in every member that sets it (P2.11); a member that leaves it unset
+    does not use that resource (the identity member verifies no tokens) and agrees with any."""
     first: dict[str, tuple[str, object]] = {}
     out = []
     for m in members:
@@ -202,8 +203,11 @@ def process_keys_agree(members: list[Planned]) -> list[Problem]:
             if not k.process:
                 continue
             value, _ = m.values.raw(k.name)
-            if k.secret and (s := m.values.secret(k.name)) is not None:
-                value = s.value()  # compared by value, never shown
+            if k.secret:
+                s = m.values.secret(k.name)
+                value = s.value() if s is not None else None  # compared by value, never shown
+            if value is None or value == "":
+                continue
             if k.name not in first:
                 first[k.name] = (m.definition.id, value)
             elif first[k.name][1] != value:

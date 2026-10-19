@@ -151,11 +151,14 @@ async def test_refuses_version_mismatch_and_bad_config_all_at_once():
 
 
 async def test_refuses_process_keys_that_disagree():
-    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x", "OTEL_URL": "http://otel-a:4318"}),
+    # gamma leaves OTEL_URL unset: it does not use that resource, so it agrees with both (P2.11)
+    js = served(("demo/gamma", "0.1.0", 18083, {"GREETING": "x"}),
+                ("demo/alpha", "0.1.0", 18081, {"GREETING": "x", "OTEL_URL": "http://otel-a:4318"}),
                 ("demo/beta", "0.1.0", 18082, {"GREETING": "x", "OTEL_URL": "http://otel-b:4318"}))
-    out = await refuse(shell_env(18080, js), installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0"}),
-                       definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0"))
+    out = await refuse(shell_env(18080, js), installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0", "demo/gamma": "0.1.0"}),
+                       definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0"), definition("demo/gamma", "0.1.0"))
     assert "demo/beta:OTEL_URL" in out
+    assert "demo/gamma" not in out and "demo/alpha:OTEL_URL" not in out
 
 
 async def test_shell_does_not_migrate():
