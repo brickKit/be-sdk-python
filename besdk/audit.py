@@ -48,12 +48,23 @@ class Record:
 
 
 def _canon_map(m: dict) -> dict:
-    """Only the encoder's types: JSON strings, booleans, objects and arrays. Numbers are refused (write them as
-    strings), as in the Go SDK, whose JSON round trip makes them floats; other Python types are a module error."""
+    """Only the encoder's types: JSON strings, integers, booleans, objects and arrays. An integer (a version, a count)
+    is kept and encoded; a fraction comes back as a float and is refused (decimals travel as strings, protocol 14);
+    null members are left out; as in the Go SDK. Other Python types are a module error."""
     try:
-        return json.loads(json.dumps(m), parse_int=float)
+        return _drop_nulls(json.loads(json.dumps(m)))
     except TypeError as e:
         raise TypeError(f"audit record values must be JSON strings, booleans, objects or arrays: {e}") from e
+
+
+def _drop_nulls(v: Any) -> Any:
+    """The null members of every object left out: the canonical encoding has no null (security 09a), and an absent
+    member says the same as a null one."""
+    if isinstance(v, dict):
+        return {k: _drop_nulls(e) for k, e in v.items() if e is not None}
+    if isinstance(v, list):
+        return [_drop_nulls(e) for e in v]
+    return v
 
 
 def _body(r: Record, rid: str, at: datetime) -> dict:
