@@ -1,6 +1,6 @@
 {
   "topic": "segment-eval",
-  "protocol": "3.0.0-alpha.14",
+  "protocol": "3.0.0-alpha.15",
   "rules": [
     "P8.14",
     "P8.15",

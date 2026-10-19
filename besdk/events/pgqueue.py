@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import json
 import uuid
 from typing import Callable
@@ -26,11 +27,12 @@ DEFAULT_POLL = 0.1
 ADVANCE_BATCH = 500
 GIVE_UP_EVERY = 5.0  # spaces the deletion of exhausted deliveries whose lease ran out; claims skip them meanwhile
 NOTIFY_CHANNEL = "be_bus_notify"
-# P6.30: a publish NOTIFYs WAKE_CHANNEL with the subject after its insert committed (see publish); one LISTEN connection
-# per transport wakes the idle readers of the matching subscriptions. The poll stays for a lost connection, a pooler in
-# transaction mode and the xmin barrier.
+# P6.30: after a publish commits, the notifier NOTIFYs WAKE_CHANNEL with the subject (see _notify_loop); one LISTEN
+# connection per transport wakes the idle readers of the matching subscriptions. The poll stays for a lost connection, a
+# pooler in transaction mode and the xmin barrier.
 # Without it every message waited half a poll at low load (arrival p50 about 55 ms at 0.1 s, about 3 ms on JetStream).
 WAKE_CHANNEL = "be_bus_wake"
+NOTIFY_QUEUE = 4096  # NOTIFYs waiting to be sent; past it a publish's NOTIFY is dropped and the poll reads the message
 RELISTEN_FROM, RELISTEN_MAX = 1.0, 30.0
 FIRST_PURGE_AFTER, PURGE_EVERY = 60.0, 3600.0
 
@@ -86,6 +88,8 @@ class Transport:
         self.pool, self._args, self.schema, self.poll = pool, args, schema, DEFAULT_POLL
         self.on_error: Callable[[BaseException], None] | None = None
         self._purge = asyncio.create_task(self._purge_loop())
+        self._notes: asyncio.Queue[str] = asyncio.Queue(NOTIFY_QUEUE)
+        self._notifier = asyncio.create_task(self._notify_loop())
         self._wakers: list[_Waker] = []
         self._listen: asyncio.Task | None = None
 
@@ -115,11 +119,8 @@ class Transport:
         await self.pool.execute(f"INSERT INTO {self.t('be_bus_stream')} (name) VALUES ($1) ON CONFLICT DO NOTHING", s.name)
 
     async def publish(self, m: Message) -> None:
-        """The insert's commit is the acknowledgement; a repeated message ID is a no-op. A new message then NOTIFYs the
-        readers in a statement of its own (P6.30): a transaction that NOTIFYs takes an instance-wide lock at commit and
-        holds it until its commit record is flushed, so publishes that NOTIFY in the inserting transaction commit one at
-        a time (measured: about 435 a second from 8 publishers against about 2000 without); a NOTIFY alone writes
-        nothing. A NOTIFY that fails is reported, not raised: the message is stored and the poll reads it."""
+        """The insert's commit is the acknowledgement; a repeated message ID is a no-op. A new message is then handed to
+        the transport's notifier, which NOTIFYs the readers in a statement of its own (P6.30, _notify_loop)."""
         if len(m.data) + len(m.subject) + sum(len(k) + len(v) for k, v in m.headers.items()) > MAX_MESSAGE:
             raise TooLarge()
         status = await self.pool.execute(f"""INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
@@ -127,10 +128,23 @@ class Transport:
                                          m.id or None, m.subject, json.dumps(m.headers), m.data)
         if status.endswith(" 0"):
             return
-        try:
-            await self.pool.execute("SELECT pg_notify($1, $2)", WAKE_CHANNEL, m.subject)
-        except Exception as e:  # noqa: BLE001 - the message is stored; the poll reads it
-            self._report(ConnectionError(f"bus wake after a publish (the poll reads the message): {e}"))
+        with contextlib.suppress(asyncio.QueueFull):  # dropped: the poll reads the message
+            self._notes.put_nowait(m.subject)
+
+    async def _notify_loop(self) -> None:
+        """Sends the publishes' NOTIFYs, one a new message in the order queued, off the publish path. Not in the
+        inserting transaction: a transaction that NOTIFYs takes an instance-wide lock at commit and holds it until its
+        commit record is flushed, so concurrent publishes would commit one at a time (8 publishers: about 3 500 messages
+        a second against about 10 000); a NOTIFY alone writes nothing. Not on the publish path either: the forwarder,
+        which publishes in order, would wait a second round trip a message (a publisher at 200 a second went from about
+        13 to 19 ms). Never merged: each notification wakes one idle reader. A failure is reported; the poll reads the
+        message."""
+        while True:
+            subject = await self._notes.get()
+            try:
+                await self.pool.execute("SELECT pg_notify($1, $2)", WAKE_CHANNEL, subject)
+            except Exception as e:  # noqa: BLE001
+                self._report(ConnectionError(f"bus wake after a publish (the poll reads the message): {e}"))
 
     async def subscribe(self, spec: SubscriptionSpec, h: Handler) -> _Workers:
         """The durable is created with spec when missing; otherwise its stored settings apply."""
@@ -346,7 +360,7 @@ class Transport:
             await asyncio.sleep(PURGE_EVERY)
 
     async def close(self) -> None:
-        tasks = [self._purge] + ([self._listen] if self._listen else [])
+        tasks = [self._purge, self._notifier] + ([self._listen] if self._listen else [])
         for t in tasks:
             t.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

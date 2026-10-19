@@ -1,6 +1,6 @@
 {
   "topic": "errors",
-  "protocol": "3.0.0-alpha.14",
+  "protocol": "3.0.0-alpha.15",
   "rules": [
     "P3.1",
     "P3.2",
