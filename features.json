@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.11",
+  "protocol": "3.0.0-alpha.12",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -133,7 +133,9 @@
         "test_db_interop::test_one_schema_two_sdks",
         "test_db_interop::test_both_sdks_at_once_run_every_file_once",
         "test_session_state::test_statements_that_would_stay_on_the_pooled_connection_are_named",
-        "test_db_integration::test_a_session_setting_is_refused_and_nothing_reaches_the_next_transaction"
+        "test_db_integration::test_a_session_setting_is_refused_and_nothing_reaches_the_next_transaction",
+        "test_session_state::test_do_blocks_are_checked_like_statements",
+        "test_db_integration::test_a_connection_a_function_left_a_setting_on_is_closed"
       ]
     },
     "document-numbers": {

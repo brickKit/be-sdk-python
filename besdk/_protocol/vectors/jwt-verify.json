@@ -1,6 +1,6 @@
 {
   "topic": "jwt-verify",
-  "protocol": "3.0.0-alpha.11",
+  "protocol": "3.0.0-alpha.12",
   "rules": [
     "P8.1",
     "P8.3"

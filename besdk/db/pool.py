@@ -28,24 +28,61 @@ def in_tx() -> bool:
     return _in_tx.get()
 
 
+# The settings the server reports to the client whenever they change (ParameterStatus), also when a function changes
+# them, so a connection's values are known without a query (P5.31). Role, search_path and the timeouts are not among
+# them; every transaction sets those itself (P5.5).
+REPORTED = ("TimeZone", "DateStyle", "IntervalStyle", "client_encoding", "standard_conforming_strings",
+            "application_name")
+
+
+def reported_of(conn) -> tuple:
+    s = conn.get_settings()
+    return tuple(getattr(s, k, None) for k in REPORTED)
+
+
 class Pool:
     """One physical connection pool to a target. The launcher opens it with the member's runtime role; the shell
     opens one per target with the shell's login role, which holds the members' roles WITH INHERIT FALSE."""
 
-    def __init__(self, target: Target, pool: asyncpg.Pool):
+    def __init__(self, target: Target, pool: asyncpg.Pool, log: Logger | None = None,
+                 base: dict[int, tuple] | None = None):
         self.target, self._pool, self._version = target, pool, 0
+        self._log = log
+        self._base = base if base is not None else {}  # backend pid -> reported settings when it connected (P5.31)
+
+    def release_check(self, conn, member: str) -> None:
+        """After a member's transaction: close the connection when a reported setting differs from the value it
+        connected with; the transaction left session state that the next borrower, possibly another member of the
+        shell, would inherit (P5.31). Costs no round trip: the server reports these settings when they change."""
+        pid = conn.get_server_pid()
+        base = self._base.get(pid)
+        if base is None or conn.is_closed():
+            return
+        for key, was, now in zip(REPORTED, base, reported_of(conn)):
+            if now != was:
+                if self._log is not None:
+                    self._log.error("a transaction left a session setting on its pooled connection; the connection "
+                                    "is closed (protocol P5.31)", member=member, parameter=key, was=was, now=now)
+                self._base.pop(pid, None)
+                conn.terminate()
+                return
 
     @staticmethod
     async def open(target: Target, user: str, password: Secret | None, app_name: str, max_conns: int,
-                   prepared: bool) -> Pool:
+                   prepared: bool, log: Logger | None = None) -> Pool:
         """Connects lazily; the password is read from the secret at every new connection, so a rotated file applies
         to new connections (P2.8). prepared=False keeps no statement cache: safe behind a transaction-mode pooler."""
+        base: dict[int, tuple] = {}
+
+        async def record(conn) -> None:
+            base[conn.get_server_pid()] = reported_of(conn)
+
         pool = await asyncpg.create_pool(
             host=target.host, port=target.port, database=target.database, user=user,
             password=(lambda: password.value()) if password else None, min_size=0, max_size=max(max_conns, 1),
             statement_cache_size=100 if prepared else 0, server_settings={"application_name": app_name, "timezone": "UTC"},
-            reset=no_reset)
-        return Pool(target, pool)
+            reset=no_reset, init=record)
+        return Pool(target, pool, log, base)
 
     async def close(self) -> None:
         await self._pool.close()
@@ -215,34 +252,41 @@ class DB:
     async def _once(self, fn: Callable[[Tx], Awaitable[T]], o: TxOptions, statement: float, lock: float, idle: float,
                     native: bool) -> T:
         async with self.pool._pool.acquire() as conn:
-            tx = Tx(conn, self._prefix)
-            async with conn.transaction(isolation="serializable" if o.serializable else "read_committed"):
-                # everything LOCAL: it ends with the transaction and never stays on the pooled connection (0-12)
-                await conn.execute(self._prefix + "SELECT set_config('role', $1, true), set_config('search_path', $2, true), "
-                                   "set_config('statement_timeout', $3, true), set_config('lock_timeout', $4, true), "
-                                   "set_config('idle_in_transaction_session_timeout', $5, true), "
-                                   "set_config('application_name', $6, true)",
-                                   self.settings.user, _ident(self.settings.schema), _ms(statement), _ms(lock), _ms(idle),
-                                   self.member)
-                if o.transaction_timeout and native:
-                    await conn.execute(self._prefix + "SELECT set_config('transaction_timeout', $1, true)",
-                                       _ms(o.transaction_timeout))
-                token = _in_tx.set(True)
-                try:
-                    result = await fn(tx)
-                finally:
-                    _in_tx.reset(token)
-                if (cutoff := reqctx.cutoff()) is not None:
-                    # P8.12: the database ends the transaction if COMMIT does not follow the check within C_commit;
-                    # then the check itself, on the suspend-aware clock
-                    await conn.execute(self._prefix + "SELECT set_config('idle_in_transaction_session_timeout', $1, true)",
-                                       _ms(COMMIT_WINDOW))
-                    if clock.since_boot() >= cutoff:
-                        raise errs.new("AUTHORIZATION_VIEW_EXPIRED",
-                                       "the authorization expired before the change could be committed")
-            for f in tx._after:  # committed
-                f()
-            return result
+            try:
+                return await self._in_tx(conn, fn, o, statement, lock, idle, native)
+            finally:
+                self.pool.release_check(conn, self.member)
+
+    async def _in_tx(self, conn, fn: Callable[[Tx], Awaitable[T]], o: TxOptions, statement: float, lock: float,
+                     idle: float, native: bool) -> T:
+        tx = Tx(conn, self._prefix)
+        async with conn.transaction(isolation="serializable" if o.serializable else "read_committed"):
+            # everything LOCAL: it ends with the transaction and never stays on the pooled connection (0-12)
+            await conn.execute(self._prefix + "SELECT set_config('role', $1, true), set_config('search_path', $2, true), "
+                               "set_config('statement_timeout', $3, true), set_config('lock_timeout', $4, true), "
+                               "set_config('idle_in_transaction_session_timeout', $5, true), "
+                               "set_config('application_name', $6, true)",
+                               self.settings.user, _ident(self.settings.schema), _ms(statement), _ms(lock), _ms(idle),
+                               self.member)
+            if o.transaction_timeout and native:
+                await conn.execute(self._prefix + "SELECT set_config('transaction_timeout', $1, true)",
+                                   _ms(o.transaction_timeout))
+            token = _in_tx.set(True)
+            try:
+                result = await fn(tx)
+            finally:
+                _in_tx.reset(token)
+            if (cutoff := reqctx.cutoff()) is not None:
+                # P8.12: the database ends the transaction if COMMIT does not follow the check within C_commit;
+                # then the check itself, on the suspend-aware clock
+                await conn.execute(self._prefix + "SELECT set_config('idle_in_transaction_session_timeout', $1, true)",
+                                   _ms(COMMIT_WINDOW))
+                if clock.since_boot() >= cutoff:
+                    raise errs.new("AUTHORIZATION_VIEW_EXPIRED",
+                                   "the authorization expired before the change could be committed")
+        for f in tx._after:  # committed
+            f()
+        return result
 
 
 def _ms(seconds: float) -> str:

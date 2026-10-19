@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from importlib.resources.abc import Traversable
 
+from besdk.db.session import body_session_state
+
 _UP = re.compile(r"[0-9]+_[a-z0-9_]+\.up\.sql")
 # statement rules in the order of the protocol's list; the first six match at the start of a statement
 _RULES = [
@@ -72,8 +74,12 @@ def lint(files: Traversable | dict[str, str], schema: str) -> list[LintProblem]:
         if body is None:
             problems.append(LintProblem(name, "UNREADABLE", "cannot read the file"))
             continue
-        for stmt in statements(body):
+        for stmt, bodies in statements_with_bodies(body):
             problems += [LintProblem(name, code, reason, short(stmt)) for code, rx, reason in _RULES if rx.search(stmt)]
+            if what := body_session_state(stmt, bodies):
+                problems.append(LintProblem(
+                    name, "SESSION_IN_BODY", f"the body leaves {what} on the connection; use SET LOCAL, "
+                    "set_config(…, true) or pg_advisory_xact_lock (protocol P5.31)", short(stmt)))
             if own and own.search(stmt):
                 problems.append(LintProblem(name, "SCHEMA_NAME", "the schema name is written into the migration; "
                                             "leave names unqualified", short(stmt)))
@@ -83,12 +89,22 @@ def lint(files: Traversable | dict[str, str], schema: str) -> list[LintProblem]:
 def statements(sql: str) -> list[str]:
     """SQL split on top-level semicolons, without comments and without the contents of string literals and dollar
     quoted bodies (a function body is checked as part of its CREATE statement, never as statements of its own)."""
-    out, b, i, n = [], [], 0, len(sql)
+    return [code for code, _ in statements_with_bodies(sql)]
+
+
+def statements_with_bodies(sql: str) -> list[tuple[str, list[str]]]:
+    """Each top-level statement as in statements(), with the dollar quoted bodies it contains."""
+    out: list[tuple[str, list[str]]] = []
+    b: list[str] = []
+    bodies: list[str] = []
+    i, n = 0, len(sql)
 
     def flush() -> None:
+        nonlocal bodies
         if s := "".join(b).strip():
-            out.append(s)
+            out.append((s, bodies))
         b.clear()
+        bodies = []
 
     while i < n:
         c = sql[i]
@@ -119,6 +135,7 @@ def statements(sql: str) -> list[str]:
         elif c == "$" and (m := _DOLLAR.match(sql, i)):
             tag = m.group(0)
             j = sql.find(tag, i + len(tag))
+            bodies.append(sql[i + len(tag):] if j < 0 else sql[i + len(tag):j])
             i = n if j < 0 else j + len(tag)
             b.append("$$")
         elif c == ";":

@@ -1,10 +1,11 @@
 {
   "topic": "migration-lint",
-  "protocol": "3.0.0-alpha.11",
+  "protocol": "3.0.0-alpha.12",
   "rules": [
-    "P5.13"
+    "P5.13",
+    "P5.31"
   ],
-  "description": "迁移文件与迁移入口检查的拒绝项。语句按顶层分号切分；注释、字符串字面量与美元引号包起来的正文不单独算语句；含点号的双引号标识符是一个名字。文件按名字排序检查，语句按文件中的顺序，同一语句内按下面规则列出的顺序。不以 .sql 结尾的文件忽略。规则：NAME: 文件名不是 <版本>_<小写下划线标题>.up.sql；DOWN: 回退迁移（生产只向前）；DUP_VERSION: 两个文件版本相同；SET: 语句以 SET 或 RESET 开头；TX_CONTROL: 语句以 BEGIN、START TRANSACTION、COMMIT、END、ROLLBACK、SAVEPOINT 或 RELEASE 开头；GRANT: 语句以 GRANT、REVOKE 或 REASSIGN 开头；ROLE_SCHEMA: CREATE、ALTER 或 DROP 一个 ROLE、USER、GROUP 或 SCHEMA；DEFAULT_PRIVILEGES: ALTER DEFAULT PRIVILEGES；DROP_OWNED: DROP OWNED；OWNER: 语句中任何位置的 OWNER TO；CONCURRENTLY: 语句中任何位置的 CONCURRENTLY（不能在文件的事务中执行）；SCHEMA_NAME: 用组件自己的 schema 名限定名字（<schema>. 或带双引号的 \"<schema>\".）。",
+  "description": "迁移文件与迁移入口检查的拒绝项。语句按顶层分号切分；注释、字符串字面量与美元引号包起来的正文不单独算语句；含点号的双引号标识符是一个名字。文件按名字排序检查，语句按文件中的顺序，同一语句内按下面规则列出的顺序。不以 .sql 结尾的文件忽略。规则：NAME: 文件名不是 <版本>_<小写下划线标题>.up.sql；DOWN: 回退迁移（生产只向前）；DUP_VERSION: 两个文件版本相同；SET: 语句以 SET 或 RESET 开头；TX_CONTROL: 语句以 BEGIN、START TRANSACTION、COMMIT、END、ROLLBACK、SAVEPOINT 或 RELEASE 开头；GRANT: 语句以 GRANT、REVOKE 或 REASSIGN 开头；ROLE_SCHEMA: CREATE、ALTER 或 DROP 一个 ROLE、USER、GROUP 或 SCHEMA；DEFAULT_PRIVILEGES: ALTER DEFAULT PRIVILEGES；DROP_OWNED: DROP OWNED；OWNER: 语句中任何位置的 OWNER TO；CONCURRENTLY: 语句中任何位置的 CONCURRENTLY（不能在文件的事务中执行）；SESSION_IN_BODY: 以 CREATE [OR REPLACE] FUNCTION、CREATE [OR REPLACE] PROCEDURE 或 DO 开头的语句，其美元引号正文（去掉注释）里有会留在连接上的会话状态：在正文开头、分号之后或 BEGIN、DECLARE、THEN、ELSE、LOOP 之后紧接着的 SET（下一个词不是 LOCAL、TRANSACTION、CONSTRAINTS）或 RESET；set_config(参数, 参数, false)，参数是单引号字面量或 $n；pg_advisory_lock 或 pg_try_advisory_lock（含共享版本）。动态 EXECUTE 的字符串不检查；SCHEMA_NAME: 用组件自己的 schema 名限定名字（<schema>. 或带双引号的 \"<schema>\".）。",
   "fields": {
     "schema": "组件的 schema",
     "files": "文件名到内容",
@@ -111,6 +112,31 @@
         {
           "file": "0001_a.up.sql",
           "rule": "SCHEMA_NAME"
+        }
+      ]
+    },
+    {
+      "id": "session-state-in-function-and-do-bodies",
+      "schema": "sales",
+      "files": {
+        "0001_a.up.sql": "CREATE FUNCTION a() RETURNS void LANGUAGE plpgsql AS $$ BEGIN SET search_path = x; END $$;\nCREATE OR REPLACE FUNCTION b() RETURNS void LANGUAGE plpgsql AS $f$\nBEGIN\n  PERFORM set_config('TimeZone', 'Asia/Tokyo', false);\nEND $f$;\nCREATE PROCEDURE c() LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_advisory_lock(1); END $$;\nDO $$ BEGIN RESET ALL; END $$;\nCREATE FUNCTION d() RETURNS void LANGUAGE plpgsql AS $$\nBEGIN\n  -- SET search_path = commented_out;\n  SET LOCAL lock_timeout = '1s';\n  UPDATE t SET a = 1;\n  PERFORM set_config('x.y', 'z', true);\n  PERFORM pg_advisory_xact_lock(1);\nEND $$;\nCREATE FUNCTION e() RETURNS int LANGUAGE sql SET search_path = public AS $$ SELECT 1 $$;\nINSERT INTO notes (body) VALUES ($$BEGIN SET x = 1$$);"
+      },
+      "refused": [
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SESSION_IN_BODY"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SESSION_IN_BODY"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SESSION_IN_BODY"
+        },
+        {
+          "file": "0001_a.up.sql",
+          "rule": "SESSION_IN_BODY"
         }
       ]
     },

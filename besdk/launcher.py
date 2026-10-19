@@ -95,7 +95,8 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
     if d.migrations is not None:
         # alone, the component connects with its own runtime login role (protocol 14, "connection pools")
         s = db.settings_from(values)
-        pool = await Pool.open(s.target, s.user, s.password, d.id, s.foreground + s.background, s.prepared)
+        pool = await Pool.open(s.target, s.user, s.password, d.id, s.foreground + s.background, s.prepared,
+                               obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout))
         database = DB(d.id, pool, s)
     transport = None
     try:

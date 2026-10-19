@@ -292,3 +292,35 @@ async def test_a_session_setting_is_refused_and_nothing_reaches_the_next_transac
             assert await d.tx(read) != "7MB", "a transaction's setting reached the next transaction"
     finally:
         await pool.close()
+
+
+async def test_a_connection_a_function_left_a_setting_on_is_closed():  # P5.31
+    v, _ = await migrated("py_leak")
+    s = db.settings_from(v)
+    logged = io.StringIO()
+    log = obs.new_logger(obs.Member("demo/py_leak", "0"), "info", logged)
+    pool = await Pool.open(s.target, s.user, s.password, "demo/py_leak", 1, s.prepared, log)
+    d = DB("demo/py_leak", pool, s)
+    a = await pgtest.admin()
+    try:
+        await a.execute("CREATE OR REPLACE FUNCTION py_leak.leak_time_zone() RETURNS void LANGUAGE plpgsql AS $$ "
+                        "BEGIN PERFORM set_config('TimeZone', 'Asia/Tokyo', false); END $$")
+
+        async def leak(tx):
+            pid = await tx.fetchval("SELECT pg_backend_pid()")
+            await tx.execute("SELECT leak_time_zone()")
+            return pid
+
+        async def read(tx):
+            return await tx.fetchrow("SELECT pg_backend_pid() AS pid, current_setting('TimeZone') AS zone")
+
+        pid1 = await d.tx(leak)  # the transaction itself succeeds
+        row = await d.tx(read)
+        assert row["zone"] == "UTC", "the next transaction does not inherit the leaked time zone"
+        assert row["pid"] != pid1, "the one pooled connection was replaced"
+        out = logged.getvalue()
+        assert "P5.31" in out and "TimeZone" in out and "demo/py_leak" in out, out
+    finally:
+        await a.execute("DROP FUNCTION IF EXISTS py_leak.leak_time_zone()")
+        await a.close()
+        await pool.close()

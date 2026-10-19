@@ -251,7 +251,7 @@ async def run(self: Identity, defs: list[Definition], o: Options, stop: asyncio.
 
 async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,
                  stop: asyncio.Event, started: float) -> int:
-    pools = await _open_pools(self, sv, plans)
+    pools = await _open_pools(self, sv, plans, log)
     transport = None
     try:
         users = [p for p in plans if p.definition.streams or p.definition.subscribes]
@@ -278,7 +278,8 @@ async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: o
         await asyncio.gather(*(p.close() for p in pools.values()))
 
 
-async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -> dict[db.Target, Pool]:
+async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned],
+                      log: obs.Logger) -> dict[db.Target, Pool]:
     """One pool per database target, with the shell's login role; its size is the sum of the members' budgets on that
     target (P5.1, P5.2). The login role holds the members' runtime roles WITH INHERIT FALSE and switches per
     transaction."""
@@ -288,8 +289,8 @@ async def _open_pools(self: Identity, sv: config.Values, plans: list[Planned]) -
             s = db.settings_from(p.values)
             size, _ = budgets.get(s.target, (0, s.prepared))
             budgets[s.target] = (size + s.foreground + s.background, s.prepared)
-    return {t: await Pool.open(t, sv.string("PG_SHELL_USER"), sv.secret("PG_SHELL_PASSWORD"), self.id, size, prepared)
-            for t, (size, prepared) in budgets.items()}
+    return {t: await Pool.open(t, sv.string("PG_SHELL_USER"), sv.secret("PG_SHELL_PASSWORD"), self.id, size, prepared,
+                               log) for t, (size, prepared) in budgets.items()}
 
 
 async def _serve_members(self: Identity, sv: config.Values, plans: list[Planned], log: obs.Logger, o: Options,

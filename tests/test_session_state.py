@@ -36,3 +36,16 @@ def test_statements_that_would_stay_on_the_pooled_connection_are_named(sql):  # 
             guard(sql)
     else:
         guard(sql)
+
+
+DO_CASES = {
+    "DO $$ BEGIN PERFORM set_config('TimeZone', 'UTC', false); END $$": "set_config(…, false) in a DO block",
+    "DO $d$ BEGIN SET search_path = x; END $d$": "SET without LOCAL in a DO block",
+    "do $$ begin perform pg_advisory_lock(1); end $$": "a session-level advisory lock in a DO block",
+    "DO $$ BEGIN SET LOCAL lock_timeout = '1s'; UPDATE t SET a = 1; END $$": "",
+}
+
+
+@pytest.mark.parametrize("sql", list(DO_CASES))
+def test_do_blocks_are_checked_like_statements(sql):  # P5.31
+    assert session_state(sql) == DO_CASES[sql]
