@@ -10,9 +10,13 @@ import pytest
 from tests import pgtest
 from tests.test_db_integration import LOG, values
 from besdk.db import migrate as mig
+from besdk.db.lint import files_of
 
 pytestmark = pytest.mark.integration
 HELPER = pathlib.Path(__file__).parent / "interop" / "gomigrate"
+# the SDK's own migrations, from the protocol copy: both SDKs carry the same set (the Go helper pins the Go SDK of the
+# same protocol), so the count follows the protocol instead of being written down
+SDK_FILES = len([n for n in files_of(mig.sdk_migrations().files) if n.endswith(".up.sql")])
 
 
 def go_migrate(name: str, files_dir: pathlib.Path) -> subprocess.CompletedProcess:
@@ -52,13 +56,13 @@ async def test_one_schema_two_sdks(tmp_path, first):
 
     second = "go" if first == "python" else "python"
     await run(first)
-    assert await state(name) == ((7, False), (2, False), 2)
+    assert await state(name) == ((SDK_FILES, False), (2, False), 2)
     await run(second)
-    assert await state(name) == ((7, False), (2, False), 2), "the other SDK finds everything applied"
+    assert await state(name) == ((SDK_FILES, False), (2, False), 2), "the other SDK finds everything applied"
     (tmp_path / "0003_last.up.sql").write_text("INSERT INTO runs VALUES (3);")
     await run(second)
     await run(first)
-    assert await state(name) == ((7, False), (3, False), 3), "a file applied by one SDK is not run again by the other"
+    assert await state(name) == ((SDK_FILES, False), (3, False), 3), "a file applied by one SDK is not run again by the other"
 
 
 async def test_both_sdks_at_once_run_every_file_once(tmp_path):  # P5.16 across languages: the same advisory lock
@@ -71,4 +75,4 @@ async def test_both_sdks_at_once_run_every_file_once(tmp_path):  # P5.16 across 
     await py_migrate(name, tmp_path)
     p = await go
     assert p.returncode == 0, p.stdout + p.stderr
-    assert await state(name) == ((7, False), (7, False), 7)
+    assert await state(name) == ((SDK_FILES, False), (7, False), 7)

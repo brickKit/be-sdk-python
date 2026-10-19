@@ -8,6 +8,7 @@ import pytest
 from besdk import config, db, errs, obs
 from besdk.config import MapSource
 from besdk.db import migrate as mig
+from besdk.db.lint import files_of
 from besdk.db.docno import Series, next_gapped_number, next_number, register_imported
 from besdk.db.pool import DB, Pool
 from tests import pgtest
@@ -49,7 +50,8 @@ async def test_migrate_twice_and_the_state_in_the_component_schema():  # P5.12, 
                              "AND table_name IN ('be_sdk_migrations', 'schema_migrations', 'items') ORDER BY 1")
         assert [r[0] for r in rows] == ["be_sdk_migrations", "items", "schema_migrations"]
         assert await a.fetchrow("SELECT version, dirty FROM py_mig1.schema_migrations") == (1, False)
-        assert (await a.fetchrow("SELECT version, dirty FROM py_mig1.be_sdk_migrations"))["version"] == 7
+        sdk_files = len([n for n in files_of(mig.sdk_migrations().files) if n.endswith(".up.sql")])
+        assert (await a.fetchrow("SELECT version, dirty FROM py_mig1.be_sdk_migrations"))["version"] == sdk_files
     finally:
         await a.close()
 
