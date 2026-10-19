@@ -137,14 +137,28 @@ class Transport:
         commit record is flushed, so concurrent publishes would commit one at a time (8 publishers: about 3 500 messages
         a second against about 10 000); a NOTIFY alone writes nothing. Not on the publish path either: the forwarder,
         which publishes in order, would wait a second round trip a message (a publisher at 200 a second went from about
-        13 to 19 ms). Never merged: each notification wakes one idle reader. A failure is reported; the poll reads the
-        message."""
-        while True:
-            subject = await self._notes.get()
-            try:
-                await self.pool.execute("SELECT pg_notify($1, $2)", WAKE_CHANNEL, subject)
-            except Exception as e:  # noqa: BLE001
-                self._report(ConnectionError(f"bus wake after a publish (the poll reads the message): {e}"))
+        13 to 19 ms). Never merged: each notification wakes one idle reader. On a connection of its own, opened at the
+        first NOTIFY: borrowing from the pool cost about 0.1 ms of CPU a message more (0.31-0.40 against 0.20-0.24 ms a
+        publish; 0.14-0.17 with the NOTIFY in the insert). A failure is reported and the connection reopened at the
+        next NOTIFY; the poll reads the message."""
+        conn: asyncpg.Connection | None = None
+        try:
+            while True:
+                subject = await self._notes.get()
+                try:
+                    if conn is None:
+                        conn = await asyncpg.connect(**self._args)
+                    await conn.execute("SELECT pg_notify($1, $2)", WAKE_CHANNEL, subject)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:  # noqa: BLE001
+                    self._report(ConnectionError(f"bus wake after a publish (the poll reads the message): {e}"))
+                    if conn is not None:
+                        conn.terminate()
+                        conn = None
+        finally:
+            if conn is not None:
+                conn.terminate()
 
     async def subscribe(self, spec: SubscriptionSpec, h: Handler) -> _Workers:
         """The durable is created with spec when missing; otherwise its stored settings apply."""
