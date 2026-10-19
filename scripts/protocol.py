@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 REPO = "https://github.com/brickKit/be-protocol.git"
-PARTS = ["vectors", "migrations", "migrations-bus", "capabilities.json"]
+PARTS = ["vectors", "schemas", "migrations", "migrations-bus", "capabilities.json"]
 DEST = pathlib.Path(__file__).resolve().parents[1] / "besdk" / "_protocol"
 
 

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
-from besdk import canon, errs, reqctx
+from besdk import canon, errs, records, reqctx
 from besdk.db.pool import DB, Tx, TxOptions, rows_affected
 from besdk.obs import Logger
 
@@ -28,7 +28,8 @@ MIN_RETENTION = 7 * 24 * 3600.0
 BATCH = 500
 TRANSFER_EVERY = 5.0
 SEND_TIMEOUT = 30.0
-SUBMIT_METHOD, WATERMARK_METHOD = "/be.audit.v3.Intake/Submit", "/be.audit.v3.Intake/Watermark"
+SUBMIT_METHOD, WATERMARK_METHOD = "/be.audit.v3.IntakeService/Submit", "/be.audit.v3.IntakeService/Watermark"
+_RECEIPT = {1: "received", 2: "conflict", 3: "invalid"}  # be.audit.v3.ReceiptStatus
 
 
 @dataclass
@@ -80,29 +81,33 @@ class Sender(Protocol):
 
 
 class GRPCSender:
-    """Sends to the audit component over its system surface (mTLS, the call policy). Until its contract is generated
-    the records travel as JSON in a BytesValue."""
+    """Sends to the audit component over its system surface (mTLS, the call policy; infra-audit's contract). A record
+    travels as the canonical bytes stored with its row (P8.21)."""
 
     def __init__(self, channel: Any):
-        from google.protobuf import wrappers_pb2
+        from be.audit.v3 import audit_pb2_grpc
 
-        def method(name: str):
-            return channel.unary_unary(name, request_serializer=wrappers_pb2.BytesValue.SerializeToString,
-                                       response_deserializer=wrappers_pb2.BytesValue.FromString)
-
-        self._submit, self._watermark, self._bytes = method(SUBMIT_METHOD), method(WATERMARK_METHOD), wrappers_pb2.BytesValue
-
-    async def _call(self, m, body: Any) -> Any:
-        from besdk.calls.client import options
-
-        out = await m(self._bytes(value=json.dumps(body).encode()), metadata=options(idempotent=True))
-        return json.loads(out.value)
+        self._stub = audit_pb2_grpc.IntakeServiceStub(channel)
 
     async def send(self, records: list[dict]) -> list[dict]:
-        return await self._call(self._submit, records) or []
+        from be.audit.v3 import audit_pb2
+
+        from besdk.calls.client import options
+
+        out = await self._stub.Submit(audit_pb2.SubmitRequest(items=[
+            audit_pb2.Item(id=r["id"], seq=r["seq"], epoch=r["epoch"], digest=r["digest"], record=r["record"])
+            for r in records]), metadata=options(idempotent=True))
+        return [{"id": r.id, "status": _RECEIPT.get(r.status, "conflict"), "epoch": r.epoch, "seq": r.seq,
+                 "chain": r.chain} for r in out.receipts]
 
     async def watermark(self) -> dict:
-        return await self._call(self._watermark, {})
+        from be.audit.v3 import audit_pb2
+
+        from besdk.calls.client import options
+
+        out = await self._stub.Watermark(audit_pb2.WatermarkRequest(), metadata=options(idempotent=True))
+        return {"epoch": out.epoch, "seq": out.seq, "ancestors": {a.epoch: a.fork for a in out.ancestors},
+                "backed_up_in_epoch": out.backed_up_in_epoch}
 
 
 @dataclass
@@ -119,13 +124,15 @@ class Auditor:
 
     async def _insert(self, tx: Tx, r: Record) -> str:
         rid, at = str(uuid.uuid7()), datetime.now(timezone.utc)
-        digest = canon.digest("be.audit.record", 1, _body(r, rid, at))
+        body = _body(r, rid, at)
+        raw, digest = records.seal("be.audit.record", body)
+        records.validate("be.audit.record", body)  # a bad record is refused here, not at transfer
         await tx.execute(
             "INSERT INTO be_audit_log (id, occurred_at, category, operation, outcome, reason, actor, represented, "
-            "target, changes, request, digest) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+            "target, changes, request, digest, record) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
             uuid.UUID(rid), at, r.category, r.operation, r.outcome, r.reason or None,
             _json({"id": r.actor} if r.actor else None), _json({"id": r.represented} if r.represented else None),
-            _json(r.target), _json(r.changes), _json(r.request), digest)
+            _json(r.target), _json(r.changes), _json(r.request), digest, raw)
         return rid
 
     async def write(self, tx: Tx, r: Record) -> str:
@@ -211,14 +218,12 @@ class Auditor:
         """Sends one batch of numbered pending rows and stores the receipts (P8.21); returns how many were settled.
         A conflict stops that record only; nothing is retried automatically after a conflict."""
         rows = await self.db.background_tx(lambda tx: tx.fetch(
-            "SELECT id::text, seq, epoch_generation, epoch_timeline, digest, json_build_object('occurred_at', "
-            "occurred_at, 'category', category, 'operation', operation, 'outcome', outcome, 'reason', reason, 'actor', "
-            "actor, 'represented', represented, 'target', target, 'changes', changes, 'request', request)::text AS rec "
-            "FROM be_audit_log WHERE transfer_state = 'pending' AND seq IS NOT NULL ORDER BY ord LIMIT $1", BATCH))
+            "SELECT id::text, seq, epoch_generation, epoch_timeline, digest, record FROM be_audit_log "
+            "WHERE transfer_state = 'pending' AND seq IS NOT NULL AND record IS NOT NULL ORDER BY ord LIMIT $1", BATCH))
         if not rows:
             return 0
         batch = [{"id": r["id"], "seq": r["seq"], "epoch": f"{r['epoch_generation']}.{r['epoch_timeline']}",
-                  "digest": r["digest"], "record": json.loads(r["rec"])} for r in rows]
+                  "digest": r["digest"], "record": bytes(r["record"])} for r in rows]
         receipts = await s.send(batch)  # on failure they stay pending and are sent again (idempotent by ID)
 
         async def store(tx: Tx) -> None:
@@ -226,7 +231,8 @@ class Auditor:
                 await tx.execute(
                     "UPDATE be_audit_log SET transfer_state = $2, receipt_epoch = $3, receipt_seq = $4, "
                     "receipt_chain = $5, received_at = now() WHERE id = $1 AND transfer_state = 'pending'",
-                    uuid.UUID(rc["id"]), "conflict" if rc.get("status") == "conflict" else "received",
+                    # conflict, invalid or a status this SDK does not know: never taken as received (P8.21)
+                    uuid.UUID(rc["id"]), "received" if rc.get("status") == "received" else "conflict",
                     rc.get("epoch"), rc.get("seq"), rc.get("chain"))
 
         await self.db.background_tx(store)
@@ -242,8 +248,8 @@ class Auditor:
     async def purge(self, w: dict) -> tuple[int, int]:
         """Deletes received rows whose receipts the watermark covers and that are older than the minimum retention
         (P8.22). Receipts on a lost branch or past an ancestor's fork point go back to pending to be sent again.
-        w: {"Epoch", "Seq", "Ancestors": {epoch: fork}, "BackedUpInEpoch"} as the audit component answers."""
-        epoch, seq, ancestors = w.get("Epoch", ""), int(w.get("Seq", 0)), w.get("Ancestors") or {}
+        w: {"epoch", "seq", "ancestors": {epoch: fork}, "backed_up_in_epoch"} as GRPCSender.watermark gives it."""
+        epoch, seq, ancestors = w.get("epoch", ""), int(w.get("seq", 0)), w.get("ancestors") or {}
         delete = ("DELETE FROM be_audit_log WHERE transfer_state = 'received' AND received_at < now() - "
                   "make_interval(secs => $3) AND receipt_epoch = $1 AND receipt_seq <= $2")
         resend = ("UPDATE be_audit_log SET transfer_state = 'pending', receipt_epoch = NULL, receipt_seq = NULL, "
@@ -253,7 +259,7 @@ class Auditor:
             deleted = rows_affected(await tx.execute(delete, epoch, seq, MIN_RETENTION))
             resent = 0
             for anc, fork in ancestors.items():
-                if w.get("BackedUpInEpoch"):
+                if w.get("backed_up_in_epoch"):
                     deleted += rows_affected(await tx.execute(delete, anc, int(fork), MIN_RETENTION))
                 resent += rows_affected(await tx.execute(resend + "AND receipt_epoch = $1 AND receipt_seq > $2",
                                                          anc, int(fork)))

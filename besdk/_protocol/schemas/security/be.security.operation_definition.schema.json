@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.operation_definition.schema.json",
+  "title": "be.security.operation_definition",
+  "type": "object",
+  "properties": {
+    "record_type": {
+      "$ref": "#/$defs/Key"
+    },
+    "schema": {
+      "$ref": "#/$defs/Text"
+    },
+    "deployment": {
+      "$ref": "#/$defs/Id"
+    },
+    "authority": {
+      "$ref": "#/$defs/ComponentId"
+    },
+    "id": {
+      "$ref": "#/$defs/Id"
+    },
+    "revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "required_features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {}
+    },
+    "key": {
+      "$ref": "#/$defs/Key"
+    },
+    "resource_type": {
+      "$ref": "#/$defs/Key"
+    },
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "read",
+        "special_read",
+        "export",
+        "action",
+        "create",
+        "manage"
+      ]
+    },
+    "risk_class": {
+      "type": "string",
+      "enum": [
+        "low",
+        "high"
+      ]
+    },
+    "tightening_only": {
+      "$ref": "#/$defs/Bool"
+    },
+    "minimum_path": {
+      "type": "string",
+      "enum": [
+        "default",
+        "strict_acceptance",
+        "strict_barrier"
+      ]
+    },
+    "side_effects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "business_write",
+          "external_command",
+          "job_or_subscription",
+          "file_capability",
+          "security_change",
+          "notification"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "output_read_operation": {
+      "$ref": "#/$defs/Key"
+    },
+    "requires_appointment": {
+      "$ref": "#/$defs/Bool"
+    },
+    "self_review_rule": {
+      "$ref": "#/$defs/Key"
+    },
+    "delegable": {
+      "$ref": "#/$defs/Bool"
+    },
+    "impersonation_allowed": {
+      "$ref": "#/$defs/Bool"
+    },
+    "audit": {
+      "type": "string",
+      "enum": [
+        "none",
+        "required"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema",
+    "deployment",
+    "authority",
+    "id",
+    "revision",
+    "key",
+    "resource_type",
+    "purpose",
+    "risk_class",
+    "minimum_path",
+    "side_effects",
+    "requires_appointment",
+    "delegable",
+    "impersonation_allowed",
+    "audit"
+  ],
+  "$defs": {
+    "Bool": {
+      "type": "boolean"
+    },
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

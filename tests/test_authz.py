@@ -8,7 +8,7 @@ import pytest
 from besdk import errs, protocol, reqctx
 from besdk.authz import (AMOUNT, NULL, UNOBTAINED, Definitions, Dimension, Fact, Field, Holder, Operation, Resource,
                          Segment, Subject, evaluate, mask)
-from besdk.authz.view import DRIFT, INTERVAL, T_STALL, W_READ
+from besdk.authz.view import DRIFT, INTERVAL, T_STALL, W_READ, Shard, _Held
 from besdk.obs import Member, new_logger
 
 ALICE = "0190f3a1-0000-7000-8000-0000000000a1"
@@ -258,3 +258,28 @@ def test_amounts_are_decimal_strings_as_the_protocol_writes_them():
     assert _interval(a, Fact.money("100", "CNY")) is Tri.TRUE
     for odd in ("1_000", " 100", "NaN", "Infinity", "١٠٠"):
         assert _interval(a, Fact.money(odd, "CNY")) is Tri.UNKNOWN, odd
+
+
+def test_view_accept_vectors():  # P8.11
+    before, sent = 1.0, 9.0
+    for c in protocol.vector("view-accept")["cases"]:
+        h = Holder("demo/orders", None, new_logger(Member("demo/orders", "3.0.0"), "error", io.StringIO()))  # type: ignore[arg-type]
+        if c["held"]["recovery"] is not None:
+            h.recovery = c["held"]["recovery"]
+        h.instance = c["held"]["instance"] or ""
+        for name, s in c["held"]["shards"].items():
+            h.shards[name] = _Held(Shard(name, [], {}, "old", s["revisions"]), before, s.get("stopped", False),
+                                   s.get("suspended", False))
+        ans = {"instance": c["answer"]["instance"], "shards": [
+            {"shard": a["shard"], "status": a["status"],
+             **({"view": Shard(a["shard"], [], {}, "new", a["view"]["security_revisions"])} if a.get("view") else {})}
+            for a in c["answer"]["shards"]]}
+        accepted = h.apply(ans, c["answer"]["recovery"], sent)
+        got = {name: "dropped" for name in c["held"]["shards"]}
+        for name, x in h.shards.items():
+            got[name] = ("stopped" if x.stopped else "suspended" if x.suspended else
+                         "replaced" if x.sent_at == sent and x.shard.digest == "new" else
+                         "renewed" if x.sent_at == sent else "kept")
+        assert accepted == (c["expect"]["answer"] == "accepted"), c["id"]
+        assert got == c["expect"]["shards"], c["id"]
+        assert h.instance == (c["expect"]["instance"] or ""), c["id"]

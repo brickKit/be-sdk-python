@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.15",
+  "protocol": "3.0.0-alpha.18",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -260,7 +260,10 @@
         "test_authz::test_declarations_are_checked_together",
         "test_security::test_protected_routes_need_the_security_configuration_and_declarations",
         "test_canon::test_canonical_vectors",
-        "test_authz::test_segment_digests_of_vector_canonical"
+        "test_authz::test_segment_digests_of_vector_canonical",
+        "test_records::test_security_record_vectors",
+        "test_records::test_open_refuses_what_is_not_exactly_canonical",
+        "test_security::test_not_ready_until_the_definitions_are_accepted"
       ]
     },
     "authz-view": {
@@ -273,7 +276,8 @@
         "test_authz::test_a_wall_clock_jump_invalidates_every_shard",
         "test_authz::test_a_verification_that_times_out_is_not_a_stall",
         "test_authz::test_check_moves_the_cutoff_to_the_evidence",
-        "test_security::test_without_a_view_protected_routes_answer_a_retryable_503"
+        "test_security::test_without_a_view_protected_routes_answer_a_retryable_503",
+        "test_authz::test_view_accept_vectors"
       ]
     },
     "authz-evaluation": {
@@ -299,7 +303,9 @@
       "status": "verified",
       "evidence": [
         "test_security_integration::test_audit_records_reach_the_audit_member_with_receipts",
-        "test_security::test_a_failed_denial_record_never_changes_the_denial"
+        "test_security::test_a_failed_denial_record_never_changes_the_denial",
+        "test_audit_integration::test_purge_vectors",
+        "test_audit_integration::test_the_bytes_sent_are_the_record_the_digest_names_and_unknown_receipts_stop_it"
       ]
     },
     "lists": {

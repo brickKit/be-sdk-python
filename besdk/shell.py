@@ -388,7 +388,7 @@ def _own_surface(self: Identity, sv: config.Values, members: list[host.Member]):
         aggregate.register(_Labelled(m.registry, m.definition.id))  # type: ignore[arg-type]
 
     def ready() -> tuple[bool, str, list[str]]:
-        waiting = [m.definition.id for m in members if m.state != host.READY]
+        waiting = [m.definition.id for m in members if not m.is_ready()[0]]
         if not waiting:
             return True, host.READY, []
         return False, host.STOPPING if members and members[0].state == host.STOPPING else host.STARTING, waiting

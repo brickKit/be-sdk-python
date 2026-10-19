@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.change_request.schema.json",
+  "title": "be.security.change_request",
+  "type": "object",
+  "properties": {
+    "change_key": {
+      "$ref": "#/$defs/Text"
+    },
+    "requested_by": {
+      "$ref": "#/$defs/PrincipalRef"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "user",
+        "job",
+        "recovery"
+      ]
+    },
+    "expected_state_revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "termination": {
+      "type": "string",
+      "enum": [
+        "withdraw",
+        "reject",
+        "cancel"
+      ]
+    },
+    "acting_as": {
+      "$ref": "#/$defs/Id"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "tighten",
+        "widen",
+        "neutral",
+        "restore_security_hold",
+        "restore_uncomputable"
+      ]
+    },
+    "confirmation_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Id"
+      },
+      "uniqueItems": true
+    },
+    "target": {
+      "$ref": "#/$defs/Id"
+    },
+    "expected_revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "candidate": {},
+    "candidate_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "effective_from": {
+      "$ref": "#/$defs/Instant"
+    },
+    "source_revisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RevisionRef"
+      }
+    },
+    "reason": {
+      "$ref": "#/$defs/Text"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "change_key",
+    "requested_by",
+    "trigger",
+    "direction"
+  ],
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$"
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "PrincipalRef": {
+      "type": "object",
+      "properties": {
+        "deployment": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "user",
+            "service",
+            "job"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "deployment",
+        "kind",
+        "id"
+      ]
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

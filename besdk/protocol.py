@@ -24,3 +24,8 @@ def migrations() -> Traversable:
 def capabilities() -> dict:
     """The capability list behind the feature matrix."""
     return json.loads(ROOT.joinpath("capabilities.json").read_text())
+
+
+def schema(record_type: str) -> dict:
+    """The JSON Schema of a security record type (schemas/security, generated from the field tables)."""
+    return json.loads(ROOT.joinpath("schemas", "security", record_type + ".schema.json").read_text())

@@ -121,6 +121,8 @@ class Member:
     holder: object = None  # the member's authorization view (besdk.authz.Holder), with protected routes
     auditor: object = None  # with a database: the audit table and its transfer
     audit_sender: object = None  # the audit component's system surface, None without AUDIT_GRPC_URL
+    definitions: object = None  # with protected routes: the authorization member's DefinitionService stub
+    defs_accepted: bool = False  # readiness waits for it when there are protected routes
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -144,14 +146,56 @@ class Member:
         if self.auditor is not None:
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.holder is not None:
-            # one verification before ready, so the first requests find a view; best effort: the authorization member
-            # may be down, and then protected requests answer a retryable 503 until it is back
-            try:
-                with reqctx.deadline_scope(time.monotonic() + 2):
-                    await self.holder.verify()  # type: ignore[attr-defined]
-            except Exception as e:  # noqa: BLE001
-                self.logger.warn("no authorization view yet; protected requests wait for one", error=str(e))
-            self._tasks.append(asyncio.create_task(self.holder.run()))  # type: ignore[attr-defined]
+            # the definitions first, then one verification before ready, so the first requests find a view; both
+            # best effort: the authorization member may be down, and then the member stays not ready until it is back
+            if await self._submit(2.0):
+                try:
+                    with reqctx.deadline_scope(time.monotonic() + 2):
+                        await self.holder.verify()  # type: ignore[attr-defined]
+                except Exception as e:  # noqa: BLE001
+                    self.logger.warn("no authorization view yet; protected requests wait for one", error=str(e))
+                self._tasks.append(asyncio.create_task(self.holder.run()))  # type: ignore[attr-defined]
+            else:
+                self._tasks.append(asyncio.create_task(self._submit_until_accepted()))
+
+    def is_ready(self) -> tuple[bool, str, list[str]]:
+        """The member's readiness: started, and with protected routes its definitions accepted."""
+        if self.state == READY and self.holder is not None and not self.defs_accepted:
+            return False, "definitions_pending", []
+        return self.state == READY, self.state, []
+
+    async def _submit(self, timeout: float) -> bool:
+        """Sends the declared definitions once (DefinitionService.Submit); reports whether they were accepted."""
+        from besdk.authz.defs import Rejected
+
+        try:
+            with reqctx.deadline_scope(time.monotonic() + timeout):
+                await self.definition.authz.submit(self.definitions, self.values.string("DEPLOYMENT_ID"),  # type: ignore[union-attr]
+                                                   self.definition.version)
+        except Rejected as e:
+            self.logger.error("the authorization member refused this version's definitions; the member stays not ready",
+                              error=str(e))
+            return False
+        except Exception as e:  # noqa: BLE001 - the member is down or unreachable: retried
+            self.logger.warn("the definitions could not be submitted yet; the member stays not ready", error=str(e))
+            return False
+        self.defs_accepted = True
+        return True
+
+    async def _submit_until_accepted(self) -> None:
+        """Retries the submission with a growing pause, then runs the view holder."""
+        pause = 1.0
+        while True:
+            await asyncio.sleep(pause)
+            if await self._submit(5.0):
+                try:
+                    with reqctx.deadline_scope(time.monotonic() + 5):
+                        await self.holder.verify()  # type: ignore[attr-defined]
+                except Exception:  # noqa: BLE001 - the holder's own loop retries and reports
+                    pass
+                await self.holder.run()  # type: ignore[attr-defined]
+                return
+            pause = min(pause * 2, 30.0)
 
     def stop_background(self) -> None:
         for t in self._tasks:
@@ -252,7 +296,7 @@ def _surfaces(member: Member, shared: Shared, outbound: calls.Member, routes: Ro
     ops = [r.operation for r in routes.list() if not r.public]
     guard = _guard(member, shared, outbound, ops) if ops else None
     member.app = build_app(Deps(log, member.registry, member.runtime.tracer, Platform(
-        member.ready or (lambda: (member.state == READY, member.state, [])), member.describe), guard), routes)
+        member.ready or member.is_ready, member.describe), guard), routes)
     if not services.empty:
         _declared(d, services.operations(), "system methods")
         member.system = system.build_server(system.Deps(log, member.registry, member.runtime.tracer, member.tls),
@@ -298,6 +342,9 @@ def _guard(member: Member, shared: Shared, outbound: calls.Member, ops: list[str
         raise ConfigError(problems)
     channel = outbound.grpc("infra/authz", host_port(values.string("AUTHZ_GRPC_URL")))
     member.holder = Holder(d.id, GRPCSource(channel), member.logger)
+    from be.authz.v3 import authz_pb2_grpc
+
+    member.definitions = authz_pb2_grpc.DefinitionServiceStub(channel)
     verifier = Verifier(values.string("IAM_ISSUER"), "be:deployment:" + values.string("DEPLOYMENT_ID"),
                         shared.keys)  # type: ignore[arg-type]
     return UserGuard(verifier, d.authz, member.holder, member.logger)  # type: ignore[arg-type]

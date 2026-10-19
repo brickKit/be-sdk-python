@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.account_status.schema.json",
+  "title": "be.security.account_status",
+  "type": "object",
+  "properties": {
+    "record_type": {
+      "$ref": "#/$defs/Key"
+    },
+    "schema": {
+      "$ref": "#/$defs/Text"
+    },
+    "deployment": {
+      "$ref": "#/$defs/Id"
+    },
+    "authority": {
+      "$ref": "#/$defs/ComponentId"
+    },
+    "id": {
+      "$ref": "#/$defs/Id"
+    },
+    "revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "required_features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {}
+    },
+    "account": {
+      "$ref": "#/$defs/PrincipalRef"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "disabled",
+        "security_frozen"
+      ]
+    },
+    "security_mark": {
+      "type": "string",
+      "enum": [
+        "none",
+        "compromised",
+        "suspicious"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema",
+    "deployment",
+    "authority",
+    "id",
+    "revision",
+    "account",
+    "status"
+  ],
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "PrincipalRef": {
+      "type": "object",
+      "properties": {
+        "deployment": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "user",
+            "service",
+            "job"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "deployment",
+        "kind",
+        "id"
+      ]
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,467 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.view.schema.json",
+  "title": "be.security.view",
+  "type": "object",
+  "properties": {
+    "record_type": {
+      "$ref": "#/$defs/Key"
+    },
+    "schema": {
+      "$ref": "#/$defs/Text"
+    },
+    "deployment": {
+      "$ref": "#/$defs/Id"
+    },
+    "authority": {
+      "$ref": "#/$defs/ComponentId"
+    },
+    "id": {
+      "$ref": "#/$defs/Id"
+    },
+    "revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "required_features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {}
+    },
+    "shard": {
+      "$ref": "#/$defs/Key"
+    },
+    "recovery_generation": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "security_revisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RevisionRef"
+      }
+    },
+    "applicability": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    },
+    "subjects": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/SubjectEntry"
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema",
+    "deployment",
+    "authority",
+    "id",
+    "revision",
+    "shard",
+    "recovery_generation",
+    "security_revisions",
+    "applicability",
+    "subjects",
+    "capabilities"
+  ],
+  "$defs": {
+    "Atom": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "in"
+              ]
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Text"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "tree"
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "$ref": "#/$defs/Text"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "exact",
+                      "subtree"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "mode"
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "self"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "subject_org"
+              ]
+            },
+            "appointment": {
+              "$ref": "#/$defs/Id"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "exact",
+                "subtree"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "appointment",
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "related"
+              ]
+            },
+            "relation_type": {
+              "$ref": "#/$defs/Key"
+            },
+            "anchor": {
+              "type": "string",
+              "enum": [
+                "subject",
+                "record"
+              ]
+            },
+            "max_depth": {
+              "$ref": "#/$defs/Int"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "relation_type",
+            "anchor",
+            "max_depth"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "interval"
+              ]
+            },
+            "currency": {
+              "$ref": "#/$defs/Currency"
+            },
+            "lo": {
+              "$ref": "#/$defs/Decimal"
+            },
+            "lo_closed": {
+              "$ref": "#/$defs/Bool"
+            },
+            "hi": {
+              "$ref": "#/$defs/Decimal"
+            },
+            "hi_closed": {
+              "$ref": "#/$defs/Bool"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "currency"
+          ]
+        }
+      ]
+    },
+    "Bool": {
+      "type": "boolean"
+    },
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "Currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "Decimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*|-?(0|[1-9][0-9]*)\\.[0-9]*[1-9])$"
+    },
+    "DefinitionRef": {
+      "type": "object",
+      "properties": {
+        "owner_component": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "resource",
+            "operation",
+            "field",
+            "dimension",
+            "role_template"
+          ]
+        },
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        },
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "owner_component",
+        "kind",
+        "key",
+        "version",
+        "digest"
+      ]
+    },
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$"
+    },
+    "Int": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "SubjectEntry": {
+      "type": "object",
+      "properties": {
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/be.security.segment"
+          },
+          "uniqueItems": true
+        },
+        "accounts_disabled": {
+          "$ref": "#/$defs/Bool"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "segments",
+        "accounts_disabled"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    },
+    "TimeWindow": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/Instant"
+        },
+        "until": {
+          "$ref": "#/$defs/Instant"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from"
+      ]
+    },
+    "be.security.segment": {
+      "type": "object",
+      "properties": {
+        "resource_type": {
+          "$ref": "#/$defs/Key"
+        },
+        "operation": {
+          "$ref": "#/$defs/Key"
+        },
+        "atoms": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/Key"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Atom"
+          }
+        },
+        "read_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          },
+          "uniqueItems": true
+        },
+        "write_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          },
+          "uniqueItems": true
+        },
+        "valid": {
+          "$ref": "#/$defs/TimeWindow"
+        },
+        "binding": {
+          "$ref": "#/$defs/Id"
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "definition": {
+          "$ref": "#/$defs/DefinitionRef"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "resource_type",
+        "operation",
+        "atoms",
+        "read_fields",
+        "write_fields",
+        "valid",
+        "source",
+        "definition"
+      ]
+    }
+  }
+}

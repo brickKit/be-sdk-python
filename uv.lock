@@ -149,12 +149,15 @@ wheels = [
 
 [[package]]
 name = "be-sdk"
-version = "3.0.0a16"
+version = "3.0.0a17"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "asyncpg" },
+    { name = "contract-infra-audit" },
+    { name = "contract-infra-authz" },
     { name = "fastapi" },
+    { name = "fastjsonschema" },
     { name = "googleapis-common-protos" },
     { name = "grpcio" },
     { name = "grpcio-status" },
@@ -183,7 +186,10 @@ dev = [
 requires-dist = [
     { name = "aiohttp" },
     { name = "asyncpg" },
+    { name = "contract-infra-audit", git = "https://github.com/brickKit/infra-audit?subdirectory=contract%2Fpython&rev=contract%2Fv3.0.0-alpha.1" },
+    { name = "contract-infra-authz", git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.1" },
     { name = "fastapi" },
+    { name = "fastjsonschema" },
     { name = "googleapis-common-protos" },
     { name = "grpcio" },
     { name = "grpcio-status" },
@@ -342,6 +348,24 @@ wheels = [
 ]
 
 [[package]]
+name = "contract-infra-audit"
+version = "3.0.0a1"
+source = { git = "https://github.com/brickKit/infra-audit?subdirectory=contract%2Fpython&rev=contract%2Fv3.0.0-alpha.1#93b4a8fc651174fdc2848f4c0fabf8b8f544859f" }
+dependencies = [
+    { name = "grpcio" },
+    { name = "protobuf" },
+]
+
+[[package]]
+name = "contract-infra-authz"
+version = "3.0.0a1"
+source = { git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.1#8d69296d5a8a9429aacadaf33a25b5261d78edaa" }
+dependencies = [
+    { name = "grpcio" },
+    { name = "protobuf" },
+]
+
+[[package]]
 name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -406,6 +430,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/38/d5/b0aeb0b303650ac87b0411de4aaf3f901b06042dcc3fb00f30b97b7ff585/fastapi-0.143.3.tar.gz", hash = "sha256:b9ab567ee57afb4454004ce04c889f8f0160ac47946b99795887cd6e88484848", size = 469834, upload-time = "2026-10-16T14:14:13.31Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/1a/03d246befcf307219bb2161c97d8c5d314f84125bf7dd245730a28589828/fastapi-0.143.3-py3-none-any.whl", hash = "sha256:75e8bd68e2f52f77d29b2879749c257d64de2d85282d25270caf2bfccce5efe5", size = 144849, upload-time = "2026-10-16T14:14:11.763Z" },
+]
+
+[[package]]
+name = "fastjsonschema"
+version = "2.22.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/a4/9473c7c3b87009d9c1d74034e4a0f6a35ff0d42dd0f9866d0c3ec4e9217b/fastjsonschema-2.22.2.tar.gz", hash = "sha256:72064e12356a7d6ef02165be2946b9abadbdf238536e07eb587e3dbaa33099cf", size = 385171, upload-time = "2026-08-15T19:47:08.853Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/82/2755c7c982086f00d4dab85bc120ec35045a9fc2191893a6ce79afe94443/fastjsonschema-2.22.2-py3-none-any.whl", hash = "sha256:0fb3915616adac85ccfdd737d26be1089845d2019819505b42d39888458f74d4", size = 27413, upload-time = "2026-08-15T19:47:04.406Z" },
 ]
 
 [[package]]

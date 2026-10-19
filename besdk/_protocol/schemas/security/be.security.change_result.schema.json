@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.change_result.schema.json",
+  "title": "be.security.change_result",
+  "type": "object",
+  "properties": {
+    "change_key": {
+      "$ref": "#/$defs/Text"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "applied",
+        "rejected",
+        "processing",
+        "awaiting_confirmation",
+        "scheduled",
+        "held_kept"
+      ]
+    },
+    "reason": {
+      "$ref": "#/$defs/Key"
+    },
+    "record": {
+      "$ref": "#/$defs/Id"
+    },
+    "new_revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "security_revisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RevisionRef"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "change_key",
+    "outcome"
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

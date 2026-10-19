@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.definition_set.schema.json",
+  "title": "be.security.definition_set",
+  "type": "object",
+  "properties": {
+    "component": {
+      "$ref": "#/$defs/ComponentId"
+    },
+    "version": {
+      "$ref": "#/$defs/Text"
+    },
+    "definitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Digest"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "component",
+    "version",
+    "definitions"
+  ],
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

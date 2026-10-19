@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/problem.schema.json",
+  "title": "Error body of the user surface (spec/03-errors.md, P3.1)",
+  "type": "object",
+  "required": ["type", "title", "status", "detail", "reason", "domain", "trace_id"],
+  "properties": {
+    "type": { "type": "string", "pattern": "^urn:be:[a-z0-9/_-]+:[A-Z][A-Z0-9_]*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+    "detail": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "domain": { "type": "string", "pattern": "^(be|[a-z][a-z0-9-]*/[a-z][a-z0-9-]*)$" },
+    "metadata": { "type": "object", "additionalProperties": { "type": "string" } },
+    "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "reason", "description"],
+        "properties": {
+          "field": { "type": "string" },
+          "reason": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -4,6 +4,7 @@ digests. No JSON null and no floating point ever appear; the bytes equal the Go 
 from __future__ import annotations
 
 import hashlib
+import json
 import unicodedata
 from datetime import datetime, timezone
 from decimal import Context, Decimal as D, InvalidOperation
@@ -110,7 +111,47 @@ def encode(v: Any) -> bytes:
 
 def digest(record_type: str, major: int, v: Any) -> str:
     """"sha256:" + SHA-256 of "<record type>.v<major>\\n" followed by the canonical bytes."""
-    return "sha256:" + hashlib.sha256(f"{record_type}.v{major}\n".encode() + encode(v)).hexdigest()
+    return digest_bytes(record_type, major, encode(v))
+
+
+def digest_bytes(record_type: str, major: int, body: bytes) -> str:
+    """digest over bytes that are already canonical (a record as received, D76)."""
+    return "sha256:" + hashlib.sha256(f"{record_type}.v{major}\n".encode() + body).hexdigest()
+
+
+def _no_float(s: str) -> Any:
+    raise Refused("floating point")
+
+
+def _no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        raise Refused("a duplicate key")
+    return out
+
+
+def _nfc(v: Any) -> Any:
+    if isinstance(v, str):
+        return text(v)
+    if isinstance(v, list):
+        return [_nfc(e) for e in v]
+    if isinstance(v, dict):
+        return {text(k): _nfc(e) for k, e in v.items()}
+    return v
+
+
+def parse(raw: bytes) -> Any:
+    """Decodes bytes received as a canonical record and refuses them unless they are exactly the canonical encoding
+    of what they decode to (key order, no whitespace, minimal escapes, no null or floating point, NFC text)."""
+    try:
+        v = json.loads(raw, parse_float=_no_float, parse_constant=_no_float, object_pairs_hook=_no_duplicates)
+    except (ValueError, UnicodeDecodeError) as e:
+        if isinstance(e, Refused):
+            raise
+        raise Refused(str(e)) from None
+    if encode(_nfc(v)) != raw:
+        raise Refused("the bytes are not in canonical form")
+    return v
 
 
 def sorted_set(items: list[Any]) -> list[Any]:

@@ -1,0 +1,275 @@
+{
+  "topic": "audit-purge",
+  "protocol": "3.0.0-alpha.18",
+  "rules": [
+    "P8.22"
+  ],
+  "description": "本地审计行（已有回执）能不能删除。watermark 是审计组件的已备份水位：epoch（当前纪元，“部署恢复代次.时间线”）、seq（已进备份的最高存储序号）、ancestors（当前历史上的祖先纪元与各自的分叉点）、backed_up_in_epoch（当前纪元里是否已完成过一次备份）。receipt 是回执的纪元与存储序号，retained 表示已超过最短保留期（7 天）。expect：delete（删除）、keep（保留，等水位追上或保留期满）、resend（回执指向已丢失的值：改回待转运，按记录身份重新发送）。判断：同一纪元按水位；祖先纪元高于分叉点 resend，不高于分叉点且当前纪元已完成备份才可删除；比水位的纪元更晚的 keep；其余（不在当前历史中）resend。resend 不看保留期。",
+  "fields": {
+    "watermark": "已备份水位",
+    "receipt": "一条已有回执的本地行",
+    "expect": "delete、keep 或 resend"
+  },
+  "cases": [
+    {
+      "id": "covered",
+      "note": "同一纪元、不高于水位、已过保留期：删除",
+      "watermark": {
+        "epoch": "1.1",
+        "seq": 100,
+        "ancestors": {},
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 100,
+        "retained": true
+      },
+      "expect": "delete"
+    },
+    {
+      "id": "covered-young",
+      "note": "同一纪元、已覆盖、未满 7 天：保留",
+      "watermark": {
+        "epoch": "1.1",
+        "seq": 100,
+        "ancestors": {},
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 40,
+        "retained": false
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "past-watermark",
+      "note": "同一纪元、高于水位（还没进备份）：保留，等待",
+      "watermark": {
+        "epoch": "1.1",
+        "seq": 100,
+        "ancestors": {},
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 101,
+        "retained": true
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "ancestor-within-fork",
+      "note": "祖先纪元、不高于分叉点、新纪元已完成备份：删除",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 80,
+        "retained": true
+      },
+      "expect": "delete"
+    },
+    {
+      "id": "ancestor-past-fork",
+      "note": "祖先纪元、高于分叉点（指向已丢失的值）：重新转运",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 81,
+        "retained": true
+      },
+      "expect": "resend"
+    },
+    {
+      "id": "ancestor-past-fork-young",
+      "note": "高于分叉点的不论保留期都重新转运",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 95,
+        "retained": false
+      },
+      "expect": "resend"
+    },
+    {
+      "id": "ancestor-no-backup-yet",
+      "note": "祖先纪元、不高于分叉点，但新纪元还没有完成备份：保留",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 0,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": false
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 10,
+        "retained": true
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "current-after-restore",
+      "note": "恢复后的新纪元里的回执：按新纪元的水位",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "2.1",
+        "seq": 5,
+        "retained": true
+      },
+      "expect": "delete"
+    },
+    {
+      "id": "current-after-restore-past",
+      "note": "新纪元里高于水位：保留",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "2.1",
+        "seq": 6,
+        "retained": true
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "later-epoch",
+      "note": "回执的纪元晚于水位的纪元（备份还没追上）：保留，等待",
+      "watermark": {
+        "epoch": "1.1",
+        "seq": 100,
+        "ancestors": {},
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.2",
+        "seq": 3,
+        "retained": true
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "later-generation",
+      "note": "回执的恢复代次更大：保留，等待",
+      "watermark": {
+        "epoch": "1.1",
+        "seq": 100,
+        "ancestors": {},
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "2.1",
+        "seq": 1,
+        "retained": true
+      },
+      "expect": "keep"
+    },
+    {
+      "id": "lost-branch",
+      "note": "纪元不在当前历史中（从更早的备份恢复，整条分支丢弃）：重新转运",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.2",
+        "seq": 3,
+        "retained": true
+      },
+      "expect": "resend"
+    },
+    {
+      "id": "lost-branch-older",
+      "note": "更早的、不在历史中的纪元：重新转运",
+      "watermark": {
+        "epoch": "2.1",
+        "seq": 5,
+        "ancestors": {
+          "1.1": 80
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "0.9",
+        "seq": 3,
+        "retained": true
+      },
+      "expect": "resend"
+    },
+    {
+      "id": "timeline-ancestor",
+      "note": "高可用切换（时间线变大）后的旧时间线、不高于分叉点：删除",
+      "watermark": {
+        "epoch": "1.2",
+        "seq": 10,
+        "ancestors": {
+          "1.1": 100
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.1",
+        "seq": 100,
+        "retained": true
+      },
+      "expect": "delete"
+    },
+    {
+      "id": "timeline-current",
+      "note": "切换后新时间线里的回执：按新时间线的水位",
+      "watermark": {
+        "epoch": "1.2",
+        "seq": 10,
+        "ancestors": {
+          "1.1": 100
+        },
+        "backed_up_in_epoch": true
+      },
+      "receipt": {
+        "epoch": "1.2",
+        "seq": 10,
+        "retained": true
+      },
+      "expect": "delete"
+    }
+  ]
+}

@@ -1,0 +1,909 @@
+{
+  "topic": "security-records",
+  "protocol": "3.0.0-alpha.18",
+  "rules": [
+    "P8.8",
+    "P8.11",
+    "P8.20"
+  ],
+  "description": "线上的安全记录与审计记录（D76：以规范 JSON 字节放在信封的 bytes 字段里）对 schemas/security/ 下生成的 JSON Schema（装配项目安全 09a 与本章的字段表生成）的校验。valid=true 的记录 schema 接受，并给出规范字节（canonical）与摘要（记录类型取 record_type，主版本 1）；valid=false 的记录 schema 拒绝，why 说明原因。schema 只查结构与类型；约束一列里的条件规则（例如 restricted 字段必有 read_key）由代码检查，不在这里。",
+  "fields": {
+    "record_type": "记录类型，也是 schema 文件名（<record_type>.schema.json）",
+    "record": "记录内容（不含 digest）",
+    "valid": "schema 是否接受",
+    "canonical、digest": "valid=true：规范字节与摘要"
+  },
+  "cases": [
+    {
+      "id": "view",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "applicability": [
+          "demo.order"
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false
+          }
+        },
+        "capabilities": []
+      },
+      "valid": true,
+      "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
+      "digest": "sha256:7e95aec3aa7232a587cdd0fb96fb2793f2e88dd5bab4d83e888fdd2632ea100d"
+    },
+    {
+      "id": "resource-definition",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {
+          "legal_entity": {
+            "kind": "value_set",
+            "column": "legal_entity",
+            "pushdown": "local_column"
+          },
+          "owner": {
+            "kind": "principal",
+            "column": "owner",
+            "principal_role": "owner",
+            "pushdown": "local_column"
+          }
+        },
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "valid": true,
+      "canonical": "{\"authority\":\"demo/order\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"dimensions\":{\"legal_entity\":{\"column\":\"legal_entity\",\"kind\":\"value_set\",\"pushdown\":\"local_column\"},\"owner\":{\"column\":\"owner\",\"kind\":\"principal\",\"principal_role\":\"owner\",\"pushdown\":\"local_column\"}},\"fields\":{\"id\":{\"class\":\"ordinary\"},\"note\":{\"class\":\"secret\"},\"total\":{\"class\":\"restricted\",\"read_key\":\"demo.order.read_total\"}},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.resource_definition\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"schema\":\"1.0\",\"type\":\"demo.order\",\"view_operation\":\"demo.order.read\"}",
+      "digest": "sha256:5e4ef1f831d402fe793cb57f68601208f45ec039c8cc8e9e37585135da452fea"
+    },
+    {
+      "id": "operation-definition",
+      "record_type": "be.security.operation_definition",
+      "record": {
+        "record_type": "be.security.operation_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "key": "demo.order.approve",
+        "resource_type": "demo.order",
+        "purpose": "action",
+        "risk_class": "high",
+        "minimum_path": "default",
+        "side_effects": [
+          "business_write"
+        ],
+        "requires_appointment": false,
+        "delegable": true,
+        "impersonation_allowed": false,
+        "audit": "required"
+      },
+      "valid": true,
+      "canonical": "{\"audit\":\"required\",\"authority\":\"demo/order\",\"delegable\":true,\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"impersonation_allowed\":false,\"key\":\"demo.order.approve\",\"minimum_path\":\"default\",\"purpose\":\"action\",\"record_type\":\"be.security.operation_definition\",\"requires_appointment\":false,\"resource_type\":\"demo.order\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"risk_class\":\"high\",\"schema\":\"1.0\",\"side_effects\":[\"business_write\"]}",
+      "digest": "sha256:7bea990ba673e74a3aa1d2f950f77526b5008e73e4a796e96843b717e5deb7c0"
+    },
+    {
+      "id": "segment",
+      "record_type": "be.security.segment",
+      "record": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "in",
+            "values": [
+              "le1"
+            ]
+          },
+          "owner": {
+            "kind": "self"
+          }
+        },
+        "read_fields": [
+          "id",
+          "total"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-01T00:00:00.000000Z"
+        },
+        "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+        "definition": {
+          "owner_component": "demo/order",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "3.0.0",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "valid": true,
+      "canonical": "{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}",
+      "digest": "sha256:b6bb471c36b3465bea8cdb9c2f05bb1238379ef34cf259690781ba17eaedb975"
+    },
+    {
+      "id": "audit-record",
+      "record_type": "be.audit.record",
+      "record": {
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "occurred_at": "2026-10-19T08:00:00.000000Z",
+        "category": "business_change",
+        "operation": "demo.order.approve",
+        "outcome": "succeeded",
+        "actor": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "target": {
+          "type": "demo.order",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+          "revision": "4"
+        },
+        "request": {
+          "trace_id": "4bf92f3577b34da6"
+        }
+      },
+      "valid": true,
+      "canonical": "{\"actor\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"category\":\"business_change\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"occurred_at\":\"2026-10-19T08:00:00.000000Z\",\"operation\":\"demo.order.approve\",\"outcome\":\"succeeded\",\"request\":{\"trace_id\":\"4bf92f3577b34da6\"},\"target\":{\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"revision\":\"4\",\"type\":\"demo.order\"}}",
+      "digest": "sha256:7510689e0f3ae8940b465191ec405e761709dfc75f33881fae1ade05983551ef"
+    },
+    {
+      "id": "audit-denial",
+      "record_type": "be.audit.record",
+      "record": {
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "occurred_at": "2026-10-19T08:00:00.000000Z",
+        "category": "security_denial",
+        "operation": "demo.order.read",
+        "outcome": "denied",
+        "reason": "PERMISSION_DENIED",
+        "actor": "test/probe-go"
+      },
+      "valid": true,
+      "canonical": "{\"actor\":\"test/probe-go\",\"category\":\"security_denial\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"occurred_at\":\"2026-10-19T08:00:00.000000Z\",\"operation\":\"demo.order.read\",\"outcome\":\"denied\",\"reason\":\"PERMISSION_DENIED\"}",
+      "digest": "sha256:15781be6384c3830c300ff62938481c5b8bfe0f0d8ac9b48316808b9d2d4fbb0"
+    },
+    {
+      "id": "resource-no-dimensions",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {},
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "valid": true,
+      "canonical": "{\"authority\":\"demo/order\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"dimensions\":{},\"fields\":{\"id\":{\"class\":\"ordinary\"},\"note\":{\"class\":\"secret\"},\"total\":{\"class\":\"restricted\",\"read_key\":\"demo.order.read_total\"}},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.resource_definition\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"schema\":\"1.0\",\"type\":\"demo.order\",\"view_operation\":\"demo.order.read\"}",
+      "digest": "sha256:85cf3ad971b4aeb5c6c25ee389ae806f3f35722f227bf2421c32e7f9382a5c5a"
+    },
+    {
+      "id": "account-status",
+      "record_type": "be.security.account_status",
+      "record": {
+        "record_type": "be.security.account_status",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/iam-casdoor",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "revision": {
+          "domain": "infra.iam.account_status",
+          "value": "3",
+          "epoch": "1.1",
+          "instance": "iam-inst-a"
+        },
+        "account": {
+          "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+          "kind": "user",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
+        },
+        "status": "disabled",
+        "security_mark": "compromised"
+      },
+      "valid": true,
+      "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"status\":\"disabled\"}",
+      "digest": "sha256:6685c8d646928ec8ffa1b9e5d76dac065e455f6661e79e6a7bd46e95d668b4e0"
+    },
+    {
+      "id": "definition-set",
+      "record_type": "be.security.definition_set",
+      "record": {
+        "component": "demo/order",
+        "version": "3.0.0",
+        "definitions": [
+          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "valid": true,
+      "canonical": "{\"component\":\"demo/order\",\"definitions\":[\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"],\"version\":\"3.0.0\"}",
+      "digest": "sha256:9099d5722b92f7be960b9060e3cf93405d75bd6b10ac588c6cf4366d74f3be3b"
+    },
+    {
+      "id": "view-no-applicability",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false
+          }
+        },
+        "capabilities": []
+      },
+      "valid": false,
+      "why": "缺必填字段"
+    },
+    {
+      "id": "view-with-digest",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "applicability": [
+          "demo.order"
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false
+          }
+        },
+        "capabilities": [],
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "valid": false,
+      "why": "线上的记录不带自己的摘要（随信封传）"
+    },
+    {
+      "id": "view-unknown-field",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "applicability": [
+          "demo.order"
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false
+          }
+        },
+        "capabilities": [],
+        "owner": "x"
+      },
+      "valid": false,
+      "why": "未定义的字段（扩展只能放进 ext）"
+    },
+    {
+      "id": "resource-no-dimensions-key",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "valid": false,
+      "why": "没有维度要写 {}，不能缺省"
+    },
+    {
+      "id": "authority-as-key",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo.order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {
+          "legal_entity": {
+            "kind": "value_set",
+            "column": "legal_entity",
+            "pushdown": "local_column"
+          },
+          "owner": {
+            "kind": "principal",
+            "column": "owner",
+            "principal_role": "owner",
+            "pushdown": "local_column"
+          }
+        },
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "valid": false,
+      "why": "authority 是组件 ID，不是 Key"
+    },
+    {
+      "id": "component-underscore",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order_x",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {
+          "legal_entity": {
+            "kind": "value_set",
+            "column": "legal_entity",
+            "pushdown": "local_column"
+          },
+          "owner": {
+            "kind": "principal",
+            "column": "owner",
+            "principal_role": "owner",
+            "pushdown": "local_column"
+          }
+        },
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        }
+      },
+      "valid": false,
+      "why": "组件 ID 不含下划线"
+    },
+    {
+      "id": "key-uppercase",
+      "record_type": "be.security.operation_definition",
+      "record": {
+        "record_type": "be.security.operation_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "key": "demo.Order.approve",
+        "resource_type": "demo.order",
+        "purpose": "action",
+        "risk_class": "high",
+        "minimum_path": "default",
+        "side_effects": [
+          "business_write"
+        ],
+        "requires_appointment": false,
+        "delegable": true,
+        "impersonation_allowed": false,
+        "audit": "required"
+      },
+      "valid": false,
+      "why": "Key 只用小写"
+    },
+    {
+      "id": "enum-unknown",
+      "record_type": "be.security.operation_definition",
+      "record": {
+        "record_type": "be.security.operation_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "key": "demo.order.approve",
+        "resource_type": "demo.order",
+        "purpose": "action",
+        "risk_class": "medium",
+        "minimum_path": "default",
+        "side_effects": [
+          "business_write"
+        ],
+        "requires_appointment": false,
+        "delegable": true,
+        "impersonation_allowed": false,
+        "audit": "required"
+      },
+      "valid": false,
+      "why": "未知的枚举值"
+    },
+    {
+      "id": "id-not-v7",
+      "record_type": "be.security.segment",
+      "record": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "in",
+            "values": [
+              "le1"
+            ]
+          },
+          "owner": {
+            "kind": "self"
+          }
+        },
+        "read_fields": [
+          "id",
+          "total"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-01T00:00:00.000000Z"
+        },
+        "source": "0190f3a2-7c1e-4b2a-9d4e-0000000000b1",
+        "definition": {
+          "owner_component": "demo/order",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "3.0.0",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "valid": false,
+      "why": "Id 是 UUIDv7"
+    },
+    {
+      "id": "instant-precision",
+      "record_type": "be.audit.record",
+      "record": {
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "occurred_at": "2026-10-19T08:00:00Z",
+        "category": "business_change",
+        "operation": "demo.order.approve",
+        "outcome": "succeeded",
+        "actor": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "target": {
+          "type": "demo.order",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+          "revision": "4"
+        },
+        "request": {
+          "trace_id": "4bf92f3577b34da6"
+        }
+      },
+      "valid": false,
+      "why": "时刻固定 6 位小数"
+    },
+    {
+      "id": "float",
+      "record_type": "be.security.segment",
+      "record": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "all"
+          },
+          "owner": {
+            "kind": "related",
+            "relation_type": "team",
+            "anchor": "subject",
+            "max_depth": 1.5
+          }
+        },
+        "read_fields": [
+          "id",
+          "total"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-01T00:00:00.000000Z"
+        },
+        "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+        "definition": {
+          "owner_component": "demo/order",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "3.0.0",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "valid": false,
+      "why": "不出现浮点数"
+    },
+    {
+      "id": "atom-unknown-kind",
+      "record_type": "be.security.segment",
+      "record": {
+        "resource_type": "demo.order",
+        "operation": "demo.order.read",
+        "atoms": {
+          "legal_entity": {
+            "kind": "any"
+          },
+          "owner": {
+            "kind": "self"
+          }
+        },
+        "read_fields": [
+          "id",
+          "total"
+        ],
+        "write_fields": [],
+        "valid": {
+          "from": "2026-10-01T00:00:00.000000Z"
+        },
+        "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+        "definition": {
+          "owner_component": "demo/order",
+          "kind": "resource",
+          "key": "demo.order",
+          "version": "3.0.0",
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "valid": false,
+      "why": "未知的原子种类"
+    },
+    {
+      "id": "audit-outcome",
+      "record_type": "be.audit.record",
+      "record": {
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "occurred_at": "2026-10-19T08:00:00.000000Z",
+        "category": "business_change",
+        "operation": "demo.order.approve",
+        "outcome": "ok",
+        "actor": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "target": {
+          "type": "demo.order",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+          "revision": "4"
+        },
+        "request": {
+          "trace_id": "4bf92f3577b34da6"
+        }
+      },
+      "valid": false,
+      "why": "未知的结果"
+    },
+    {
+      "id": "account-status-unknown",
+      "record_type": "be.security.account_status",
+      "record": {
+        "record_type": "be.security.account_status",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/iam-casdoor",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "revision": {
+          "domain": "infra.iam.account_status",
+          "value": "3",
+          "epoch": "1.1",
+          "instance": "iam-inst-a"
+        },
+        "account": {
+          "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+          "kind": "user",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
+        },
+        "status": "locked",
+        "security_mark": "compromised"
+      },
+      "valid": false,
+      "why": "未知的账号状态"
+    },
+    {
+      "id": "definition-set-not-digest",
+      "record_type": "be.security.definition_set",
+      "record": {
+        "component": "demo/order",
+        "version": "3.0.0",
+        "definitions": [
+          "abc"
+        ]
+      },
+      "valid": false,
+      "why": "集合里只能是摘要"
+    }
+  ]
+}

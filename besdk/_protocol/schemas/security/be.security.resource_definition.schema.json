@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/brickKit/be-protocol/schemas/security/be.security.resource_definition.schema.json",
+  "title": "be.security.resource_definition",
+  "type": "object",
+  "properties": {
+    "record_type": {
+      "$ref": "#/$defs/Key"
+    },
+    "schema": {
+      "$ref": "#/$defs/Text"
+    },
+    "deployment": {
+      "$ref": "#/$defs/Id"
+    },
+    "authority": {
+      "$ref": "#/$defs/ComponentId"
+    },
+    "id": {
+      "$ref": "#/$defs/Id"
+    },
+    "revision": {
+      "$ref": "#/$defs/RevisionRef"
+    },
+    "required_features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Key"
+      },
+      "uniqueItems": true
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {}
+    },
+    "type": {
+      "$ref": "#/$defs/Key"
+    },
+    "view_operation": {
+      "$ref": "#/$defs/Key"
+    },
+    "dimensions": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/DimensionDefinition"
+      }
+    },
+    "fields": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/FieldDefinition"
+      }
+    },
+    "shareable": {
+      "$ref": "#/$defs/Bool"
+    },
+    "governance_dimension": {
+      "$ref": "#/$defs/Key"
+    },
+    "extensible": {
+      "$ref": "#/$defs/Bool"
+    },
+    "extension_quota": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Int"
+      }
+    },
+    "attachment_categories": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/AttachmentCategory"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema",
+    "deployment",
+    "authority",
+    "id",
+    "revision",
+    "type",
+    "view_operation",
+    "dimensions",
+    "fields"
+  ],
+  "$defs": {
+    "AttachmentCategory": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/Key"
+        },
+        "max_bytes": {
+          "$ref": "#/$defs/Int"
+        },
+        "allowed_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Text"
+          },
+          "uniqueItems": true
+        },
+        "sensitivity": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "strict"
+          ]
+        },
+        "retention_class": {
+          "$ref": "#/$defs/Key"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "max_bytes",
+        "allowed_types",
+        "sensitivity",
+        "retention_class",
+        "version"
+      ]
+    },
+    "Bool": {
+      "type": "boolean"
+    },
+    "ComponentId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "DimensionDefinition": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "value_set",
+            "org_tree",
+            "principal",
+            "relation",
+            "record",
+            "amount"
+          ]
+        },
+        "column": {
+          "$ref": "#/$defs/Key"
+        },
+        "principal_role": {
+          "$ref": "#/$defs/Key"
+        },
+        "relation_type": {
+          "$ref": "#/$defs/Key"
+        },
+        "currency_column": {
+          "$ref": "#/$defs/Key"
+        },
+        "pushdown": {
+          "type": "string",
+          "enum": [
+            "local_column",
+            "local_projection",
+            "not_pushdownable"
+          ]
+        },
+        "projection_watermark": {
+          "$ref": "#/$defs/Key"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "column",
+        "pushdown"
+      ]
+    },
+    "FieldDefinition": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "ordinary",
+            "restricted",
+            "secret"
+          ]
+        },
+        "read_key": {
+          "$ref": "#/$defs/Key"
+        },
+        "write_key": {
+          "$ref": "#/$defs/Key"
+        },
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          },
+          "uniqueItems": true
+        },
+        "queryable": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "filter",
+              "sort",
+              "group",
+              "aggregate"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "class"
+      ]
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Int": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 128
+    },
+    "RevisionRef": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/Key"
+        },
+        "value": {
+          "$ref": "#/$defs/Text"
+        },
+        "epoch": {
+          "$ref": "#/$defs/Text"
+        },
+        "instance": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "value"
+      ]
+    },
+    "Text": {
+      "type": "string"
+    }
+  }
+}

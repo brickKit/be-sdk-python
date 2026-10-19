@@ -1,0 +1,1233 @@
+{
+  "topic": "view-accept",
+  "protocol": "3.0.0-alpha.18",
+  "rules": [
+    "P8.11"
+  ],
+  "description": "组件收到核验回答之后怎样处理（随机数已核对；安全 03 的接受表）。held 是组件持有的：恢复代次（null 表示进程启动后还没有视图）、已记下的成员实例、各分片的安全修订，以及是否停用（stopped）或暂停（suspended）。answer 是回答的恢复代次、作答的成员实例（instance）与各分片（status：unchanged、changed、closed；changed 带新视图的 security_revisions，每个 RevisionRef 带 instance 与 epoch）。纪元写作“部署恢复代次.时间线”，按两个整数的字典序比较。expect.answer：accepted 或 rollback（整个回答不采用，停用全部视图并告警）；expect.instance：之后记下的成员实例；expect.shards：每个分片的结果——renewed（续期）、replaced（换成新视图并续期）、kept（不续期，到期自然失效）、suspended（整个回答判为回退时，持有的分片暂停使用、修订留作比较；下一个被采用的回答续期或换掉它即恢复）、stopped（判为回退，停用并告警；只在更高的恢复代次之后解除）、dropped（恢复代次更高，旧分片作废）。判断的先后：恢复代次更低、作答的成员实例与记下的不同、或新视图的修订带着别的实例 → rollback；恢复代次更高 → 旧分片全部作废、不比较修订；同一恢复代次 → 逐分片、逐依赖域比较：纪元更早、或同一纪元数值更低 → stopped。",
+  "fields": {
+    "held": "组件持有的状态",
+    "answer": "核验回答（摘要与视图内容从略）",
+    "expect": "处理之后的结果"
+  },
+  "cases": [
+    {
+      "id": "start",
+      "note": "进程启动时没有视图：采用回答，记下成员实例",
+      "held": {
+        "recovery": null,
+        "instance": null,
+        "shards": {}
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "10",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "unchanged",
+      "note": "未变：续期",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed"
+        }
+      }
+    },
+    {
+      "id": "unchanged-not-held",
+      "note": "对没有持有的分片答未变：不产生分片",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          },
+          {
+            "shard": "s2",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed"
+        }
+      }
+    },
+    {
+      "id": "closed",
+      "note": "关闭：不续期，到期自然失效",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "closed"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "kept"
+        }
+      }
+    },
+    {
+      "id": "not-mentioned",
+      "note": "回答没有提到的分片：不续期",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          },
+          "s2": {
+            "revisions": [
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed",
+          "s2": "kept"
+        }
+      }
+    },
+    {
+      "id": "newer-value",
+      "note": "同一纪元、修订更高：换成新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "11",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "same-value",
+      "note": "同一纪元、修订相同（视图内容变了，例如能力）：换成新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "10",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "lower-value",
+      "note": "同一纪元、修订更低：判为回退，停用这个分片",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "9",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "later-timeline",
+      "note": "纪元更晚（时间线变大）、数值更低：换成新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.2",
+                  "value": "2",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "later-generation",
+      "note": "纪元的恢复代次更大：换成新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "2.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "earlier-epoch",
+      "note": "纪元更早（未隔离的旧主库作答）：判为回退，停用这个分片",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.2",
+                "value": "5",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "8",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "new-domain",
+      "note": "新视图多了一个依赖域：没有可比的旧值，换成新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "10",
+                  "instance": "authz-inst-a"
+                },
+                {
+                  "domain": "authz.security.org",
+                  "epoch": "1.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "one-domain-back",
+      "note": "两个依赖域里一个回退：停用这个分片",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              },
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "7",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "12",
+                  "instance": "authz-inst-a"
+                },
+                {
+                  "domain": "authz.security.org",
+                  "epoch": "1.1",
+                  "value": "6",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "mixed",
+      "note": "一个分片回退、另一个前进：分别处理",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          },
+          "s2": {
+            "revisions": [
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "9",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          },
+          {
+            "shard": "s2",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.org",
+                  "epoch": "1.1",
+                  "value": "4",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped",
+          "s2": "replaced"
+        }
+      }
+    },
+    {
+      "id": "recovery-lower",
+      "note": "恢复代次更低（旧成员从旧备份重启后作答）：整个回答判为回退，停用全部视图",
+      "held": {
+        "recovery": 2,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "2.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "50",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "rollback",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "suspended"
+        }
+      }
+    },
+    {
+      "id": "recovery-higher",
+      "note": "恢复代次更高：旧分片全部作废，只用回答里的新视图，不比较修订",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          },
+          "s2": {
+            "revisions": [
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 2,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "2.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced",
+          "s2": "dropped"
+        }
+      }
+    },
+    {
+      "id": "other-instance",
+      "note": "另一个成员实例作答（没有登记的成员切换）：整个回答判为回退",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-b",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "11",
+                  "instance": "authz-inst-b"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "rollback",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "suspended"
+        }
+      }
+    },
+    {
+      "id": "other-instance-unchanged",
+      "note": "另一个实例只答未变（例如从备份另建的环境内容相同）：仍判为回退，不续期",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-b",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "rollback",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "suspended"
+        }
+      }
+    },
+    {
+      "id": "other-instance-higher",
+      "note": "另一个实例、恢复代次也更高：仍判为回退",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 2,
+        "instance": "authz-inst-b",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "2.1",
+                  "value": "1",
+                  "instance": "authz-inst-b"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "rollback",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "suspended"
+        }
+      }
+    },
+    {
+      "id": "view-instance-mismatch",
+      "note": "视图里的修订带着另一个实例：判为回退",
+      "held": {
+        "recovery": null,
+        "instance": null,
+        "shards": {}
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          },
+          {
+            "shard": "s2",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.org",
+                  "epoch": "1.1",
+                  "value": "1",
+                  "instance": "authz-inst-b"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "rollback",
+        "instance": null,
+        "shards": {}
+      }
+    },
+    {
+      "id": "stopped-stays",
+      "note": "已因回退停用的分片：同一恢复代次的新视图不解除，只等更高的恢复代次",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "stopped": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "11",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "stopped-unchanged",
+      "note": "已停用的分片答未变：不续期",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "stopped": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "suspended-renewed",
+      "note": "整个回答被判回退后暂停的分片：下一个被采用的回答续期它，即恢复使用",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "suspended": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed"
+        }
+      }
+    },
+    {
+      "id": "suspended-kept",
+      "note": "暂停的分片没有被续期：仍暂停",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "suspended": true
+          },
+          "s2": {
+            "revisions": [
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s2",
+            "status": "unchanged"
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "suspended",
+          "s2": "renewed"
+        }
+      }
+    },
+    {
+      "id": "suspended-lower",
+      "note": "暂停的分片收到更低的修订：判为回退、停用",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "suspended": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "9",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "stopped-recovery-higher",
+      "note": "已停用的分片在恢复代次推进后：作废，采用新视图",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "stopped": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 2,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "2.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced"
+        }
+      }
+    }
+  ]
+}

@@ -24,6 +24,7 @@ from besdk.http import Route
 from besdk.identity import ServiceTLS
 from besdk.obs import Member as ObsMember, new_logger, new_registry
 from besdk.system import Deps, Method, Services, build_server, serve_port
+from besdk.authz.defs import set_digest
 from besdk.testing import ALICE, BOB, defs, pem
 
 SAY = "/demo.Echo/Say"
@@ -247,3 +248,24 @@ async def test_a_failed_denial_record_never_changes_the_denial():  # P8.19
 
     err = await Auditor(Down()).denial(Record("", "demo.order.approve", "", "PERMISSION_DENIED", actor=ALICE))
     assert isinstance(err, OSError), "returned for logging, never raised"
+
+
+async def test_not_ready_until_the_definitions_are_accepted(world):  # T5.3: submitted at start, readiness waits
+    world.refuse_definitions = "DEFINITION_OWNER_MISMATCH"
+    base, stop, task, out = await start(Definition("demo/orders", "3.0.0", Orders, authz=ORDERS), world.env("demo/orders"))
+    try:
+        async with httpx.AsyncClient(base_url=base) as c:
+            assert (await c.get("/readyz")).status_code == 503, "refused definitions: not ready"
+            assert "refused this version's definitions" in out.getvalue()
+            assert "demo/orders@3.0.0" not in world.submitted
+            world.refuse_definitions = ""
+            for _ in range(100):
+                if (await c.get("/readyz")).status_code == 200:
+                    break
+                await asyncio.sleep(0.05)
+            assert (await c.get("/readyz")).status_code == 200, "ready once a retry is accepted"
+        sealed = ORDERS.records(world.deployment, "3.0.0")
+        assert world.submitted["demo/orders@3.0.0"] == set_digest("demo/orders", "3.0.0", sealed)
+    finally:
+        stop.set()
+        assert await task == launcher.EXIT_OK, out.getvalue()
