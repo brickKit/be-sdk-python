@@ -9,6 +9,7 @@ from typing import Any, Awaitable, Callable
 
 from opentelemetry import context as otel_context
 
+from besdk.config import Key, Type
 from besdk.db.pool import DB, Tx
 from besdk.events.core import (H_EPOCH, H_HOPS, H_ID, H_IMPL, H_PARTITION, H_PROJECTION, H_SEQ, H_SOURCE, H_STREAM,
                                H_SUBJECT, H_TYPE, H_VERSION, MAX_HOPS, Delivery, Outcome, SubscriptionSpec, durable_name)
@@ -52,7 +53,25 @@ class Sub:
     handle: HandleFunc
     types: list[str] = field(default_factory=list)  # empty: every type of the streams
     max_deliver: int = 0
-    concurrency: int = 0
+    concurrency: int = 0  # the deployment's BUS_SUBSCRIPTION_CONCURRENCY overrides it (P6.31)
+    # depends on arrival order: always one message at a time, whatever the deployment sets
+    ordered: bool = False
+
+
+CONCURRENCY_KEY = "BUS_SUBSCRIPTION_CONCURRENCY"
+
+
+def consumer_keys() -> list[Key]:
+    """The keys of a member that subscribes (P6.31)."""
+    return [Key(CONCURRENCY_KEY, Type.INTEGER, min=1, max=64)]
+
+
+def concurrency(sub: Sub, configured: int) -> int:
+    """A subscription's effective concurrency (P6.31): 1 when ordered, else the deployment's setting (configured, 0
+    when unset), else the declaration, else 1."""
+    if sub.ordered:
+        return 1
+    return configured or sub.concurrency or 1
 
 
 class Subscriptions:
@@ -66,13 +85,15 @@ class Subscriptions:
 class Consumer:
     """Runs one subscription of a member."""
 
-    def __init__(self, member: str, sub: Sub, db: DB, log: Logger, claims: HTTPClaims | None = None):
+    def __init__(self, member: str, sub: Sub, db: DB, log: Logger, claims: HTTPClaims | None = None,
+                 configured: int = 0):
         self.member, self.sub, self.db, self.log, self.claims = member, sub, db, log, claims
+        self.configured = configured  # the member's BUS_SUBSCRIPTION_CONCURRENCY, 0 when unset (P6.31)
 
     def spec(self) -> SubscriptionSpec:
         filters = [f"be.{st}.*.{t}" for st in self.sub.streams for t in self.sub.types]
         return SubscriptionSpec(durable_name(self.member, self.sub.name), list(self.sub.streams), filters,
-                                self.sub.max_deliver, concurrency=self.sub.concurrency).defaults()
+                                self.sub.max_deliver, concurrency=concurrency(self.sub, self.configured)).defaults()
 
     async def handle(self, d: Delivery) -> Outcome:
         """Claim check, hop limit, inbox and business write in one transaction; a failure on the last delivery

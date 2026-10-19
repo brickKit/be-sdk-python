@@ -27,7 +27,7 @@ from besdk.config import Key, Problem, Type, Values
 from besdk.guard import UserGuard
 from besdk.http import Deps, Platform, Routes, build_app
 from besdk.identity import KeySet, ServiceTLS, Verifier
-from besdk.events.consumer import Consumer, Subscriptions
+from besdk.events.consumer import CONCURRENCY_KEY, Consumer, Subscriptions, consumer_keys
 from besdk.events.objectstore import HTTPClaims, S3Store
 from besdk.events.outbox import Forwarder, Producer
 from besdk.runtime import Runtime
@@ -63,6 +63,8 @@ def keys(d: Definition) -> list[Key]:
     out = [*d.keys, *sdk_keys(), *security_keys(), *(db.serve_keys() if d.migrations is not None else [])]
     if d.streams or d.subscribes:
         out += [*bus.keys(bool(d.streams)), *objectstore.store_keys()]
+    if d.subscribes:
+        out += consumer_keys()
     return out
 
 
@@ -231,7 +233,9 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]
         member.claims = HTTPClaims()
-        member.consumers = [Consumer(d.id, s, shared.db, log, member.claims) for s in subs.list]  # type: ignore[arg-type]
+        configured = values.int(CONCURRENCY_KEY) or 0
+        member.consumers = [Consumer(d.id, s, shared.db, log, member.claims, configured)  # type: ignore[arg-type]
+                            for s in subs.list]
     try:
         _surfaces(member, shared, outbound, routes, services)
     except ValueError as e:
