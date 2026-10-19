@@ -85,9 +85,9 @@ async def test_audit_records_reach_the_audit_member_with_receipts(world):  # P8.
         assert kinds.count(("sensitive_read", "demo.order.export")) == 1
         assert kinds.count(("security_denial", "demo.order.approve")) == audit.DENIAL_BUDGET
         summary = next(r for r in world.audited.values() if r["operation"] == "be.audit.denials_over_budget")
-        assert summary["changes"]["count"] == "5" and summary["actor"] == {"id": ALICE}
+        assert summary["changes"]["count"] == "5" and summary["actor"] == ALICE
         change = next(r for r in world.audited.values() if r["operation"] == "demo.order.create")
-        assert change["target"] == {"type": "demo.order", "id": "o1"} and change["actor"] == {"id": ALICE}
+        assert change["target"] == {"type": "demo.order", "id": "o1"} and change["actor"] == ALICE
         assert [r["seq"] for r in rows] == list(range(1, len(rows) + 1)), "numbered without gaps"
         assert {r["transfer_state"] for r in rows} == {"received"} and len(rows) == len(world.audited)
     finally:
