@@ -33,3 +33,19 @@ def test_open_refuses_what_is_not_exactly_canonical():
         assert why
     with pytest.raises(records.Invalid):
         records.open_("be.security.definition_set", raw, "sha256:" + "0" * 64)
+
+
+def test_definition_records_pass_their_schemas():
+    """What a component submits opens as the authorization member opens it (D76), for a component ID with a hyphen too
+    (found by the first cell of step 5: the revision domain kept the "-")."""
+    from besdk.authz import ORDINARY, RESTRICTED, VALUE_SET, Definitions, Dimension, Field, Operation, Resource
+
+    d = Definitions("test/probe-py2", [Resource("test.probe_py2", "test.probe_py2.read", {"region": Dimension(VALUE_SET, "region")},
+                                                {"id": Field(ORDINARY), "cost": Field(RESTRICTED, "test.probe_py2.cost")})],
+                    [Operation("test.probe_py2.read", "test.probe_py2", "read", "low"),
+                     Operation("test.probe_py2.write", "test.probe_py2", "action", "high", ["business_write"], audit=True)])
+    d.validate()
+    sealed = d.records("0190f3a1-0000-7000-8000-00000000e001", "3.2.17")
+    assert len(sealed) == 3
+    for s in sealed:
+        records.open_(s.record_type, s.raw, s.digest)

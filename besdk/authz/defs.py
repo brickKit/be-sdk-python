@@ -234,7 +234,8 @@ class Definitions:
     def records(self, deployment: str, version: str) -> list[Sealed]:
         """Every declared definition sealed with the record envelope (security 09a): the component is the authority,
         the identity is stable for the component, kind and key, and the revision is the component's version."""
-        domain = self.component.replace("/", ".") + ".definition"
+        # the revision domain is a Key: a component ID's "/" and "-" are not allowed in one (test/probe-go2 -> test.probe_go2)
+        domain = self.component.replace("/", ".").replace("-", "_") + ".definition"
         out = []
         for record_type, kind, key, body in (
                 [("be.security.resource_definition", "resource", r.type, r.record()) for r in self.resources]

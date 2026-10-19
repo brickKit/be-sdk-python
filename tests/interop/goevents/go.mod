@@ -4,7 +4,7 @@ go 1.27.0
 
 toolchain go1.27.2
 
-require github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.18
+require github.com/brickKit/be-sdk-go/v3 v3.0.0-alpha.21
 
 require (
 	github.com/MicahParks/jwkset v0.11.3 // indirect
