@@ -1,4 +1,4 @@
-"""Security records on the wire (D76, P8.8): the generated schemas through fastjsonschema, canonical bytes, digests."""
+"""Security records on the wire (D76, P8.8): the generated schemas through jsonschema-rs, canonical bytes, digests."""
 import pytest
 
 from besdk import protocol, records
