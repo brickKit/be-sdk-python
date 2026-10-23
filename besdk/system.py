@@ -108,6 +108,10 @@ class Deps:
     tls: Any = None  # the member's service identity (besdk.identity.ServiceTLS); the surface never runs without it
 
 
+# ANY_COMPONENT in Method.callers admits any caller whose certificate this deployment's trust root issued: a family
+# contract's or a shared service's methods that every component of the deployment may call (be-sdk-go's AnyComponent).
+ANY_COMPONENT = "*"
+
 _caller: contextvars.ContextVar[str] = contextvars.ContextVar("be_caller", default="")
 
 
@@ -159,7 +163,8 @@ def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Await
                 with reqctx.deadline_scope(time.monotonic() + limit):
                     async with asyncio.timeout(limit):
                         who = d.tls.caller(context)
-                        if who not in decl.callers:  # P8.6: the certificate decides, never a label in the request
+                        # P8.6: the certificate decides, never a label in the request
+                        if who not in decl.callers and ANY_COMPONENT not in decl.callers:
                             log.warn("a system call from a component not allowed to call this method", method=full,
                                      caller=who)
                             raise errs.new("PERMISSION_DENIED", "this component may not call this method")

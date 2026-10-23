@@ -80,6 +80,20 @@ async def test_only_permitted_components_may_call(world):  # P8.6, CK-ID-04
         await asyncio.gather(ok.close(), other.close(), server.stop(None))
 
 
+async def test_any_component_admits_every_component_of_the_deployment_only(world):  # P8.6: shared methods
+    server, addr = await serve_only_for(world, "infra/print", system.ANY_COMPONENT)
+    callers = [member(world.tls(c)) for c in ("erp/sales", "erp/billing")]
+    foreign_dep = "0190f3a1-0000-7000-8000-00000000d002"
+    foreign = member(ServiceTLS(foreign_dep, "erp/sales", *world.certs("erp/sales", deployment=foreign_dep), READ))
+    try:
+        for m in callers:
+            assert await say(m.grpc("infra/print", addr)) == "ok"
+        with pytest.raises((errs.Error, grpc.aio.AioRpcError)):
+            await say(foreign.grpc("infra/print", addr))  # a certificate of another deployment is still refused
+    finally:
+        await asyncio.gather(*(m.close() for m in callers), foreign.close(), server.stop(None))
+
+
 async def test_connections_without_a_valid_identity_are_refused(world):  # P8.5, CK-ID-04
     server, addr = await serve_only_for(world, "erp/inventory", "erp/sales")
     plain = grpc.aio.insecure_channel(addr)
