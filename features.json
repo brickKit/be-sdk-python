@@ -281,22 +281,14 @@
       ]
     },
     "authz-evaluation": {
-      "status": "implemented",
+      "status": "verified",
       "evidence": [
         "test_authz::test_segment_eval_vectors",
         "test_authz::test_instants_without_an_offset_never_hold",
         "test_authz::test_amounts_are_decimal_strings_as_the_protocol_writes_them",
-        "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view"
-      ],
-      "pending": [
-        {
-          "rule": "P8.17",
-          "reason": "把段编译成 SQL 谓词与命中位图（列表）不在 Python 子集中；单对象求值已验证"
-        },
-        {
-          "rule": "P8.18",
-          "reason": "列表的筛选与授权求交随 P8.17"
-        }
+        "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view",
+        "test_lists_integration::test_list_pages_vectors",
+        "test_lists_integration::test_restricted_fields_filters_and_keywords"
       ]
     },
     "audit": {
@@ -309,8 +301,12 @@
       ]
     },
     "lists": {
-      "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "status": "verified",
+      "evidence": [
+        "test_lists_integration::test_list_pages_vectors",
+        "test_lists_integration::test_cursors_bind_their_filter_and_plan",
+        "test_lists_integration::test_restricted_fields_filters_and_keywords"
+      ]
     },
     "search": {
       "status": "not_implemented",

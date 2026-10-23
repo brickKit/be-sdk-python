@@ -10,6 +10,7 @@ from typing import Iterator
 
 from besdk import errs, reqctx
 from besdk.authz.defs import Definitions, Operation, Resource
+from besdk.authz.plan import Plan, compile_plan
 from besdk.authz.segment import Decision, Fact, evaluate
 from besdk.authz.view import Grant, Holder
 
@@ -41,6 +42,12 @@ class Subject:
         if (e := d.error()) is not None:
             raise e
         return d
+
+    def list(self, op: str, alias: str = "", arg_base: int = 0) -> Plan:
+        """The list plan of an operation for this subject (P8.17): its predicate goes into the list's one SQL
+        statement. A subject without segments gets FALSE, an empty page, not a refusal (security 07)."""
+        o, r, g = self._grant(op)
+        return compile_plan(r, g.segments, o.key, self.principal, self.at, alias, arg_base)
 
 
 def mask(out: dict, readable: list[str]) -> dict:
