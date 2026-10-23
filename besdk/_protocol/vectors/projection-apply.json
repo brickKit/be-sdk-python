@@ -1,6 +1,6 @@
 {
   "topic": "projection-apply",
-  "protocol": "3.0.0-alpha.19",
+  "protocol": "3.0.0-alpha.21",
   "rules": [
     "P9.11"
   ],

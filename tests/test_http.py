@@ -143,6 +143,10 @@ async def test_platform_endpoints():
     assert p["reason"] == "NOT_READY" and p["metadata"] == {"state": "starting", "waiting": "demo/beta"}
     h.ready = True
     assert (await h.do("GET", "/readyz")).status_code == 200
+    assert (await h.do("HEAD", "/readyz")).status_code == 200, "a probe may use HEAD (GNU wget --spider)"
+    h.ready = False
+    assert (await h.do("HEAD", "/readyz")).status_code == 503
+    h.ready = True
     assert "demo/alpha" in (await h.do("GET", "/.well-known/be-component")).text
     before = len(h.logs.getvalue())
     await h.do("GET", "/healthz")

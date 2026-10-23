@@ -220,7 +220,8 @@ def _platform(app: FastAPI, d: Deps) -> None:
         return Response(body, media_type=CONTENT_TYPE_LATEST)
 
     app.add_api_route("/healthz", health, methods=["GET", "HEAD"], include_in_schema=False)
-    app.add_api_route("/readyz", ready, methods=["GET"], include_in_schema=False)
+    # HEAD too: a probe may check readiness with HEAD (GNU wget --spider does; RFC 9110 asks for HEAD wherever GET is)
+    app.add_api_route("/readyz", ready, methods=["GET", "HEAD"], include_in_schema=False)
     app.add_api_route("/.well-known/be-component", describe, methods=["GET"], include_in_schema=False)
     app.add_api_route("/metrics", metrics, methods=["GET"], include_in_schema=False)
 
