@@ -68,13 +68,20 @@ def config_schema_yaml(d: Definition, own: dict[str, str] | None = None) -> str:
 
 
 def manifest_problems(manifest: str, d: Definition, own: dict[str, str] | None = None) -> list[str]:
-    """Every key of component.yaml's configSchema missing, extra or declared differently from config_schema."""
+    """metadata.name and metadata.version against the definition's id and version (a release that bumps one and not
+    the other would refuse to start), then every key of component.yaml's configSchema missing, extra or declared
+    differently from config_schema."""
     try:
-        got = (yaml.safe_load(manifest) or {}).get("configSchema") or {}
+        doc = yaml.safe_load(manifest) or {}
     except yaml.YAMLError as e:
         return [f"component.yaml: {e}"]
-    want = config_schema(d, own)
+    meta, got = doc.get("metadata") or {}, doc.get("configSchema") or {}
     out = []
+    if str(meta.get("name", "")) != d.id:
+        out.append(f'metadata.name: "{meta.get("name", "")}", the code is "{d.id}"')
+    if str(meta.get("version", "")) != d.version:
+        out.append(f'metadata.version: "{meta.get("version", "")}", the code is "{d.version}"')
+    want = config_schema(d, own)
     got_req = set(got.get("required") or [])
     out += [f"{k}: not listed as required" for k in want["required"] if k not in got_req]
     out += [f"{k}: listed as required, but the SDK does not require it" for k in sorted(got_req - set(want["required"]))]

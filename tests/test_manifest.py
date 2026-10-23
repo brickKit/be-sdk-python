@@ -20,13 +20,18 @@ def definition(**kw):
 
 def test_the_config_schema_round_trips_and_names_every_difference():
     d = definition()
-    manifest = "apiVersion: brickkit/v1\n" + config_schema_yaml(d, {"DEMO_LIMIT": "how many"})
+    manifest = ("apiVersion: brickkit/v1\nmetadata:\n  name: demo/items\n  version: 3.0.0\n"
+                + config_schema_yaml(d, {"DEMO_LIMIT": "how many"}))
     assert manifest_problems(manifest, d, {"DEMO_LIMIT": "how many"}) == []
     assert config_schema(d)["properties"]["DEMO_LIMIT"] == {"type": "integer", "description": "SDK default 5"}
     tampered = manifest.replace("DEMO_LIMIT:", "DEMO_OTHER:")
     problems = manifest_problems(tampered, d, {"DEMO_LIMIT": "how many"})
     assert "DEMO_LIMIT: not declared" in problems and "DEMO_OTHER: declared, but nothing reads it" in problems
     assert any(p.startswith("DEMO_LIMIT: declared as") for p in manifest_problems(manifest, d, {"DEMO_LIMIT": "other"}))
+    bumped = manifest.replace("version: 3.0.0", "version: 3.0.1")
+    assert manifest_problems(bumped, d, {"DEMO_LIMIT": "how many"}) == ['metadata.version: "3.0.1", the code is "3.0.0"']
+    renamed = manifest.replace("name: demo/items", "name: demo/other")
+    assert manifest_problems(renamed, d, {"DEMO_LIMIT": "how many"}) == ['metadata.name: "demo/other", the code is "demo/items"']
 
 
 def test_published_events_match_their_contracts(tmp_path: pathlib.Path):
