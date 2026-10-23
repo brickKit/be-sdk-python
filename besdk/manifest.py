@@ -68,7 +68,7 @@ def config_schema_yaml(d: Definition, own: dict[str, str] | None = None) -> str:
 
 
 def manifest_problems(manifest: str, d: Definition, own: dict[str, str] | None = None) -> list[str]:
-    """metadata.name and metadata.version against the definition's id and version (a release that bumps one and not
+    """metadata.id and metadata.version against the definition's id and version (a release that bumps one and not
     the other would refuse to start), then every key of component.yaml's configSchema missing, extra or declared
     differently from config_schema."""
     try:
@@ -77,8 +77,8 @@ def manifest_problems(manifest: str, d: Definition, own: dict[str, str] | None =
         return [f"component.yaml: {e}"]
     meta, got = doc.get("metadata") or {}, doc.get("configSchema") or {}
     out = []
-    if str(meta.get("name", "")) != d.id:
-        out.append(f'metadata.name: "{meta.get("name", "")}", the code is "{d.id}"')
+    if str(meta.get("id", "")) != d.id:
+        out.append(f'metadata.id: "{meta.get("id", "")}", the code is "{d.id}"')
     if str(meta.get("version", "")) != d.version:
         out.append(f'metadata.version: "{meta.get("version", "")}", the code is "{d.version}"')
     want = config_schema(d, own)
