@@ -1,6 +1,6 @@
 [project]
 name = "be-sdk"
-version = "3.0.0a23"
+version = "3.0.0a24"
 description = "The official Python SDK of the component protocol (be-protocol)"
 requires-python = ">=3.15,<3.16"
 dependencies = [
@@ -20,6 +20,7 @@ dependencies = [
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp-proto-http",
     "packaging",
+    "pyyaml",  # besdk.manifest: a component's tests compare component.yaml and contract/openapi.yaml with the code
     "jsonschema-rs",  # security records against be-protocol's schemas, draft 2020-12; 3-4% of opening a record (besdk.records)
     # the callee-published contracts (generated code), at exact tags
     "contract-infra-authz @ git+https://github.com/brickKit/contract-infra-authz@v3.0.0-alpha.1#subdirectory=python",
