@@ -121,11 +121,9 @@ class Member:
     auditor: object = None  # with a database: the audit table and its transfer
     audit_sender: object = None  # the audit component's system surface, None without AUDIT_GRPC_URL
     definitions: object = None  # with protected routes: the authorization member's DefinitionService stub
-    defs_accepted: bool = False  # readiness waits for it when there are protected routes
-    # set by mark_ready: the ready line (P1.12) is written once, when the member is ready
-    _started: float = 0.0
-    _on_ready: Callable[[], None] | None = None
-    _announced: bool = False
+    # readiness does not wait for it (P8.24); until it, the view holder does not run, so protected requests answer
+    # AUTHORIZATION_VIEW_EXPIRED
+    defs_accepted: bool = False
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -150,7 +148,8 @@ class Member:
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.holder is not None:
             # the definitions first, then one verification before ready, so the first requests find a view; both
-            # best effort: the authorization member may be down, and then the member stays not ready until it is back
+            # best effort: the authorization member may be down or, on Kubernetes, reachable only once this member
+            # (or its shell) is ready, so readiness does not wait (P8.24); the submission goes on in the background
             if await self._submit(2.0):
                 try:
                     with reqctx.deadline_scope(time.monotonic() + 2):
@@ -162,27 +161,15 @@ class Member:
                 self._tasks.append(asyncio.create_task(self._submit_until_accepted()))
 
     def mark_ready(self, started: float, then: Callable[[], None] | None = None) -> None:
-        """Enters the ready state. The ready line (P1.12) is written, and then is called, when the member is ready: at
-        once, or, while its definitions wait for the authorization member, when they are accepted."""
-        self._started, self._on_ready = started, then
+        """Enters the ready state, writes the ready line (P1.12) and then calls then."""
         self.state = READY
-        self._announce()
-
-    def _announce(self) -> None:
-        """Writes the ready line once the member is ready; mark_ready and the accepted submission both call it, so
-        whichever comes second writes it."""
-        if self._announced or not self.is_ready()[0]:
-            return
-        self._announced = True
         self.logger.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
-                         startup_ms=int((time.monotonic() - self._started) * 1000))
-        if self._on_ready is not None:
-            self._on_ready()
+                         startup_ms=int((time.monotonic() - started) * 1000))
+        if then is not None:
+            then()
 
     def is_ready(self) -> tuple[bool, str, list[str]]:
-        """The member's readiness: started, and with protected routes its definitions accepted."""
-        if self.state == READY and self.holder is not None and not self.defs_accepted:
-            return False, "definitions_pending", []
+        """The member's readiness."""
         return self.state == READY, self.state, []
 
     async def _submit(self, timeout: float) -> bool:
@@ -194,14 +181,16 @@ class Member:
                 await self.definition.authz.submit(self.definitions, self.values.string("DEPLOYMENT_ID"),  # type: ignore[union-attr]
                                                    self.definition.version)
         except Rejected as e:
-            self.logger.error("the authorization member refused this version's definitions; the member stays not ready",
-                              error=str(e))
+            self.logger.error("the authorization member refused this version's definitions; protected requests wait "
+                              "for a view", error=str(e))
             return False
         except Exception as e:  # noqa: BLE001 - the member is down or unreachable: retried
-            self.logger.warn("the definitions could not be submitted yet; the member stays not ready", error=str(e))
+            self.logger.warn("the definitions could not be submitted yet; protected requests wait for a view",
+                             error=str(e))
             return False
-        self.defs_accepted = True
-        self._announce()
+        if not self.defs_accepted:
+            self.defs_accepted = True
+            self.logger.info("definitions accepted", event="definitions_accepted")
         return True
 
     async def _submit_until_accepted(self) -> None:

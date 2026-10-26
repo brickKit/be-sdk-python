@@ -264,22 +264,31 @@ async def test_a_failed_denial_record_never_changes_the_denial():  # P8.19
     assert isinstance(err, OSError), "returned for logging, never raised"
 
 
-async def test_not_ready_until_the_definitions_are_accepted(world):  # T5.3: submitted at start, readiness waits
+async def test_ready_without_waiting_for_the_definitions(world):  # P8.24
+    """While the authorization member refuses the definitions the member is ready all the same (on Kubernetes the
+    submission may need the member's own readiness), its protected routes answer AUTHORIZATION_VIEW_EXPIRED (P8.13),
+    and it retries until they are accepted."""
     world.refuse_definitions = "DEFINITION_OWNER_MISMATCH"
+    world.grant_all(ALICE, ORDERS)
     base, stop, task, out = await start(Definition("demo/orders", "3.0.0", Orders, authz=ORDERS), world.env("demo/orders"))
     try:
         async with httpx.AsyncClient(base_url=base) as c:
-            assert (await c.get("/readyz")).status_code == 503, "refused definitions: not ready"
+            assert (await c.get("/readyz")).status_code == 200, "ready although the definitions were refused"
+            assert out.getvalue().count('"event":"ready"') == 1, "the ready line (P1.12)"
             assert "refused this version's definitions" in out.getvalue()
-            assert '"event":"ready"' not in out.getvalue(), "the ready line is written when the member is ready (P1.12)"
+            r = await c.get("/api/orders/1", headers={"Authorization": world.bearer(ALICE)})
+            assert r.status_code == 503 and r.json()["reason"] == "AUTHORIZATION_VIEW_EXPIRED", "no view before acceptance"
             assert "demo/orders@3.0.0" not in world.submitted
+            assert '"event":"definitions_accepted"' not in out.getvalue()
             world.refuse_definitions = ""
             for _ in range(100):
-                if (await c.get("/readyz")).status_code == 200:
+                r = await c.get("/api/orders/1", headers={"Authorization": world.bearer(ALICE)})
+                if r.status_code == 200:
                     break
                 await asyncio.sleep(0.05)
-            assert (await c.get("/readyz")).status_code == 200, "ready once a retry is accepted"
-            assert out.getvalue().count('"event":"ready"') == 1, "and then the ready line, once"
+            assert r.status_code == 200, "a retry is accepted and a view arrives"
+            assert out.getvalue().count('"event":"definitions_accepted"') == 1, "the acceptance is logged once"
+            assert out.getvalue().count('"event":"ready"') == 1, "and the ready line stays single"
         sealed = ORDERS.records(world.deployment, "3.0.0")
         assert world.submitted["demo/orders@3.0.0"] == set_digest("demo/orders", "3.0.0", sealed)
     finally:

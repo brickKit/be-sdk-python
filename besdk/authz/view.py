@@ -70,7 +70,7 @@ class GRPCSource:
         out = await self._stub.Verify(authz_pb2.VerifyRequest(
             component=request["component"], nonce=request["nonce"],
             held=[authz_pb2.HeldShard(shard=h["shard"], digest=h["digest"]) for h in request["held"]]),
-            metadata=options(idempotent=True))
+            metadata=options(idempotent=True, background=True))
         rg = out.recovery_generation
         ans: dict = {"nonce": out.nonce, "computed_at": out.computed_at, "instance": out.instance,
                      "recovery_generation": {"domain": rg.domain, "value": rg.value, "epoch": rg.epoch,

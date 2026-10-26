@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.21",
+  "protocol": "3.0.0-alpha.23",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -99,6 +99,8 @@
         "test_calls_vectors::test_circuit_breaker_vectors",
         "test_calls_vectors::test_call_outcomes_vectors",
         "test_calls::test_retries_only_idempotent_calls_at_most_three_times",
+        "test_calls::test_background_calls_are_neither_counted_nor_held_by_the_breaker",
+        "test_calls::test_system_channels_resolve_the_host_again_after_a_failure",
         "test_calls::test_relayed_failures_are_neither_retried_nor_counted",
         "test_calls::test_the_budget_stops_retries_when_the_dependency_keeps_failing",
         "test_calls::test_the_breaker_opens_and_fails_fast_without_sending",
@@ -263,7 +265,7 @@
         "test_authz::test_segment_digests_of_vector_canonical",
         "test_records::test_security_record_vectors",
         "test_records::test_open_refuses_what_is_not_exactly_canonical",
-        "test_security::test_not_ready_until_the_definitions_are_accepted"
+        "test_security::test_ready_without_waiting_for_the_definitions"
       ]
     },
     "authz-view": {

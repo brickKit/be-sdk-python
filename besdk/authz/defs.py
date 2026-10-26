@@ -258,7 +258,7 @@ class Definitions:
         ans = await stub.Submit(authz_pb2.SubmitRequest(
             component=self.component, version=version,
             definitions=[authz_pb2.Definition(record=s.raw, digest=s.digest) for s in sealed]),
-            metadata=options(idempotent=True))
+            metadata=options(idempotent=True, background=True))
         if ans.status == authz_pb2.SUBMIT_STATUS_ACCEPTED:
             if ans.set_digest != want:
                 raise ValueError(f"the authorization member accepted another set of definitions ({ans.set_digest}, "

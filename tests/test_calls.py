@@ -168,3 +168,68 @@ def test_configured_addresses(tmp_path):  # P4.26
     out.set_tls(World(tmp_path).tls("test/probe-py"))
     ch = rt.grpc_at("test/probe-py2", "http://test-probe-py2-3-1-0:9605")
     assert ch is rt.grpc_at("test/probe-py2", "test-probe-py2-3-1-0:9605"), "one channel per component and address"
+
+
+class _Call:
+    def __init__(self, err):
+        self.err = err
+
+    def __await__(self):
+        async def answer():
+            if self.err is not None:
+                raise self.err
+            return "ok"
+        return answer().__await__()
+
+
+async def test_background_calls_are_neither_counted_nor_held_by_the_breaker():  # P4.27
+    import grpc
+
+    from besdk.calls.client import _Interceptor, options
+
+    d = Member().dependency("infra/authz", "grpc")
+
+    async def no_sleep(_):
+        return None
+
+    d.sleep = no_sleep
+    sent = [0]
+    down = grpc.aio.AioRpcError(grpc.StatusCode.UNAVAILABLE, grpc.aio.Metadata(), grpc.aio.Metadata(), "connection refused")
+
+    def continuation(err):
+        async def cont(details, request):
+            sent[0] += 1
+            return _Call(err)
+        return cont
+
+    def details(md):
+        return grpc.aio.ClientCallDetails("/m", None, md, None, None)
+
+    i = _Interceptor(d)
+    for _ in range(2 * policy.BREAKER_WINDOW):
+        with deadline(5), contextlib.suppress(errs.Error):
+            await i.intercept_unary_unary(continuation(down), details(options(idempotent=True, background=True)), None)
+    assert d.breaker.state == policy.CLOSED, "background failures are not counted"
+    for _ in range(policy.BREAKER_WINDOW):
+        with deadline(5), contextlib.suppress(errs.Error):
+            await i.intercept_unary_unary(continuation(down), details([]), None)
+    assert d.breaker.state == policy.OPEN, "ordinary failures open it"
+    before = sent[0]
+    with deadline(5):
+        assert await i.intercept_unary_unary(continuation(None), details(options(idempotent=True, background=True)), None) == "ok"
+    assert sent[0] == before + 1, "a background call is sent while the breaker is open"
+    assert d.breaker.state == policy.OPEN, "and its success does not close it"
+    with deadline(5), pytest.raises(errs.Error) as e:
+        await i.intercept_unary_unary(continuation(None), details(options(idempotent=True)), None)
+    assert e.value.reason == "CIRCUIT_OPEN", "ordinary calls are still held"
+
+
+def test_system_channels_resolve_the_host_again_after_a_failure():  # P4.28
+    """gRPC's resolver waits 30 s between resolutions by default; a dependency that restarted on another address (a
+    container's new IP) must be reached within seconds, so the channel lowers that wait and the reconnection backoff."""
+    m = Member()
+    m.set_tls(object())
+    ch = m.grpc("infra/authz", "infra-authz:9223")
+    opts = dict(ch._options)
+    assert opts["grpc.dns_min_time_between_resolutions_ms"] <= 1000
+    assert opts["grpc.max_reconnect_backoff_ms"] <= 5000

@@ -26,12 +26,20 @@ METADATA_REQUEST_ID, METADATA_IDEMPOTENCY_KEY = "x-request-id", "idempotency-key
 MAX_RESPONSE = 16 << 20
 # reserved metadata the client interceptor reads and strips: per-call flags for generated stubs
 _IDEMPOTENT = "x-be-sdk-idempotent"
+_BACKGROUND = "x-be-sdk-background"
+# gRPC resolves a name at most every 30 s and backs a failed connection off up to 120 s by default; a dependency that
+# restarted on another address (a container's new IP) must be reached within seconds (P4.28)
+CHANNEL_OPTIONS = [("grpc.dns_min_time_between_resolutions_ms", 1000), ("grpc.initial_reconnect_backoff_ms", 1000),
+                   ("grpc.max_reconnect_backoff_ms", 5000)]
 
 
-def options(idempotent: bool = False, idempotency_key: str = "") -> list[tuple[str, str]]:
+def options(idempotent: bool = False, idempotency_key: str = "", background: bool = False) -> list[tuple[str, str]]:
     """Metadata for a system-surface call: mark a method the contract declares free of side effects or idempotent
-    (only such calls are retried, P4.6) and send a command's idempotency key, the same on every attempt (P4.2)."""
+    (only such calls are retried, P4.6) and send a command's idempotency key, the same on every attempt (P4.2).
+    background marks the SDK's own background call to the authorization member (view verification, definition
+    submission; P4.27): one at a time per member on its own schedule, so the breaker neither counts nor holds it."""
     md = [(_IDEMPOTENT, "1")] if idempotent else []
+    md += [(_BACKGROUND, "1")] if background else []
     return md + ([(METADATA_IDEMPOTENCY_KEY, idempotency_key)] if idempotency_key else [])
 
 
@@ -55,9 +63,9 @@ class Dependency:
         self.now: Callable[[], float] = time.monotonic  # the breaker's clock (tests replace it)
         self.sleep: Callable[[float], Awaitable[None]] = asyncio.sleep  # the backoff (tests replace it)
 
-    async def do(self, idempotent: bool, attempt: Callable[[float], Awaitable[Result]]) -> None:
+    async def do(self, idempotent: bool, attempt: Callable[[float], Awaitable[Result]], via_breaker: bool = True) -> None:
         """One call: at most three attempts, each given its own shrinking timeout (seconds) to honour. Raises the
-        caller's answer upward (P4.19)."""
+        caller's answer upward (P4.19). Without via_breaker the breaker neither holds nor counts it (P4.27)."""
         if in_tx():
             raise errs.new("INTERNAL").wrap(RuntimeError("NETWORK_IN_TX: an outbound call inside a database transaction"))
         if self.in_flight >= policy.OUTBOUND_LIMIT:
@@ -66,11 +74,11 @@ class Dependency:
                 "dependency", self.id).with_retry_after(1)
         self.in_flight += 1
         try:
-            await self._attempts(idempotent, attempt)
+            await self._attempts(idempotent, attempt, via_breaker)
         finally:
             self.in_flight -= 1
 
-    async def _attempts(self, idempotent: bool, attempt: Callable[[float], Awaitable[Result]]) -> None:
+    async def _attempts(self, idempotent: bool, attempt: Callable[[float], Awaitable[Result]], via_breaker: bool) -> None:
         last, last_class, n = Result(), Class.OTHER, 0
         while True:
             n += 1
@@ -81,9 +89,9 @@ class Dependency:
                 self._m.rejected.labels(self.id, self.surface, "deadline_budget").inc()
                 raise errs.new("DEADLINE_BUDGET_EXHAUSTED", "not enough time was left to call a dependency").with_(
                     "dependency", self.id)
-            permit = self.breaker.start(self.now())
+            permit = self.breaker.start(self.now()) if via_breaker else None
             self._state()
-            if permit is None:
+            if via_breaker and permit is None:
                 if n > 1:
                     raise upward(last_class, last, idempotent, self.id)  # type: ignore[misc]
                 self._m.rejected.labels(self.id, self.surface, "circuit_open").inc()
@@ -96,7 +104,8 @@ class Dependency:
             except TimeoutError as e:
                 r = Result(err=e, code=errs.Code.DEADLINE_EXCEEDED.value)
             cls = classify(r, False)
-            self.breaker.end(permit, self.now(), cls.breaker)
+            if via_breaker:
+                self.breaker.end(permit, self.now(), cls.breaker)
             self.budget.record(cls.budget)
             self._m.attempts.labels(self.id, self.surface, cls.value).inc()
             self._state()
@@ -178,7 +187,8 @@ class _Interceptor(grpc.aio.UnaryUnaryClientInterceptor):
     async def intercept_unary_unary(self, continuation, details, request):  # type: ignore[override]
         md = list(details.metadata or [])
         idempotent = any(k == _IDEMPOTENT for k, _ in md)
-        md = [(k, v) for k, v in md if k != _IDEMPOTENT]
+        background = any(k == _BACKGROUND for k, _ in md)
+        md = [(k, v) for k, v in md if k not in (_IDEMPOTENT, _BACKGROUND)]
         response: list[Any] = []
 
         async def attempt(timeout: float) -> Result:
@@ -200,7 +210,7 @@ class _Interceptor(grpc.aio.UnaryUnaryClientInterceptor):
                     return Result(err=remote, code=code, remote=remote)
                 return Result(err=e, code=code)
 
-        await self.dep.do(idempotent, attempt)
+        await self.dep.do(idempotent, attempt, via_breaker=not background)
         return response[-1]
 
 
@@ -312,7 +322,7 @@ class Member:
             raise ValueError(f"system surface of {id}: this member has no service identity (SERVICE_TLS_*)")
         key = (id, target)
         if key not in self._channels:
-            self._channels[key] = _TLSChannel(self.tls, id, target, options or [],
+            self._channels[key] = _TLSChannel(self.tls, id, target, [*CHANNEL_OPTIONS, *(options or [])],
                                               [_Interceptor(self.dependency(id, "grpc"))])
         return self._channels[key]
 
