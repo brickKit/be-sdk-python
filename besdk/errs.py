@@ -118,6 +118,7 @@ PLATFORM: dict[str, Entry] = {e.reason: e for e in [
     Entry("AUTHORIZATION_VIEW_EXPIRED", _C.UNAVAILABLE, 0, RETRY_YES, "The authorization view has expired"),
     Entry("RECOVERY_IN_PROGRESS", _C.UNAVAILABLE, 0, RETRY_YES, "The deployment is being recovered"),
     Entry("MEMBER_SWITCH_IN_PROGRESS", _C.UNAVAILABLE, 0, RETRY_YES, "A provider switch is in progress"),
+    Entry("DEFINITION_PENDING", _C.UNAVAILABLE, 0, RETRY_YES, "A definition the change needs has not been accepted yet"),
     Entry("CAPABILITY_UNSUPPORTED", _C.UNIMPLEMENTED, 0, RETRY_NO, "This capability is not supported"),
     Entry("RESULT_UNKNOWN", _C.DEADLINE_EXCEEDED, 0, RETRY_QUERY_FIRST, "The result is not known yet; query it"),
     Entry("AUDIT_CAPACITY_EXHAUSTED", _C.UNAVAILABLE, 0, RETRY_YES,
