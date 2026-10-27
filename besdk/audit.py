@@ -283,6 +283,21 @@ class Auditor:
 
         return await self.db.background_tx(fn)
 
+    async def drain(self, s: Sender) -> int:
+        """Numbers and sends batch after batch until less than a batch is left, so a backlog travels continuously
+        (P8.21); returns how many were settled. Numbering one batch a run would cap a member at BATCH records per
+        TRANSFER_EVERY."""
+        total = 0
+        while True:
+            numbered = await self.number()
+            while True:
+                n = await self.transfer(s)
+                total += n
+                if n < BATCH:
+                    break
+            if numbered < BATCH:
+                return total
+
     async def run_once(self, sender: Sender | None, log: Logger) -> None:
         """One transfer run (P8.21): number, summarize finished denial windows, send until nothing is pending,
         delete what the backup covers, refresh the backlog. Without a sender the records stay local."""
@@ -292,8 +307,7 @@ class Auditor:
             try:
                 # calls need a deadline (P4.4): the whole sending of one run gets one
                 with reqctx.deadline_scope(time.monotonic() + SEND_TIMEOUT):
-                    while await self.transfer(sender) >= BATCH:
-                        pass
+                    await self.drain(sender)
                     await self.purge(await sender.watermark())
             except (errs.Error, OSError) as e:
                 log.warn("audit records could not be transferred; they stay local", error=str(e))

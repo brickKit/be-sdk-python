@@ -73,6 +73,30 @@ async def test_the_bytes_sent_are_the_record_the_digest_names_and_unknown_receip
         await pool.close()
 
 
+async def test_a_backlog_drains_in_one_run():
+    """A backlog larger than a batch travels in one run, numbering included (P8.21 "continuous under backlog",
+    CK-AU-03); numbering one batch a run caps a member at 100 records a second."""
+    d, pool, a = await auditor("py_au3")
+    try:
+        backlog = 2 * audit.BATCH + 234
+
+        async def fn(tx):
+            for _ in range(backlog):
+                await a.write(tx, change())
+        await d.tx(fn)
+        assert await a.drain(Fake()) == backlog
+        adm = await pgtest.admin()
+        try:
+            received = await adm.fetchval("SELECT count(*) FROM py_au3.be_audit_log WHERE transfer_state = 'received'")
+            unnumbered = await adm.fetchval("SELECT count(*) FROM py_au3.be_audit_log WHERE seq IS NULL")
+        finally:
+            await adm.close()
+        assert received == backlog
+        assert unnumbered == 0, "every row numbered"
+    finally:
+        await pool.close()
+
+
 async def test_purge_vectors():
     d, pool, a = await auditor("py_au2")
     adm = await pgtest.admin()
