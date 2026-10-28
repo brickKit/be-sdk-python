@@ -331,6 +331,30 @@ async def test_a_rotated_secret_is_used_from_the_next_upload():  # P6.14
         await claims.close()
 
 
+async def test_a_poll_touches_only_the_partitions_with_rows_to_forward():  # P6.32
+    # an idle member's poll used to open a full numbering transaction for every partition, empty or not; it now
+    # finds the partitions with unnumbered or unpublished rows first and forwards only those
+    own = Stream("demo.idle" + uuid.uuid4().hex[:6], 4)
+    d, pool, p = await source("py_ev11", stream=own)
+    tr = await pg_transport()
+    a = await pgtest.admin()
+    try:
+        f = Forwarder(d, p, tr, "demo/py_ev11", str(uuid.uuid4()), LOG)
+        assert await f.once() == 0
+        assert await a.fetchval("SELECT count(*) FROM py_ev11.be_outbox_partition") == 0, \
+            "no partition had anything: no transaction, no counter row"
+        await emit(d, p, 1)
+        assert await f.once() == 1
+        assert await a.fetchval("SELECT count(*) FROM py_ev11.be_outbox_partition") == 1, "only the partition the event went to"
+        assert await a.fetchval("SELECT partition FROM py_ev11.be_outbox") == \
+            await a.fetchval("SELECT partition FROM py_ev11.be_outbox_partition")
+        assert await a.fetchval("SELECT count(*) FROM py_ev11.be_outbox WHERE published_at IS NULL") == 0
+    finally:
+        await a.close()
+        await tr.close()
+        await pool.close()
+
+
 async def test_the_commit_wakes_the_forwarder():  # P6.29
     # at a low rate every event used to wait for the next poll (about 120 ms at 50/s with a 250 ms poll); the commit
     # that wrote it now wakes the member's own forwarder

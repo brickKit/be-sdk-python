@@ -1,6 +1,6 @@
 {
   "topic": "retry-budget",
-  "protocol": "3.0.0-alpha.24",
+  "protocol": "3.0.0-alpha.27",
   "rules": [
     "P4.8"
   ],

@@ -169,8 +169,8 @@ class Forwarder:
 
     async def _run(self) -> None:
         """Forwards on two signals (P6.29): a commit of this member wakes it for the partitions that commit wrote to,
-        and the poll takes every partition at its own pace, for other replicas' rows and retries. A wake never
-        postpones the poll: under a steady stream of commits it would never come."""
+        and the poll takes, at its own pace, every partition that has rows to forward (P6.32), for other replicas'
+        rows and retries. A wake never postpones the poll: under a steady stream of commits it would never come."""
         loop = asyncio.get_running_loop()
         next_poll = loop.time()
         while True:
@@ -180,15 +180,33 @@ class Forwarder:
             poll = loop.time() >= next_poll
             written = self.producer.take_written()
             try:
-                await self._forward(self._all() if poll else written)
+                await self._forward(await self._pending(self._all()) if poll else written)
             except Exception as e:  # noqa: BLE001 - retried; the rows stay in the outbox
                 self.log.warn("forwarding events failed; retrying", error=repr(e))
             if poll:
                 next_poll = loop.time() + self.poll
 
     async def once(self) -> int:
-        """Forward every partition, again while one had a full batch; returns how many messages were published."""
-        return await self._forward(self._all())
+        """Forward every partition that has rows to forward, again while one had a full batch; returns how many
+        messages were published."""
+        return await self._forward(await self._pending(self._all()))
+
+    async def _pending(self, parts: list[tuple[str, int]]) -> list[tuple[str, int]]:
+        """The parts that have unnumbered or numbered but unpublished rows (P6.32): one read-only statement over the
+        two partial indexes, so a poll of an idle member opens no numbering transaction and takes no lease. Other
+        replicas' rows and rows to retry are unpublished rows, so the poll still finds them."""
+        if not parts:
+            return []
+        streams = list(dict.fromkeys(s for s, _ in parts))
+
+        async def read(tx: Tx) -> set[tuple[str, int]]:
+            rows = await tx.fetch("""SELECT stream, partition FROM be_outbox WHERE seq IS NULL AND stream = ANY($1)
+                UNION SELECT stream, partition FROM be_outbox WHERE seq IS NOT NULL AND published_at IS NULL
+                AND stream = ANY($1)""", streams)
+            return {(r[0], r[1]) for r in rows}
+
+        has = await self.db.background_tx(read)
+        return [part for part in parts if part in has]
 
     def _all(self) -> list[tuple[str, int]]:
         return [(s.name, p) for s in self.producer.streams.values() for p in range(s.partitions)]
