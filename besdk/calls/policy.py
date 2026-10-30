@@ -11,7 +11,8 @@ BACKOFF_BASE = 0.1
 BACKOFF_CAP = 1.0
 OUTBOUND_LIMIT = 64
 BREAKER_WINDOW = 20
-BREAKER_OPEN_FOR = 30.0
+BREAKER_OPEN_FIRST = 5.0  # P4.13: the first open period; a failed trial doubles it
+BREAKER_OPEN_MAX = 30.0  # up to this; closing resets it to BREAKER_OPEN_FIRST
 BREAKER_TRIALS_TO_CLOSE = 3
 
 OUTCOME_UNAVAILABLE, OUTCOME_CONNECT_FAILED, OUTCOME_NONE = "UNAVAILABLE", "CONNECT_FAILED_BEFORE_SEND", "NONE"
@@ -79,6 +80,7 @@ class Breaker:
         self.state = CLOSED
         self._window: list[bool] = []  # True: a dependency failure
         self._opened_at = 0.0
+        self._open_for = BREAKER_OPEN_FIRST  # the current open period (P4.13)
         self._trial = 0  # the permit holding the half-open trial slot, 0 when free
         self._trial_ok = 0
         self._next = 0
@@ -89,7 +91,7 @@ class Breaker:
             self._next += 1
             permit = self._next
             if self.state == OPEN:
-                if now - self._opened_at < BREAKER_OPEN_FOR:
+                if now - self._opened_at < self._open_for:
                     return None
                 self.state, self._trial, self._trial_ok = HALF_OPEN, 0, 0
             if self.state == HALF_OPEN:
@@ -106,10 +108,11 @@ class Breaker:
                 self._trial = 0
                 if outcome == BREAKER_FAILURE:
                     self.state, self._opened_at, self._trial_ok = OPEN, now, 0
+                    self._open_for = min(2 * self._open_for, BREAKER_OPEN_MAX)
                 elif outcome == BREAKER_SUCCESS:
                     self._trial_ok += 1
                     if self._trial_ok >= BREAKER_TRIALS_TO_CLOSE:
-                        self.state, self._window = CLOSED, []
+                        self.state, self._window, self._open_for = CLOSED, [], BREAKER_OPEN_FIRST
             elif self.state == CLOSED and outcome != BREAKER_IGNORED:
                 self._window = (self._window + [outcome == BREAKER_FAILURE])[-BREAKER_WINDOW:]
                 if len(self._window) == BREAKER_WINDOW and sum(self._window) * 2 > BREAKER_WINDOW:

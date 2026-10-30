@@ -1,6 +1,6 @@
 [project]
 name = "be-sdk"
-version = "3.0.0a32"
+version = "3.0.0a33"
 description = "The official Python SDK of the component protocol (be-protocol)"
 requires-python = ">=3.15,<3.16"
 dependencies = [

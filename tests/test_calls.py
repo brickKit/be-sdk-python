@@ -90,7 +90,7 @@ async def test_the_breaker_opens_and_fails_fast_without_sending():
     with deadline(5), pytest.raises(errs.Error) as e:
         await d.do(True, timeout)
     assert e.value.reason == "CIRCUIT_OPEN" and n[0] == sent, "nothing sent while open"
-    now[0] += policy.BREAKER_OPEN_FOR
+    now[0] += policy.BREAKER_OPEN_FIRST
 
     async def ok(_):
         return Result()

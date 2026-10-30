@@ -149,7 +149,7 @@ wheels = [
 
 [[package]]
 name = "be-sdk"
-version = "3.0.0a32"
+version = "3.0.0a33"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
