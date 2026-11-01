@@ -70,6 +70,37 @@ async def instances_of_one_durable_each_message_once(tr, stream, subs):
     assert len(rec.got) == 40, f"{len(rec.got)} deliveries for 40 messages: each is handled by one instance once"
 
 
+async def an_ordered_durable_has_one_message_in_flight_across_its_instances_in_position_order(tr, stream, subs):
+    # P6.31: two instances of an ordered subscription; the first message is refused once, so the ones after it must
+    # wait for its redelivery
+    order: list[str] = []
+    state = {"in_flight": 0, "most": 0, "refused": False}
+
+    async def h(d: Delivery) -> Outcome:
+        state["in_flight"] += 1
+        state["most"] = max(state["most"], state["in_flight"])
+        try:
+            await asyncio.sleep(0.03)
+            if d.data == b"0" and not state["refused"]:
+                state["refused"] = True
+                return Outcome.NAK
+            order.append(d.data.decode())
+            return Outcome.ACK
+        finally:
+            state["in_flight"] -= 1
+
+    s = spec(stream, "ordered")
+    s.ordered = True
+    subs.append(await tr.subscribe(s, h))
+    subs.append(await tr.subscribe(s, h))
+    want = [str(i) for i in range(20)]
+    for i, w in enumerate(want):
+        await tr.publish(msg(stream, i % 4, "demo.thing_happened.v1", w))
+    await eventually(20, lambda: len(order) == 20, "all 20 handled")
+    assert order == want, f"handled in the order {order}, published in the order {want}"
+    assert state["most"] == 1, f"{state['most']} messages in flight at once across the instances, want 1"
+
+
 async def an_acknowledged_message_is_never_delivered_again(tr, stream, subs):
     rec = Recorder()
     subs.append(await tr.subscribe(spec(stream, "acked"), ack_into(rec)))
@@ -260,6 +291,7 @@ async def notifications_are_neither_stored_nor_redelivered(tr, stream, subs):
 
 
 CASES = [offline_consumer_receives_what_was_published_meanwhile, instances_of_one_durable_each_message_once,
+         an_ordered_durable_has_one_message_in_flight_across_its_instances_in_position_order,
          an_acknowledged_message_is_never_delivered_again, a_nak_is_redelivered_after_the_backoff,
          an_unacknowledged_message_is_redelivered_after_the_ack_wait,
          in_progress_keeps_a_slow_message_from_being_redelivered, max_deliver_stops_the_deliveries,

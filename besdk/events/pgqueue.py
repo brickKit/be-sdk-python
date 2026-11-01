@@ -170,7 +170,8 @@ class Transport:
         row = await self.pool.fetchrow(f"""SELECT streams, filters, max_deliver, ack_wait_ms, backoff_ms
             FROM {self.t('be_bus_subscription')} WHERE durable = $1""", spec.durable)
         stored = SubscriptionSpec(spec.durable, list(row["streams"]), list(row["filters"]), row["max_deliver"],
-                                  row["ack_wait_ms"] / 1000, [b / 1000 for b in row["backoff_ms"]], spec.concurrency).defaults()
+                                  row["ack_wait_ms"] / 1000, [b / 1000 for b in row["backoff_ms"]], spec.concurrency,
+                                  spec.ordered).defaults()  # concurrency and ordering come from the instance (P6.31)
         w = _Waker(stored)
         self._wakers.append(w)
         if self._listen is None:
@@ -261,6 +262,8 @@ class Transport:
         exhausted one waits for _give_up). The cost does not grow with the backlog: a delivery whose message the
         retention purge removed (P6.27; the purge removes the deliveries with it, this covers one queued meanwhile)
         is dropped when it is claimed, instead of every claim checking the whole backlog for such rows first."""
+        if s.ordered:
+            return await self._claim_ordered(s)
         dlv, msg = self.t("be_bus_delivery"), self.t("be_bus_message")
         token = uuid.uuid7()
         # two paths, each along its own index in position order, and the claimed row located by its key (P6.28): a
@@ -282,6 +285,32 @@ class Transport:
             await self.pool.execute(f"DELETE FROM {dlv} WHERE durable = $1 AND lease_token = $2 AND in_flight",
                                     s.durable, token)
             return None
+        headers = json.loads(r["headers"]) if isinstance(r["headers"], str) else dict(r["headers"])
+        return Delivery(r["subject"], headers, bytes(r["data"]), r["attempts"]), str(token)
+
+    async def _claim_ordered(self, s: SubscriptionSpec) -> tuple[Delivery, str] | None:
+        """The earliest delivery of an ordered subscription, and only while none of it is in flight (P6.31): the
+        subscription's row serializes the claims of its instances; an earliest delivery that waits for its backoff, or
+        is in flight under a live lease, holds the ones after it. An exhausted one waits for _give_up, as in _claim."""
+        dlv, msg = self.t("be_bus_delivery"), self.t("be_bus_message")
+        token = uuid.uuid7()
+        async with self.pool.acquire() as conn, conn.transaction():
+            await conn.execute(f"SELECT 1 FROM {self.t('be_bus_subscription')} WHERE durable = $1 FOR UPDATE", s.durable)
+            r = await conn.fetchrow(f"""WITH first AS (SELECT seq, in_flight, lease_until, not_before, attempts FROM {dlv}
+                        WHERE durable = $1 ORDER BY seq LIMIT 1),
+                    due AS (SELECT seq FROM first WHERE (NOT in_flight AND not_before <= clock_timestamp())
+                        OR (in_flight AND lease_until < clock_timestamp() AND attempts < $4)),
+                claimed AS (UPDATE {dlv} d SET in_flight = true, attempts = d.attempts + 1, lease_token = $2,
+                    lease_until = clock_timestamp() + make_interval(secs => $3)
+                    WHERE d.durable = $1 AND d.seq = (SELECT seq FROM due) RETURNING d.seq, d.attempts)
+                SELECT c.seq, c.attempts, m.subject, m.headers, m.data FROM claimed c LEFT JOIN {msg} m ON m.seq = c.seq""",
+                                    s.durable, token, s.ack_wait, s.max_deliver)
+            if r is None:
+                return None
+            if r["subject"] is None:  # its message is gone: nothing to deliver
+                await conn.execute(f"DELETE FROM {dlv} WHERE durable = $1 AND lease_token = $2 AND in_flight",
+                                   s.durable, token)
+                return None
         headers = json.loads(r["headers"]) if isinstance(r["headers"], str) else dict(r["headers"])
         return Delivery(r["subject"], headers, bytes(r["data"]), r["attempts"]), str(token)
 

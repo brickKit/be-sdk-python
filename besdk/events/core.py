@@ -185,10 +185,13 @@ class SubscriptionSpec:
     ack_wait: float = 0.0
     backoff: list[float] = field(default_factory=list)  # between deliveries; the last value repeats
     concurrency: int = 0
+    # the subscription depends on arrival order: the whole durable, across all its instances, has one message in
+    # flight at a time, in position order; one waiting for its redelivery holds the ones after it (P6.31)
+    ordered: bool = False
 
     def defaults(self) -> SubscriptionSpec:
         s = SubscriptionSpec(self.durable, list(self.streams), list(self.filters), self.max_deliver or DEFAULT_MAX_DELIVER,
-                             self.ack_wait or DEFAULT_ACK_WAIT, list(self.backoff), self.concurrency or 1)
+                             self.ack_wait or DEFAULT_ACK_WAIT, list(self.backoff), self.concurrency or 1, self.ordered)
         if not s.backoff:
             d = DEFAULT_BACKOFF_START
             while d < DEFAULT_BACKOFF_MAX:

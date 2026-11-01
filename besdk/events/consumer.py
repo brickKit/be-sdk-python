@@ -93,7 +93,8 @@ class Consumer:
     def spec(self) -> SubscriptionSpec:
         filters = [f"be.{st}.*.{t}" for st in self.sub.streams for t in self.sub.types]
         return SubscriptionSpec(durable_name(self.member, self.sub.name), list(self.sub.streams), filters,
-                                self.sub.max_deliver, concurrency=concurrency(self.sub, self.configured)).defaults()
+                                self.sub.max_deliver, concurrency=concurrency(self.sub, self.configured),
+                                ordered=self.sub.ordered).defaults()
 
     async def handle(self, d: Delivery) -> Outcome:
         """Claim check, hop limit, inbox and business write in one transaction; a failure on the last delivery

@@ -107,7 +107,9 @@ class Transport:
             pass
         filters = [f for f in spec.filters if subject_matches(f"be.{stream}.>", f) or f.startswith(f"be.{stream}.")]
         cfg = ConsumerConfig(durable_name=spec.durable, ack_policy=AckPolicy.EXPLICIT, ack_wait=spec.ack_wait,
-                             max_deliver=spec.max_deliver, deliver_policy=DeliverPolicy.ALL, max_ack_pending=1000)
+                             max_deliver=spec.max_deliver, deliver_policy=DeliverPolicy.ALL,
+                             # an ordered durable: the server holds the rest until the one in flight settles (P6.31)
+                             max_ack_pending=1 if spec.ordered else 1000)
         if len(filters) == 1:
             cfg.filter_subject = filters[0]
         elif filters:
