@@ -194,7 +194,10 @@ def build_app(d: Deps, routes: Routes) -> FastAPI:
 
     @app.exception_handler(StarletteHTTPException)
     async def _no_route(request: Request, exc: StarletteHTTPException) -> Response:
-        return problem_response(errs.new("NOT_FOUND", "no such route"), "")
+        # P3.10: a route this version does not have is an operation it lacks, not a record out of sight (404)
+        route = f"{request.method} {request.url.path}"
+        return problem_response(errs.new("CAPABILITY_UNSUPPORTED", f"this version has no {route}").with_("route", route),
+                                "")
 
     return app
 

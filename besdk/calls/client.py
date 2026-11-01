@@ -208,6 +208,12 @@ class _Interceptor(grpc.aio.UnaryUnaryClientInterceptor):
                 remote, code = errwire.from_grpc(e.code(), e.details() or "", e.trailing_metadata())
                 if remote is not None:
                     return Result(err=remote, code=code, remote=remote)
+                if e.code() == grpc.StatusCode.UNIMPLEMENTED:
+                    # a version before P3.10 has no such method and says so in gRPC's own words (P4.29)
+                    m = details.method.decode() if isinstance(details.method, bytes) else details.method
+                    missing = errs.new("CAPABILITY_UNSUPPORTED", f"{self.dep.id} has no {m}") \
+                        .with_("dependency", self.dep.id).with_("method", m)
+                    return Result(err=missing, code=code)
                 return Result(err=e, code=code)
 
         await self.dep.do(idempotent, attempt, via_breaker=not background)

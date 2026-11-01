@@ -114,8 +114,10 @@ async def test_errors_crashes_bodies_and_unknown_routes():
     assert r.status_code == 413 and problem(r)["reason"] == "BODY_TOO_LARGE"
     r = await h.do("POST", "/api/small", body=b'{"a":')
     assert r.status_code == 400 and problem(r)["reason"] == "REQUEST_INVALID"
+    # P3.10: a route this version does not have is an operation it lacks, not a record out of sight (404)
     r = await h.do("GET", "/api/nothing")
-    assert r.status_code == 404 and problem(r)["reason"] == "NOT_FOUND"
+    assert r.status_code == 501 and problem(r)["reason"] == "CAPABILITY_UNSUPPORTED"
+    assert problem(r)["metadata"] == {"route": "GET /api/nothing"}
 
 
 async def test_a_handler_past_its_deadline_answers_deadline_exceeded():

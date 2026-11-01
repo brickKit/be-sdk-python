@@ -56,6 +56,21 @@ async def test_migrate_twice_and_the_state_in_the_component_schema():  # P5.12, 
         await a.close()
 
 
+async def test_an_older_version_meets_a_database_a_newer_one_migrated():  # P5.32, CK-DB-05
+    """A rolling upgrade or a rollback runs an older version beside a newer one on the same schema, and a deployment
+    migrates every version again on each run: the older version's migration takes the newer database as done."""
+    newer = {"0001_items.up.sql": "CREATE TABLE items (id int PRIMARY KEY);",
+             "0002_note.up.sql": "ALTER TABLE items ADD COLUMN note text;"}
+    v, c = await migrated("py_mig5", newer)
+    await mig.migrate(c, mig.sdk_migrations(), mig.MigrationSet("demo/py_mig5", "schema_migrations",
+                                                                {"0001_items.up.sql": newer["0001_items.up.sql"]}))
+    a = await pgtest.admin()
+    try:
+        assert await a.fetchrow("SELECT version, dirty FROM py_mig5.schema_migrations") == (2, False), "nothing went back"
+    finally:
+        await a.close()
+
+
 async def test_a_failed_file_leaves_no_trace_and_the_entry_stays_rerunnable():  # P5.15
     files = {"0001_a.up.sql": "CREATE TABLE a (id int);",
              "0002_b.up.sql": "CREATE TABLE b (id int); INSERT INTO nowhere VALUES (1);"}

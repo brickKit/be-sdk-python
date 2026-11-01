@@ -138,7 +138,23 @@ def build_server(d: Deps, s: Services) -> grpc.aio.Server:
     for service, names in s._services.items():
         server.add_generic_rpc_handlers((grpc.method_handlers_generic_handler(
             service, {n: handlers[f"/{service}/{n}"] for n in names}),))
+    server.add_generic_rpc_handlers((_Unknown(),))  # asked last: what no service above took
     return server
+
+
+class _Unknown(grpc.GenericRpcHandler):
+    """A method or a service this member has not registered (P3.10): an operation this version does not have yet, not
+    a record the caller cannot see; answered with an ErrorInfo instead of gRPC's bare UNIMPLEMENTED."""
+
+    def service(self, handler_call_details: grpc.HandlerCallDetails) -> grpc.RpcMethodHandler:
+        method = handler_call_details.method
+
+        async def answer(request: Any, context: grpc.aio.ServicerContext) -> Any:
+            e = errs.new("CAPABILITY_UNSUPPORTED", f"this version has no {method}").with_("method", method)
+            await context.abort_with_status(rpc_status.to_status(errwire.to_status(e)))  # type: ignore[arg-type]
+
+        return grpc.unary_unary_rpc_method_handler(answer, request_deserializer=lambda b: b,
+                                                   response_serializer=lambda b: b)
 
 
 def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Awaitable[Any]], duration: Histogram):

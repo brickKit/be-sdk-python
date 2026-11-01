@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.28",
+  "protocol": "3.0.0-alpha.30",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -81,7 +81,8 @@
         "test_errs::test_problem_and_retry_after",
         "test_errs::test_declared_component_reason",
         "test_http::test_errors_crashes_bodies_and_unknown_routes",
-        "test_chain::test_component_errors_pass_through_unchanged"
+        "test_chain::test_component_errors_pass_through_unchanged",
+        "test_chain::test_a_method_the_member_lacks_is_capability_unsupported"
       ],
       "pending": [
         {
@@ -111,12 +112,14 @@
         "test_chain::test_http_chain_retries_at_one_layer_and_forwards_the_user",
         "test_db_integration::test_no_calls_inside_a_transaction",
         "test_security_integration::test_go_python_go_chain_over_mtls_retries_at_one_layer",
-        "test_calls::test_configured_addresses"
+        "test_calls::test_configured_addresses",
+        "test_chain::test_a_bare_unimplemented_is_capability_unsupported"
       ]
     },
     "idempotency": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "database": {
       "status": "verified",
@@ -137,7 +140,8 @@
         "test_session_state::test_statements_that_would_stay_on_the_pooled_connection_are_named",
         "test_db_integration::test_a_session_setting_is_refused_and_nothing_reaches_the_next_transaction",
         "test_session_state::test_do_blocks_are_checked_like_statements",
-        "test_db_integration::test_a_connection_a_function_left_a_setting_on_is_closed"
+        "test_db_integration::test_a_connection_a_function_left_a_setting_on_is_closed",
+        "test_db_integration::test_an_older_version_meets_a_database_a_newer_one_migrated"
       ]
     },
     "document-numbers": {
@@ -148,15 +152,18 @@
     },
     "partitions": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "money": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "business-dates": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "outbox": {
       "status": "verified",
@@ -217,11 +224,13 @@
     },
     "work": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "cron": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "user-credentials": {
       "status": "verified",
@@ -314,35 +323,45 @@
     },
     "search": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "projections": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "evidence": []
     },
     "call-mode-service-proxy": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "authz-strict-path": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "delegation-impersonation": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "projection-watermarks": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "projection-shadow": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "member-switching": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "high-availability": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     },
     "event-signing": {
-      "status": "not_implemented"
+      "status": "not_implemented",
+      "evidence": []
     }
   }
 }

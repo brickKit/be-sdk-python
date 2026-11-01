@@ -108,6 +108,40 @@ async def test_component_errors_pass_through_unchanged(world):
         await asyncio.gather(out.close(), server.stop(None))
 
 
+async def test_a_method_the_member_lacks_is_capability_unsupported(world):
+    """P3.10: a method or a service the member has not registered is answered by the member itself with an ErrorInfo
+    naming it (the caller's own mapping, P4.29, would add the dependency)."""
+    server, addr = await serve(services(None), io.StringIO(), world, "erp/inventory")
+    out = member(world, "demo/a")
+    try:
+        for method in ("/demo.Echo/Whisper", "/demo.Other/Say"):
+            call = out.grpc("erp/inventory", addr).unary_unary(
+                method, request_serializer=wrappers_pb2.StringValue.SerializeToString,
+                response_deserializer=wrappers_pb2.StringValue.FromString)
+            with reqctx.deadline_scope(time.monotonic() + 5), pytest.raises(errs.Error) as e:
+                await call(wrappers_pb2.StringValue(value="x"))
+            assert (e.value.reason, e.value.code) == ("CAPABILITY_UNSUPPORTED", "UNIMPLEMENTED"), method
+            assert e.value.metadata == {"method": method}, "the member answered it, the caller did not have to"
+    finally:
+        await asyncio.gather(out.close(), server.stop(None))
+
+
+async def test_a_bare_unimplemented_is_capability_unsupported(world):
+    """P4.29: a version before P3.10 answers a method it does not have with gRPC's own UNIMPLEMENTED and no ErrorInfo;
+    the caller takes it as CAPABILITY_UNSUPPORTED naming the dependency and the method, sent once."""
+    bare = grpc.aio.server()  # no service at all: every method is gRPC's bare UNIMPLEMENTED
+    port = serve_port(bare, "127.0.0.1:0", world.tls("erp/inventory"))
+    await bare.start()
+    out = member(world, "demo/a")
+    try:
+        with reqctx.deadline_scope(time.monotonic() + 5), pytest.raises(errs.Error) as e:
+            await say(out.grpc("erp/inventory", f"127.0.0.1:{port}"))(wrappers_pb2.StringValue(value="x"))
+        assert (e.value.reason, e.value.code) == ("CAPABILITY_UNSUPPORTED", "UNIMPLEMENTED")
+        assert e.value.metadata == {"dependency": "erp/inventory", "method": SAY}
+    finally:
+        await asyncio.gather(out.close(), bare.stop(None))
+
+
 def test_undeclared_methods_are_refused():
     async def nothing(request, context):
         return request
