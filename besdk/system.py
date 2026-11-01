@@ -106,11 +106,15 @@ class Deps:
     registry: CollectorRegistry
     tracer: trace.Tracer
     tls: Any = None  # the member's service identity (besdk.identity.ServiceTLS); the surface never runs without it
+    connection_age: float = 0.0  # seconds the server keeps a connection before ending it gracefully (P4.30); 0: 30
 
 
 # ANY_COMPONENT in Method.callers admits any caller whose certificate this deployment's trust root issued: a family
 # contract's or a shared service's methods that every component of the deployment may call (be-sdk-go's AnyComponent).
 ANY_COMPONENT = "*"
+
+# P4.30's starting values, seconds
+DEFAULT_CONNECTION_AGE, CONNECTION_AGE_GRACE = 30.0, 10.0
 
 _caller: contextvars.ContextVar[str] = contextvars.ContextVar("be_caller", default="")
 
@@ -134,7 +138,11 @@ def build_server(d: Deps, s: Services) -> grpc.aio.Server:
         handlers[full] = grpc.unary_unary_rpc_method_handler(_wrap(d, full, s._declared[full], h.unary_unary, duration),
                                                               request_deserializer=h.request_deserializer,
                                                               response_serializer=h.response_serializer)
-    server = grpc.aio.server()
+    # every connection ends after its age (gRPC's core adds jitter), its calls in flight given the grace: the callers
+    # connect again, resolving the name again, and over time reach every replica (P4.30)
+    age = d.connection_age or DEFAULT_CONNECTION_AGE
+    server = grpc.aio.server(options=[("grpc.max_connection_age_ms", int(age * 1000)),
+                                      ("grpc.max_connection_age_grace_ms", int(CONNECTION_AGE_GRACE * 1000))])
     for service, names in s._services.items():
         server.add_generic_rpc_handlers((grpc.method_handlers_generic_handler(
             service, {n: handlers[f"/{service}/{n}"] for n in names}),))

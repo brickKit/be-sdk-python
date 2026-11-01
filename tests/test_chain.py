@@ -211,3 +211,30 @@ async def test_http_connect_failure_is_retried_then_reported():
         assert out.dependency("demo/gone", "http").budget.tokens == 7000, "three connect failures counted"
     finally:
         await out.close()
+
+
+async def test_the_server_ends_each_connection_after_its_age_and_no_call_fails(world):
+    """P4.30: the server ends every connection after its maximum age, gracefully; the caller connects again (and so
+    resolves the name again, reaching other replicas over time) without a single call failing."""
+    peers = set()
+
+    async def c_say(request, context):
+        peers.add(context.peer())
+        return request
+
+    d = Deps(new_logger(ObsMember("demo/c", "3.0.0"), "debug", io.StringIO()), new_registry(),
+             TracerProvider().get_tracer("t"), world.tls("demo/c"), connection_age=0.2)
+    server = build_server(d, services(c_say))
+    port = serve_port(server, "127.0.0.1:0", world.tls("demo/c"))
+    await server.start()
+    out = member(world, "demo/a")
+    try:
+        call = say(out.grpc("demo/c", f"127.0.0.1:{port}"))
+        end = time.monotonic() + 1.2
+        while time.monotonic() < end:
+            with reqctx.request_scope("age-1"), reqctx.deadline_scope(time.monotonic() + 1):
+                await call(wrappers_pb2.StringValue(value="x"), metadata=options(idempotent=True))
+            await asyncio.sleep(0.02)
+    finally:
+        await asyncio.gather(out.close(), server.stop(None))
+    assert len(peers) >= 3, f"connections seen by the server in 1.2 s with a 0.2 s age: {peers}"
