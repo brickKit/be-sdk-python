@@ -1,6 +1,6 @@
 {
   "topic": "audit-purge",
-  "protocol": "3.0.0-alpha.35",
+  "protocol": "3.0.0-alpha.36",
   "rules": [
     "P8.22"
   ],

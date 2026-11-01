@@ -177,3 +177,30 @@ async def test_a_time_claim_that_is_not_a_finite_number_is_refused(issuer):
     with pytest.raises(TokenError) as e:
         await v.verify(sign(key, {**CLAIMS, "exp": float("nan")}))
     assert e.value.problem == "format"
+
+
+async def test_concurrent_requests_wait_for_the_refresh_in_flight(issuer):  # P8.2
+    """The identity member was not up when the process started (the first fetch failed); the first burst of requests
+    meets no keys at all. One refresh is made and every request of the burst waits for it (step 13 smoke, K13-E1: the
+    Go SDK answered the ones after the first DEPENDENCY_UNAVAILABLE at once)."""
+    import asyncio
+
+    f, cases = load()
+    valid = next(c["token"] for c in cases if c["expect"]["valid"])
+    up, hits = [False], []
+
+    async def handler(request):
+        hits.append(1)
+        if not up[0]:
+            return 503, {}
+        await asyncio.sleep(0.2)  # the refresh takes a while: the burst arrives meanwhile
+        return 200, f["jwks"]
+
+    keys, err = await KeySet.open(await issuer(handler))
+    assert err is not None, "the identity member is not up yet"
+    up[0] = True
+    v = fixture_verifier(keys, f)
+    answers = await asyncio.gather(*(v.verify(valid) for _ in range(8)), return_exceptions=True)
+    assert [a for a in answers if isinstance(a, BaseException)] == []
+    assert len(hits) == 2, "the failed first fetch and one refresh for the whole burst"
+    await keys.aclose()

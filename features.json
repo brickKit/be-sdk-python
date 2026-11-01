@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.35",
+  "protocol": "3.0.0-alpha.36",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -244,6 +244,7 @@
         "test_identity::test_stale_keys_are_used_for_an_hour_then_the_answer_is_unavailable",
         "test_identity::test_keys_this_code_does_not_understand_are_skipped",
         "test_identity::test_a_timed_out_request_does_not_cancel_the_unknown_kid_refresh",
+        "test_identity::test_concurrent_requests_wait_for_the_refresh_in_flight",
         "test_security::test_protected_routes_verify_the_token_and_decide_by_the_view"
       ]
     },
