@@ -1,7 +1,7 @@
 """The shell launcher (protocol 17, "shell obligations"): one process hosting the members installed in it, each on its
 own port with its own runtime, configuration, logger, metrics and tracer; nothing but the process is merged. It
-refuses to start, naming the members, when what BrickKit asks it to host does not match what is installed, or when
-any member's configuration is invalid."""
+refuses to start, naming the members, when what BrickKit asks it to host does not match what is installed, when the
+SDK in the process is older than a member requires (P1.21), or when any member's configuration is invalid."""
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +15,8 @@ from datetime import timedelta
 from importlib import metadata
 from typing import IO, Callable
 
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 from prometheus_client import CollectorRegistry, generate_latest
 from prometheus_client.metrics_core import Metric
@@ -44,6 +46,7 @@ class Installed:
     name: str
     version: str
     direct_url: dict | None  # PEP 610: present for installs from a path, a VCS or an archive URL
+    requires: tuple[str, ...] = ()  # Requires-Dist, where a member declares its minimum SDK (P1.21)
 
 
 def installed_of(d: Definition) -> tuple[Installed | None, str]:
@@ -56,7 +59,7 @@ def installed_of(d: Definition) -> tuple[Installed | None, str]:
         return None, top
     dist = metadata.distribution(names[0])
     raw = dist.read_text("direct_url.json")
-    return Installed(dist.metadata["Name"], dist.version, json.loads(raw) if raw else None), top
+    return Installed(dist.metadata["Name"], dist.version, json.loads(raw) if raw else None, tuple(dist.requires or ())), top
 
 
 @dataclass
@@ -129,11 +132,34 @@ def _same_version(a: str, b: str) -> bool:
         return a == b
 
 
+SDK = canonicalize_name("be-sdk")
+
+
+def sdk_unmet(inst: Installed, sdk: str) -> str | None:
+    """Why the SDK in the process does not meet the minimum a member's distribution declares (P1.21), or None. The
+    override-dependencies that give a shell one SDK can go below a member's requirement, and a Git tag in a member's
+    [tool.uv.sources] never reaches its metadata, so the member states its minimum as Requires-Dist be-sdk>=<version>."""
+    for line in inst.requires:
+        try:
+            req = Requirement(line)
+        except InvalidRequirement:
+            continue
+        if canonicalize_name(req.name) != SDK or (req.marker is not None and not req.marker.evaluate({"extra": ""})):
+            continue
+        if not any(spec.operator in (">=", "==", "~=") for spec in req.specifier):
+            return f"a minimum SDK in the metadata of {inst.name} (be-sdk>=<version>); it declares {line}"
+        if not req.specifier.contains(Version(sdk), prereleases=True):
+            return f"{line} as {inst.name} declares; the SDK in this shell is be-sdk {sdk}"
+        return None
+    return f"a minimum SDK in the metadata of {inst.name} (be-sdk>=<version>); it declares none"
+
+
 def check(raw: str, defs: list[Definition], lookup: Callable[[Definition], tuple[Installed | None, str]],
-          allow_replace: bool) -> tuple[list[Planned], list[Problem], list[str]]:
+          allow_replace: bool, sdk: str = besdk.Version) -> tuple[list[Planned], list[Problem], list[str]]:
     """Protocol 17's refusals: members listed but not installed, installed at another version (by the definition and
-    by the distribution metadata; no install from a local path in a release build), members whose configuration is
-    invalid, and process-level keys that disagree. Every refusal is returned at once."""
+    by the distribution metadata; no install from a local path in a release build), members that need a newer SDK
+    than the process has or declare no minimum (P1.21), members whose configuration is invalid, and process-level keys
+    that disagree. Every refusal is returned at once."""
     try:
         served = Served.parse(raw)
     except (ValueError, KeyError, TypeError) as e:
@@ -165,6 +191,8 @@ def check(raw: str, defs: list[Definition], lookup: Callable[[Definition], tuple
             if not _same_version(inst.version, s.version):
                 refusals.append(_refusal(mid, "distribution", "invalid",
                                          f"distribution {inst.name} at {s.version}, but the environment has {inst.version}"))
+            if (unmet := sdk_unmet(inst, sdk)) is not None:
+                refusals.append(_refusal(mid, "be-sdk", "invalid", unmet))
             url = (inst.direct_url or {}).get("url", "")
             if url.startswith("file:"):
                 msg = f"distribution {inst.name} is installed from {url}"

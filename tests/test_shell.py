@@ -6,6 +6,7 @@ import socket
 import httpx
 from fastapi.responses import JSONResponse
 
+import besdk
 from besdk import shell
 from besdk.component import Definition
 from besdk.config import EnvSource, Key, Type
@@ -29,14 +30,16 @@ def definition(cid, version):
     return Definition(cid, version, Greeter, keys=[Key("GREETING", Type.STRING, required=True)])
 
 
-def installed(versions, local=()):
-    """Fake metadata: each member its own distribution at the given version, optionally installed from a path."""
+def installed(versions, local=(), requires=None):
+    """Fake metadata: each member its own distribution at the given version, optionally installed from a path, with
+    its Requires-Dist (by default a minimum SDK every test SDK meets)."""
 
     def lookup(d):
         if d.id not in versions:
             return None, d.id.replace("/", "_")
         url = {"url": f"file:///src/{d.id}", "dir_info": {"editable": True}} if d.id in local else None
-        return shell.Installed(d.id.replace("/", "-"), versions[d.id], url), d.id.replace("/", "_")
+        reqs = (requires or {}).get(d.id, ("be-sdk>=3.0.0a1",))
+        return shell.Installed(d.id.replace("/", "-"), versions[d.id], url, tuple(reqs)), d.id.replace("/", "_")
 
     return lookup
 
@@ -142,6 +145,40 @@ async def test_refuses_local_installs_unless_allowed():
     assert "shell built for development" in logs.getvalue()
 
 
+async def test_refuses_a_member_that_requires_a_newer_sdk():
+    # P1.21: the shell's SDK comes from its own build (override-dependencies) and can be older than a member requires
+    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x"}), ("demo/beta", "0.1.0", 18082, {"GREETING": "x"}))
+    lookup = installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0"}, requires={"demo/beta": ("httpx", "be-sdk>=99.0")})
+    out = await refuse(shell_env(18080, js), lookup, definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0"))
+    assert "demo/beta:be-sdk" in out and "be-sdk>=99.0" in out and besdk.Version in out
+    assert "demo/alpha:be-sdk" not in out
+
+
+async def test_refuses_a_member_that_declares_no_sdk_minimum():
+    # without a minimum in the metadata the shell cannot tell; a Git tag in [tool.uv.sources] never reaches it
+    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x"}), ("demo/beta", "0.1.0", 18082, {"GREETING": "x"}))
+    lookup = installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0"},
+                       requires={"demo/alpha": ("be-sdk",), "demo/beta": ("httpx>=0.27",)})
+    out = await refuse(shell_env(18080, js), lookup, definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0"))
+    assert "demo/alpha:be-sdk" in out and "demo/beta:be-sdk" in out and "be-sdk>=" in out
+
+
+def test_sdk_requirement_compares_by_meaning():
+    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x"}))
+    defs = [definition("demo/alpha", "0.1.0")]
+
+    def refusals(*reqs):
+        _, out, _ = shell.check(js, defs, installed({"demo/alpha": "0.1.0"}, requires={"demo/alpha": reqs}), False,
+                                sdk="3.0.0a35")
+        return [r.key for r in out]
+
+    assert refusals("be-sdk>=3.0.0a35") == []
+    assert refusals("be_sdk>=3.0.0a34") == []  # names compare normalized
+    assert refusals('be-sdk>=3.0.0a34; python_version >= "3"') == []
+    assert refusals("be-sdk>=3.0.0a36") == ["demo/alpha:be-sdk"]
+    assert refusals("be-sdk>=3.0.0") == ["demo/alpha:be-sdk"]  # a final release is newer than its alphas
+
+
 async def test_refuses_version_mismatch_and_bad_config_all_at_once():
     js = served(("demo/alpha", "0.1.0", 18081, {}), ("demo/beta", "0.2.0", 18082, {"LOG_LEVEL": "loud", "GREETING": "x"}))
     out = await refuse(shell_env(18080, js), installed({"demo/alpha": "0.1.0", "demo/beta": "0.2.0"}),
@@ -172,3 +209,4 @@ def test_installed_of_finds_the_real_distribution():
     # a definition whose new function lives in an installed distribution (FastAPI's JSONResponse stands in)
     inst, top = shell.installed_of(Definition("demo/x", "1.0.0", JSONResponse))
     assert top == "starlette" and inst is not None and inst.name.lower() == "starlette"
+    assert any(r.startswith("anyio") for r in inst.requires)  # its Requires-Dist, read for P1.21

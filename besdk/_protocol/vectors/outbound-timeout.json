@@ -1,6 +1,6 @@
 {
   "topic": "outbound-timeout",
-  "protocol": "3.0.0-alpha.30",
+  "protocol": "3.0.0-alpha.32",
   "rules": [
     "P4.4"
   ],

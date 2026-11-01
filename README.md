@@ -10,13 +10,13 @@
 
 ```toml
 [project]
-dependencies = ["be-sdk"]
+dependencies = ["be-sdk>=3.0.0a35"]
 
 [tool.uv.sources]
-be-sdk = { git = "https://github.com/brickKit/be-sdk-python", tag = "v3.0.0a9" }
+be-sdk = { git = "https://github.com/brickKit/be-sdk-python", tag = "v3.0.0a35" }
 ```
 
-标签用 PEP 440 的写法（例如 `v3.0.0a9`），与分发版本一致；自描述里报告的 SDK 版本是 `be-sdk-python/3.0.0-alpha.9`。组件自己的测试可以用 `besdk.testing`：测试部署的签发方与公钥、信任根与组件证书、假的授权与审计组件、成员数据库的准备；只用于测试，组件代码不导入它。`besdk.manifest` 给组件自己的测试核对文档与代码：`component.yaml` 的 `configSchema` 与 SDK 读的键、`events.publishes` 与事件契约、`contract/openapi.yaml` 与注册的路由（同 Go SDK 的 `ManifestProblems`、`EventProblems`、`OpenAPIProblems`）。
+标签用 PEP 440 的写法（例如 `v3.0.0a35`），与分发版本一致。依赖里的最低版本写钉的那个版本：标签只在 `[tool.uv.sources]` 里、不进包元数据，外壳启动时读包元数据的 `be-sdk>=` 核对它运行的 SDK 不早于成员的要求，没有声明的成员不承载（协议 P1.21）；自描述里报告的 SDK 版本是 `be-sdk-python/3.0.0-alpha.9`。组件自己的测试可以用 `besdk.testing`：测试部署的签发方与公钥、信任根与组件证书、假的授权与审计组件、成员数据库的准备；只用于测试，组件代码不导入它。`besdk.manifest` 给组件自己的测试核对文档与代码：`component.yaml` 的 `configSchema` 与 SDK 读的键、`events.publishes` 与事件契约、`contract/openapi.yaml` 与注册的路由（同 Go SDK 的 `ManifestProblems`、`EventProblems`、`OpenAPIProblems`）。
 
 ## 功能矩阵
 
