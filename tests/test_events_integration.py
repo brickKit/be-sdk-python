@@ -384,3 +384,44 @@ async def test_the_commit_wakes_the_forwarder():  # P6.29
         await sub.stop()
         await tr.close()
         await pool.close()
+
+
+async def test_the_forwarder_reads_no_published_row_on_its_way():  # P6.35
+    # the published rows stay for the redelivery retention (P6.12) ahead of the unpublished ones; the read used to
+    # walk past all of them (or fetch and sort every unpublished row) for every batch: 3.4 ms a batch with 20 000
+    # ahead against 0.6 ms (2026-11-02). Autovacuum is off: the read must not need fresh statistics
+    import time
+
+    own = Stream("demo.unpub" + uuid.uuid4().hex[:6], 1)
+    d, pool, p = await source("py_ev12", stream=own)
+    tr = await pg_transport()
+    a = await pgtest.admin()
+    f = Forwarder(d, p, tr, "demo/py_ev12", str(uuid.uuid4()), LOG)
+
+    async def rows(lo, hi, published):
+        await a.execute(f"""INSERT INTO py_ev12.be_outbox (event_id, stream, partition, type, occurred_at, record_id,
+            version, projection, hops, payload, digest, seq, epoch_generation, epoch_timeline, published_at)
+            SELECT gen_random_uuid(), $1, 0, 'demo.stock.moved.v1', now(), g::text, 1, 'full', 0, '\\x7b7d', 'd', g, 1, 1,
+            {'now()' if published else 'NULL'} FROM generate_series($2::int, $3::int) g""", own.name, lo, hi)
+
+    async def median():
+        took = []
+        for _ in range(15):
+            started = time.perf_counter()
+            got = await d.background_tx(lambda tx: f._unpublished(tx, own.name, 0))
+            took.append(time.perf_counter() - started)
+            assert len(got) == f.batch and got[0].seq == 100001, "a full batch in position order"
+        return sorted(took)[len(took) // 2]
+
+    try:
+        await a.execute("ALTER TABLE py_ev12.be_outbox SET (autovacuum_enabled = false)")
+        await rows(99981, 100000, True)  # 20 published
+        await rows(100001, 100600, False)
+        small = await median()  # the cached plan settles here
+        await rows(1, 20000, True)
+        large = await median()
+        assert large < small + 0.001, f"a batch with 20 020 published rows ahead ({large * 1000:.2f} ms) against 20 ({small * 1000:.2f} ms)"
+    finally:
+        await a.close()
+        await tr.close()
+        await pool.close()

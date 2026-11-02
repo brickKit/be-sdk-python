@@ -1,5 +1,5 @@
 """One schema migrated by both SDKs (be-protocol P5.12, A111): the Go SDK's migrate entry (tests/interop/gomigrate,
-pinned to be-sdk-go v3.0.0-alpha.1) and the Python one read and write the same state tables under the same lock."""
+the Go SDK of the protocol this package copies, test_protocol checks) and the Python one read and write the same state tables under the same lock."""
 import asyncio
 import os
 import pathlib

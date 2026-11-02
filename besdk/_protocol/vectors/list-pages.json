@@ -1,6 +1,6 @@
 {
   "topic": "list-pages",
-  "protocol": "3.0.0-alpha.42",
+  "protocol": "3.0.0-alpha.45",
   "rules": [
     "P9.1",
     "P9.2",

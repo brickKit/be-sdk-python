@@ -179,3 +179,34 @@ async def test_a_late_database_is_waited_for():  # P5.10, CK-DB-04
         stop.set()
         assert await run == 0, out.getvalue()
         (await proxy).close()
+
+
+async def test_a_running_component_keeps_its_tables_statistics_fresh():  # P5.33
+    from besdk.db.statistics import STALE_CHECK_EVERY
+
+    await pgtest.member("py_stats1")
+    e = pgtest.member_env("py_stats1")
+    assert await launcher.run(definition(), launcher.Options(args=["migrate"], env=env(e), stdout=io.StringIO(),
+                                                             stderr=io.StringIO()), asyncio.Event()) == 0
+    port, stop = free_port(), asyncio.Event()
+    serve = {**e, "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "50ms"}
+    run = asyncio.create_task(launcher.run(definition(), launcher.Options(env=env(serve), stdout=io.StringIO(),
+                                                                         stderr=io.StringIO(), host="127.0.0.1"), stop))
+    await wait_ready(f"http://127.0.0.1:{port}")
+    a = await pgtest.admin()
+    try:
+        await a.execute("ALTER TABLE py_stats1.be_audit_log SET (autovacuum_enabled = false)")  # only the SDK analyzes
+        await a.execute("""INSERT INTO py_stats1.be_audit_log (id, occurred_at, category, operation, outcome, digest)
+            SELECT gen_random_uuid(), now(), 'business_change', 'op', 'succeeded', 'd' FROM generate_series(1, 2000)""")
+        await a.execute("SELECT pg_stat_force_next_flush()")
+        for _ in range(int(3 * STALE_CHECK_EVERY / 0.1)):
+            if await a.fetchval("""SELECT last_analyze IS NOT NULL FROM pg_stat_all_tables
+                    WHERE relid = 'py_stats1.be_audit_log'::regclass"""):
+                break
+            await asyncio.sleep(0.1)
+        else:
+            raise AssertionError("the running component did not analyze a table whose statistics lag")
+    finally:
+        await a.close()
+        stop.set()
+        assert await run == 0

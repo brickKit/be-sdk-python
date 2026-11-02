@@ -23,6 +23,7 @@ from besdk.authz import GRPCSource, Holder
 from besdk.calls import client as calls
 from besdk.component import Definition, Starter, Stopper
 from besdk.config import Key, Problem, Type, Values
+from besdk.db.statistics import keep_statistics
 from besdk.guard import UserGuard
 from besdk.http import Deps, Platform, Routes, build_app
 from besdk.identity import KeySet, ServiceTLS, Verifier
@@ -146,6 +147,8 @@ class Member:
             self._tasks.append(asyncio.create_task(self._reread_certificate()))
         if self.auditor is not None:
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
+        if self.runtime.db is not None:  # the SDK's tables keep fresh statistics (P5.33)
+            self._tasks.append(asyncio.create_task(keep_statistics(self.runtime.db, self.logger)))  # type: ignore[arg-type]
         if self.holder is not None:
             # the definitions first, then one verification before ready, so the first requests find a view; both
             # best effort: the authorization member may be down or, on Kubernetes, reachable only once this member

@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.42",
+  "protocol": "3.0.0-alpha.45",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -146,7 +146,8 @@
         "test_db_integration::test_a_session_setting_is_refused_and_nothing_reaches_the_next_transaction",
         "test_session_state::test_do_blocks_are_checked_like_statements",
         "test_db_integration::test_a_connection_a_function_left_a_setting_on_is_closed",
-        "test_db_integration::test_an_older_version_meets_a_database_a_newer_one_migrated"
+        "test_db_integration::test_an_older_version_meets_a_database_a_newer_one_migrated",
+        "test_db_hosting::test_a_running_component_keeps_its_tables_statistics_fresh"
       ]
     },
     "document-numbers": {
@@ -181,7 +182,8 @@
         "test_events_integration::test_two_numberers_never_share_a_position",
         "test_events_integration::test_a_new_epoch_restarts_positions_and_records_the_fork",
         "test_events_integration::test_the_forwarder_publishes_in_order_once_numbered",
-        "test_events_interop::test_python_to_go"
+        "test_events_interop::test_python_to_go",
+        "test_events_integration::test_the_forwarder_reads_no_published_row_on_its_way"
       ],
       "pending": [
         {
@@ -220,7 +222,8 @@
         "test_transports::test_a_claim_whose_message_was_purged_is_dropped",
         "test_transports::test_a_subscription_crosses_other_streams_without_waiting",
         "test_transports::test_a_publish_wakes_an_idle_reader_without_waiting_for_the_poll",
-        "test_concurrency::test_the_effective_concurrency_of_a_subscription"
+        "test_concurrency::test_the_effective_concurrency_of_a_subscription",
+        "test_transports::test_an_open_transport_keeps_the_queues_statistics_fresh"
       ]
     },
     "consumers": {

@@ -18,6 +18,7 @@ from besdk.config import Secret
 from besdk.db import Target
 from besdk.db.migrate import MigrateConfig, MigrationSet, migrate
 from besdk.db.session import no_reset
+from besdk.db.statistics import STALE_CHECK_EVERY
 from besdk.events.core import (TRANSPORT_RETENTION, Delivery, Handler, Message, Outcome, Stream, SubscriptionSpec,
                                TooLarge, subject_matches)
 from besdk.obs import Logger
@@ -88,6 +89,7 @@ class Transport:
         self.pool, self._args, self.schema, self.poll = pool, args, schema, DEFAULT_POLL
         self.on_error: Callable[[BaseException], None] | None = None
         self._purge = asyncio.create_task(self._purge_loop())
+        self._analyze = asyncio.create_task(self._analyze_loop())
         self._notes: asyncio.Queue[str] = asyncio.Queue(NOTIFY_QUEUE)
         self._notifier = asyncio.create_task(self._notify_loop())
         self._wakers: list[_Waker] = []
@@ -97,7 +99,9 @@ class Transport:
     async def connect(bus_url: str, name: str, max_conns: int = 8) -> Transport:
         args, schema = parse(bus_url)
         try:
-            pool = await asyncpg.create_pool(**args, min_size=0, max_size=max(max_conns, 4), statement_cache_size=0,
+            # statements are cached, so their generic plans are too; the statistics upkeep redoes a plan settled
+            # while the queue was small (P5.33). Planning every claim cost about 0.3 ms always (0.43 against 0.14 ms)
+            pool = await asyncpg.create_pool(**args, min_size=0, max_size=max(max_conns, 4),
                                              server_settings={"application_name": name + " bus", "timezone": "UTC"},
                                              reset=no_reset)  # the bus never sets session state (P5.30)
         except Exception as e:  # noqa: BLE001
@@ -402,8 +406,22 @@ class Transport:
                 self._report(e)
             await asyncio.sleep(PURGE_EVERY)
 
+    async def analyze_stale(self) -> list[str]:
+        """Analyzes the queue's tables whose statistics lag behind their changes (P5.33); returns them."""
+        return [r[0] for r in await self.pool.fetch(f"SELECT {self.t('be_analyze_stale')}()")]
+
+    async def _analyze_loop(self) -> None:
+        while True:
+            await asyncio.sleep(STALE_CHECK_EVERY)
+            try:
+                await self.analyze_stale()
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                self._report(e)
+
     async def close(self) -> None:
-        tasks = [self._purge, self._notifier] + ([self._listen] if self._listen else [])
+        tasks = [self._purge, self._analyze, self._notifier] + ([self._listen] if self._listen else [])
         for t in tasks:
             t.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

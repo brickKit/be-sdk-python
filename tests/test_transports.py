@@ -127,6 +127,7 @@ async def backlog(n: int, schema: str = "py_bus_test"):
         await a.execute(f"""WITH m AS (INSERT INTO {schema}.be_bus_message (subject, headers, data)
                 SELECT 'be.x.0.t.v1', '{{}}'::jsonb, '\\x7b7d'::bytea FROM generate_series(1, $2) RETURNING seq)
             INSERT INTO {schema}.be_bus_delivery (durable, seq) SELECT $1, seq FROM m""", s.durable, n)
+        await a.execute("SELECT pg_stat_force_next_flush()")  # the statistics upkeep sees the rows at once
     finally:
         await a.close()
     return s
@@ -158,17 +159,46 @@ async def median_claim(tr, s) -> float:
     return sorted(took)[len(took) // 2]
 
 
-async def test_a_backlog_does_not_slow_each_claim():  # P6.23
+async def test_a_backlog_does_not_slow_each_claim():  # P6.23, P6.28, P5.33, CK-DB-10
     # every claim used to scan the subscription's whole backlog first: the more behind, the slower each message,
-    # so a subscriber that once fell behind could not catch up. On a bus of its own, never analyzed: there the
-    # expired path walked the backlog along the primary key before protocol alpha.42's in-flight index, and the old
-    # bound (three times plus 2 ms) let it pass
+    # so a subscriber that once fell behind could not catch up. On a bus of its own with autovacuum off, so only the
+    # statistics upkeep analyzes it: the claim's cached plan settles while the backlog is small, 20 000 deliveries
+    # arrive, and until the next analyze that plan fetched and sorted the whole backlog for every claim
     tr, schema = await own_bus()
+    a = await pgtest.admin()
     try:
+        for t in ("be_bus_delivery", "be_bus_message"):
+            await a.execute(f"ALTER TABLE {schema}.{t} SET (autovacuum_enabled = false)")
         small = await median_claim(tr, await backlog(20, schema))
-        large = await median_claim(tr, await backlog(20000, schema))
+        s = await backlog(20000, schema)
+        assert "be_bus_delivery" in await tr.analyze_stale()
+        large = await median_claim(tr, s)
         assert large < small + BACKLOG_MARGIN, f"claims with 20 000 waiting ({large * 1000:.2f} ms) against 20 ({small * 1000:.2f} ms)"
     finally:
+        await a.close()
+        await tr.close()
+        await drop_bus(schema)
+
+
+async def test_an_open_transport_keeps_the_queues_statistics_fresh():  # P5.33
+    import asyncio
+
+    from besdk.db.statistics import STALE_CHECK_EVERY
+
+    tr, schema = await own_bus()
+    a = await pgtest.admin()
+    try:
+        await a.execute(f"ALTER TABLE {schema}.be_bus_delivery SET (autovacuum_enabled = false)")  # only the SDK analyzes
+        await backlog(2000, schema)
+        for _ in range(int(3 * STALE_CHECK_EVERY / 0.1)):
+            if await a.fetchval("SELECT last_analyze IS NOT NULL FROM pg_stat_all_tables WHERE relid = $1::regclass",
+                                f"{schema}.be_bus_delivery"):
+                break
+            await asyncio.sleep(0.1)
+        else:
+            raise AssertionError("the open transport did not analyze a delivery table whose statistics lag")
+    finally:
+        await a.close()
         await tr.close()
         await drop_bus(schema)
 
