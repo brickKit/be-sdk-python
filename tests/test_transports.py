@@ -15,9 +15,9 @@ pytestmark = pytest.mark.integration
 LOG_BUS = obs.new_logger(obs.Member("bus", "0"), "error", io.StringIO())
 
 
-def bus_url() -> str:
+def bus_url(schema: str = "py_bus_test") -> str:
     u = urlsplit(pgtest.admin_dsn(pgtest.DATABASE))
-    return u._replace(scheme="pgqueue", query="schema=py_bus_test&sslmode=disable").geturl()
+    return u._replace(scheme="pgqueue", query=f"schema={schema}&sslmode=disable").geturl()
 
 
 async def pg_transport():
@@ -29,6 +29,29 @@ async def pg_transport():
         await a.close()
     await pgqueue.migrate_bus(bus_url(), LOG_BUS)
     return await pgqueue.Transport.connect(bus_url(), "be-sdk-python-test")
+
+
+async def own_bus():
+    """A bus of the test's own: a fresh schema, migrated; drop_bus removes it. Nothing an earlier run left is in it, and
+    its tables have never been analyzed, as on a bus that just met its first backlog (the shared py_bus_test keeps the
+    statistics of past backlogs)."""
+    schema = "py_bus_t" + uuid.uuid4().hex[:12]
+    await pgtest.ensure_database(pgtest.DATABASE)
+    a = await pgtest.admin()
+    try:
+        await a.execute(f"CREATE SCHEMA {schema}")
+    finally:
+        await a.close()
+    await pgqueue.migrate_bus(bus_url(schema), LOG_BUS)
+    return await pgqueue.Transport.connect(bus_url(schema), "be-sdk-python-test"), schema
+
+
+async def drop_bus(schema: str) -> None:
+    a = await pgtest.admin()
+    try:
+        await a.execute(f"DROP SCHEMA {schema} CASCADE")
+    finally:
+        await a.close()
 
 
 async def js_transport():
@@ -84,18 +107,18 @@ async def test_the_suite_fails_an_adapter_that_loses_acks():  # P6.24
         await tr.close()
 
 
-async def backlog(n: int):
+async def backlog(n: int, schema: str = "py_bus_test"):
     """A new subscription with n due deliveries of real messages, written directly."""
     from besdk.events.core import SubscriptionSpec
 
     s = SubscriptionSpec("backlog_" + uuid.uuid4().hex[:8], ["x"], max_deliver=3).defaults()
     a = await pgtest.admin()
     try:
-        await a.execute("""INSERT INTO py_bus_test.be_bus_subscription (durable, streams, filters, max_deliver,
-            ack_wait_ms, backoff_ms) VALUES ($1, '{x}', '{}', 3, 30000, '{1000}')""", s.durable)
-        await a.execute("""WITH m AS (INSERT INTO py_bus_test.be_bus_message (subject, headers, data)
-                SELECT 'be.x.0.t.v1', '{}'::jsonb, '\\x7b7d'::bytea FROM generate_series(1, $2) RETURNING seq)
-            INSERT INTO py_bus_test.be_bus_delivery (durable, seq) SELECT $1, seq FROM m""", s.durable, n)
+        await a.execute(f"""INSERT INTO {schema}.be_bus_subscription (durable, streams, filters, max_deliver,
+            ack_wait_ms, backoff_ms) VALUES ($1, '{{x}}', '{{}}', 3, 30000, '{{1000}}')""", s.durable)
+        await a.execute(f"""WITH m AS (INSERT INTO {schema}.be_bus_message (subject, headers, data)
+                SELECT 'be.x.0.t.v1', '{{}}'::jsonb, '\\x7b7d'::bytea FROM generate_series(1, $2) RETURNING seq)
+            INSERT INTO {schema}.be_bus_delivery (durable, seq) SELECT $1, seq FROM m""", s.durable, n)
     finally:
         await a.close()
     return s
@@ -111,6 +134,12 @@ async def forget(durable: str, subject: str) -> None:
         await a.close()
 
 
+# A claim that walks the backlog (the expired path along the primary key, before protocol alpha.42) costs 1.3-3.7 ms
+# more with 20 000 waiting; one that takes the first row costs the same within 0.8 ms (2026-11-02, 20 runs each,
+# balanced power mode). The old bound, three times plus 2 ms, let all 20 walking runs pass.
+BACKLOG_MARGIN = 0.001
+
+
 async def median_claim(tr, s) -> float:
     took = []
     for _ in range(15):
@@ -123,17 +152,17 @@ async def median_claim(tr, s) -> float:
 
 async def test_a_backlog_does_not_slow_each_claim():  # P6.23
     # every claim used to scan the subscription's whole backlog first: the more behind, the slower each message,
-    # so a subscriber that once fell behind could not catch up
-    tr = await pg_transport()
-    subs = []
+    # so a subscriber that once fell behind could not catch up. On a bus of its own, never analyzed: there the
+    # expired path walked the backlog along the primary key before protocol alpha.42's in-flight index, and the old
+    # bound (three times plus 2 ms) let it pass
+    tr, schema = await own_bus()
     try:
-        subs = [await backlog(20), await backlog(20000)]
-        small, large = await median_claim(tr, subs[0]), await median_claim(tr, subs[1])
-        assert large < 3 * small + 0.002, f"claims with 20 000 waiting ({large * 1000:.1f} ms) against 20 ({small * 1000:.1f} ms)"
+        small = await median_claim(tr, await backlog(20, schema))
+        large = await median_claim(tr, await backlog(20000, schema))
+        assert large < small + BACKLOG_MARGIN, f"claims with 20 000 waiting ({large * 1000:.2f} ms) against 20 ({small * 1000:.2f} ms)"
     finally:
         await tr.close()
-        for s in subs:
-            await forget(s.durable, "be.x.0.t.v1")
+        await drop_bus(schema)
 
 
 async def test_a_claim_whose_message_was_purged_is_dropped():  # P6.27
