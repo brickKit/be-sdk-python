@@ -128,6 +128,7 @@
     "database": {
       "status": "verified",
       "evidence": [
+        "test_db_hosting::test_a_late_database_is_waited_for",
         "test_db_errors::test_db_errors_vectors",
         "test_db_lint::test_migration_lint_vectors",
         "test_db_integration::test_migrate_twice_and_the_state_in_the_component_schema",

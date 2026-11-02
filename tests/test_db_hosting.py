@@ -138,3 +138,44 @@ async def test_members_share_one_pool_and_never_each_others_schema():  # P5.1, C
     assert await shell.run(self, defs, shell.Options(env=env({**full, "BRICKKIT_SERVED_MEMBERS_CONFIG": members}),
                                                      stdout=io.StringIO(), stderr=err, installed_of=lookup), asyncio.Event()) == 78
     assert "demo/py_sh_b:PG_POOLER_PREPARED" in err.getvalue()
+
+
+async def test_a_late_database_is_waited_for():  # P5.10, CK-DB-04
+    # the database starts after the component (the machine boots both): the component waits, staying "starting", and
+    # turns ready once it answers. Migrated straight away: the migrate entry does not wait, P5.10 is the serve entry's
+    from tests.test_bus_ready_integration import late_proxy
+
+    await pgtest.member("py_late_db")
+    e = pgtest.member_env("py_late_db")
+    out = io.StringIO()
+    assert await launcher.run(definition(), launcher.Options(args=["migrate"], env=env(e), stdout=out,
+                                                             stderr=io.StringIO()), asyncio.Event()) == 0, out.getvalue()
+    host, port = pgtest.host_port()
+    proxy_port, proxy = await late_proxy(host, port, 1.5)
+    http_port, stop, out = free_port(), asyncio.Event(), io.StringIO()
+    serve = {**e, "PG_HOST": "127.0.0.1", "PG_PORT": str(proxy_port), "COMPONENT_ID": "demo/notes",
+             "COMPONENT_VERSION": "3.0.0", "PORT": str(http_port), "STOP_DRAIN_DELAY": "50ms"}
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    run = asyncio.create_task(launcher.run(definition(), launcher.Options(env=env(serve), stdout=out, stderr=out,
+                                                                         host="127.0.0.1"), stop))
+    try:
+        async with httpx.AsyncClient() as c:
+            for _ in range(1500):
+                try:
+                    if (await c.get(f"http://127.0.0.1:{http_port}/readyz")).status_code == 200:
+                        break
+                except httpx.ConnectError:
+                    pass
+                assert not run.done(), out.getvalue()
+                await asyncio.sleep(0.01)
+            else:
+                raise AssertionError("never ready\n" + out.getvalue())
+            assert loop.time() - start >= 1.5, "ready only once the database answers"
+            assert "waiting for the database" in out.getvalue()
+            assert (await c.get(f"http://127.0.0.1:{http_port}/api/who")).json()["u"] == "sdk_py_late_db_rw", \
+                "and it serves through the database"
+    finally:
+        stop.set()
+        assert await run == 0, out.getvalue()
+        (await proxy).close()
