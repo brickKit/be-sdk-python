@@ -1,6 +1,6 @@
 {
   "topic": "call-outcomes",
-  "protocol": "3.0.0-alpha.36",
+  "protocol": "3.0.0-alpha.37",
   "rules": [
     "P4.6",
     "P4.8",

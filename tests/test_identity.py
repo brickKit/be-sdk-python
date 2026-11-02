@@ -179,7 +179,7 @@ async def test_a_time_claim_that_is_not_a_finite_number_is_refused(issuer):
     assert e.value.problem == "format"
 
 
-async def test_concurrent_requests_wait_for_the_refresh_in_flight(issuer):  # P8.2
+async def test_concurrent_requests_wait_for_the_refresh_in_flight(issuer):  # P8.2, CK-ID-01
     """The identity member was not up when the process started (the first fetch failed); the first burst of requests
     meets no keys at all. One refresh is made and every request of the burst waits for it (step 13 smoke, K13-E1: the
     Go SDK answered the ones after the first DEPENDENCY_UNAVAILABLE at once)."""
