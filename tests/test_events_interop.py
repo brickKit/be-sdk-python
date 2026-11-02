@@ -2,6 +2,7 @@
 built from be-sdk-go) and a Python component exchange events in both directions on JetStream and on the PostgreSQL
 queue, a payload over 64 KiB included, and every event takes effect once."""
 import asyncio
+import contextlib
 import io
 import os
 import pathlib
@@ -80,16 +81,17 @@ class PyConsumer:
         s.add(Sub("things", [THINGS.name], handle, types=["demo.things.created.v1"]))
 
 
+@contextlib.asynccontextmanager
 async def bus(kind):
+    """The bus URL for one test; afterwards the test's stream (JetStream) or its queue schema is gone."""
     if kind == "jetstream":
         url = os.environ["BE_SDK_TEST_NATS_URL"]
-        tr = await jetstream.Transport.connect(url, "interop-cleanup")
+        await drop_things(url)  # an interrupted run may have left it
         try:
-            await tr.delete_stream(THINGS.name)
-        except Exception:  # noqa: BLE001 - not there yet
-            pass
-        await tr.close()
-        return url
+            yield url
+        finally:
+            await drop_things(url)
+        return
     schema = "py_bus_iop_" + uuid.uuid4().hex[:8]  # a fresh queue: no earlier messages
     a = await pgtest.admin()
     try:
@@ -98,8 +100,24 @@ async def bus(kind):
         await a.close()
     u = urlsplit(pgtest.admin_dsn(pgtest.DATABASE))
     url = u._replace(scheme="pgqueue", query=f"schema={schema}&sslmode=disable").geturl()
-    await pgqueue.migrate_bus(url, LOG_BUS)
-    return url
+    try:
+        await pgqueue.migrate_bus(url, LOG_BUS)
+        yield url
+    finally:
+        a = await pgtest.admin()
+        try:
+            await a.execute(f"DROP SCHEMA {schema} CASCADE")
+        finally:
+            await a.close()
+
+
+async def drop_things(url):
+    tr = await jetstream.Transport.connect(url, "interop-cleanup")
+    try:
+        await tr.delete_stream(THINGS.name)
+    except Exception:  # noqa: BLE001 - not there
+        pass
+    await tr.close()
 
 
 async def member_env(name, extra):
@@ -170,45 +188,46 @@ def go_binary(tmp_path_factory):
 
 @pytest.mark.parametrize("kind", ["jetstream", "pgqueue"])
 async def test_python_to_go(kind, go_binary):
-    url = await bus(kind)
-    sfx = uuid.uuid4().hex[:6]
-    prod_env = await member_env("py_iop_pp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
-                                              **s3_env("py-iop-pp/")})
-    cons_env = await member_env("py_iop_gc", {"BUS_URL": url})
-    gurl, gproc = await start_go(go_binary, "demo/gocons" + sfx, "consumer", cons_env)
-    purl, pstop, ptask = await start_python(Definition("demo/pyprod" + sfx, "3.0.0", PyProducer,
-                                                       migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
-                                                       streams=[THINGS]), prod_env)
-    try:
-        async with httpx.AsyncClient() as c:
-            for i in range(5):
-                assert (await c.post(purl + "/api/things")).status_code == 201
-            assert (await c.post(purl + "/api/things?big=1")).status_code == 201
-        await counted(gurl, {"count": 6, "big": 1})
-    finally:
-        pstop.set()
-        assert await ptask == 0, ptask.out.getvalue()
-        await stop_go(gproc)
+    async with bus(kind) as url:
+        sfx = uuid.uuid4().hex[:6]
+        prod_env = await member_env("py_iop_pp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
+                                                  **s3_env("py-iop-pp/")})
+        cons_env = await member_env("py_iop_gc", {"BUS_URL": url})
+        gurl, gproc = await start_go(go_binary, "demo/gocons" + sfx, "consumer", cons_env)
+        purl, pstop, ptask = await start_python(Definition(
+            "demo/pyprod" + sfx, "3.0.0", PyProducer, migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
+            streams=[THINGS]), prod_env)
+        try:
+            async with httpx.AsyncClient() as c:
+                for i in range(5):
+                    assert (await c.post(purl + "/api/things")).status_code == 201
+                assert (await c.post(purl + "/api/things?big=1")).status_code == 201
+            await counted(gurl, {"count": 6, "big": 1})
+        finally:
+            pstop.set()
+            assert await ptask == 0, ptask.out.getvalue()
+            await stop_go(gproc)
 
 
 @pytest.mark.parametrize("kind", ["jetstream", "pgqueue"])
 async def test_go_to_python(kind, go_binary):
-    url = await bus(kind)
-    sfx = uuid.uuid4().hex[:6]
-    prod_env = await member_env("py_iop_gp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
-                                              **s3_env("py-iop-gp/")})
-    cons_env = await member_env("py_iop_pc", {"BUS_URL": url})
-    curl, cstop, ctask = await start_python(Definition(
-        "demo/pycons" + sfx, "3.0.0", PyConsumer, subscribes=True,
-        migrations={"0001_seen.up.sql": "CREATE TABLE seen (event_id uuid PRIMARY KEY, size int NOT NULL);"}), cons_env)
-    gurl, gproc = await start_go(go_binary, "demo/goprod" + sfx, "producer", prod_env)
-    try:
-        async with httpx.AsyncClient() as c:
-            for i in range(5):
-                assert (await c.post(gurl + "/api/things")).status_code == 201
-            assert (await c.post(gurl + "/api/things?big=1")).status_code == 201
-        await counted(curl, {"count": 6, "big": 1})
-    finally:
-        await stop_go(gproc)
-        cstop.set()
-        assert await ctask == 0, ctask.out.getvalue()
+    async with bus(kind) as url:
+        sfx = uuid.uuid4().hex[:6]
+        prod_env = await member_env("py_iop_gp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
+                                                  **s3_env("py-iop-gp/")})
+        cons_env = await member_env("py_iop_pc", {"BUS_URL": url})
+        curl, cstop, ctask = await start_python(Definition(
+            "demo/pycons" + sfx, "3.0.0", PyConsumer, subscribes=True,
+            migrations={"0001_seen.up.sql": "CREATE TABLE seen (event_id uuid PRIMARY KEY, size int NOT NULL);"}),
+            cons_env)
+        gurl, gproc = await start_go(go_binary, "demo/goprod" + sfx, "producer", prod_env)
+        try:
+            async with httpx.AsyncClient() as c:
+                for i in range(5):
+                    assert (await c.post(gurl + "/api/things")).status_code == 201
+                assert (await c.post(gurl + "/api/things?big=1")).status_code == 201
+            await counted(curl, {"count": 6, "big": 1})
+        finally:
+            await stop_go(gproc)
+            cstop.set()
+            assert await ctask == 0, ctask.out.getvalue()

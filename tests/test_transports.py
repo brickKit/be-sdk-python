@@ -20,21 +20,29 @@ def bus_url(schema: str = "py_bus_test") -> str:
     return u._replace(scheme="pgqueue", query=f"schema={schema}&sslmode=disable").geturl()
 
 
+_emptied = False
+
+
 async def pg_transport():
+    global _emptied
     await pgtest.ensure_database(pgtest.DATABASE)
     a = await pgtest.admin()
     try:
         await a.execute("CREATE SCHEMA IF NOT EXISTS py_bus_test")
+        await pgqueue.migrate_bus(bus_url(), LOG_BUS)
+        if not _emptied:  # empty it of earlier runs: each test adds a stream and subscriptions nothing removes
+            await a.execute("TRUNCATE py_bus_test.be_bus_message, py_bus_test.be_bus_stream, "
+                            "py_bus_test.be_bus_subscription, py_bus_test.be_bus_delivery")
+            _emptied = True
     finally:
         await a.close()
-    await pgqueue.migrate_bus(bus_url(), LOG_BUS)
     return await pgqueue.Transport.connect(bus_url(), "be-sdk-python-test")
 
 
 async def own_bus():
     """A bus of the test's own: a fresh schema, migrated; drop_bus removes it. Nothing an earlier run left is in it, and
-    its tables have never been analyzed, as on a bus that just met its first backlog (the shared py_bus_test keeps the
-    statistics of past backlogs)."""
+    its tables have never been analyzed, as on a bus that just met its first backlog (the shared py_bus_test holds what
+    this run's other tests left and the statistics of past backlogs)."""
     schema = "py_bus_t" + uuid.uuid4().hex[:12]
     await pgtest.ensure_database(pgtest.DATABASE)
     a = await pgtest.admin()
