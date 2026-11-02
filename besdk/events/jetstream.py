@@ -45,9 +45,13 @@ class Transport:
     @staticmethod
     async def connect(url: str, name: str) -> Transport:
         try:
-            nc = await nats.connect(url, name=name, max_reconnect_attempts=-1)
+            # The first connection fails fast when no server answers, so the start can wait and be stopped (P6.34,
+            # besdk.events.bus.ready_bus); with max_reconnect_attempts=-1 nats-py would retry it forever, silently.
+            nc = await nats.connect(url, name=name, max_reconnect_attempts=1, reconnect_time_wait=0)
         except Exception as e:  # noqa: BLE001
             raise ConnectionError(f"bus {_redact(url)}: {e}") from e
+        # once connected, a lost connection is retried forever, every 2 s (nats-py reads these at each reconnect)
+        nc.options["max_reconnect_attempts"], nc.options["reconnect_time_wait"] = -1, 2
         return Transport(nc)
 
     @property

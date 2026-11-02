@@ -15,7 +15,7 @@ import asyncpg
 from besdk import clock, config, db, host, obs
 from besdk.db import migrate
 from besdk.db.pool import DB, CredentialsError, Pool, StartCheckError, StoppedWaiting
-from besdk.events.bus import open_bus
+from besdk.events.bus import BusRefused, BusStartCheckError, ready_bus
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, Problem, Type
 
@@ -101,11 +101,9 @@ async def _serve(d: Definition, o: Options, stop: asyncio.Event) -> int:
         if d.streams or d.subscribes:
             # one bus connection per process (protocol 17)
             blog = obs.new_logger(obs.Member(d.id, d.version), values.string("LOG_LEVEL"), o.stdout)
-            try:
-                transport = await open_bus(values.secret("BUS_URL").value(), d.id, blog)  # type: ignore[union-attr]
-            except (OSError, ValueError, ConnectionError) as e:
-                blog.error("the bus is not usable", error=str(e))
-                return EXIT_STARTUP_CHECK
+            transport, code = await bus_ready_exit(values.secret("BUS_URL").value(), d.id, blog, stop)  # type: ignore[union-attr]
+            if code is not None:
+                return code
         return await _serve_member(d, o, stop, values, plat, started, pool, database, transport)
     finally:
         if transport is not None:
@@ -197,6 +195,20 @@ async def ready_exit(pool: Pool, log, stop: asyncio.Event) -> int | None:
     except StartCheckError as e:
         log.error("a start check of the database failed", error=str(e))
         return EXIT_STARTUP_CHECK
+
+
+async def bus_ready_exit(url: str, name: str, log, stop: asyncio.Event):
+    """Open the bus, waiting for it (P6.34); (transport, None) when it is usable, else (None, the exit code)."""
+    try:
+        return await ready_bus(url, name, log, stop), None
+    except StoppedWaiting:
+        return None, EXIT_OK  # stopped while waiting for the bus
+    except BusRefused as e:
+        log.error("the bus is not usable", error=f"the bus refused the connection settings: {e}")
+        return None, EXIT_CONFIGURATION
+    except BusStartCheckError as e:
+        log.error("the bus is not usable", error=f"a start check of the bus failed: {e}")
+        return None, EXIT_STARTUP_CHECK
 
 
 async def _migrate(d: Definition, o: Options) -> int:

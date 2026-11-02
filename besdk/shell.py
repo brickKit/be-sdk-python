@@ -26,9 +26,8 @@ from besdk import clock, config, db, host, obs, protocol
 from besdk.component import Definition
 from besdk.config import ConfigError, EnvSource, Key, MapSource, Problem, Type
 from besdk.db.pool import DB, Pool
-from besdk.events.bus import open_bus
 from besdk.http import Deps, Platform, Routes, build_app
-from besdk.launcher import ready_exit
+from besdk.launcher import bus_ready_exit, ready_exit
 
 
 @dataclass(frozen=True)
@@ -288,11 +287,9 @@ async def _serve(self: Identity, sv: config.Values, plans: list[Planned], log: o
     try:
         users = [p for p in plans if p.definition.streams or p.definition.subscribes]
         if users:  # one bus per process; BUS_URL is a process-level key, so the members agree on it
-            try:
-                transport = await open_bus(users[0].values.secret("BUS_URL").value(), self.id, log)  # type: ignore[union-attr]
-            except (OSError, ValueError, ConnectionError) as e:
-                log.error("the bus is not usable", error=str(e))
-                return host.EXIT_STARTUP_CHECK
+            transport, code = await bus_ready_exit(users[0].values.secret("BUS_URL").value(), self.id, log, stop)  # type: ignore[union-attr]
+            if code is not None:
+                return code
         # one key set per process; IAM_JWKS_URL is a process-level key, so the members agree on it
         keyed = [p for p in plans if p.values.string("IAM_JWKS_URL")]
         keys = await host.open_keys(keyed[0].values, log) if keyed else None
