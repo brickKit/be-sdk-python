@@ -80,7 +80,7 @@ class GRPCSource:
             status = _STATUS.get(s.status)
             if status is None:
                 raise ValueError(f"shard {s.shard}: status {s.status}")
-            a: dict = {"shard": s.shard, "status": status}
+            a: dict = {"shard": s.shard, "status": status, "read_only": s.read_only}
             if status == "changed":
                 view = open_view(s.view, s.digest)
                 if view.shard != s.shard:
@@ -117,6 +117,9 @@ class _Held:
     sent_at: float  # the suspend-aware reading when the request that renewed it was sent
     stopped: bool = False  # its revisions went back under the same recovery generation: unusable until a higher one
     suspended: bool = False  # a whole answer was a rollback: unusable until an accepted answer renews or replaces it
+    # sent_at of the last renewal that was not read-only; None until there was one, and the shard is then not valid
+    # for high-risk operations (P8.11)
+    high_at: float | None = None
 
 
 @dataclass
@@ -215,9 +218,12 @@ class Holder:
         self.recovery, self.instance = gen, instance
         for a in ans.get("shards") or []:
             name, h = a.get("shard"), self.shards.get(a.get("shard"))
+            read_only = bool(a.get("read_only"))
             if a.get("status") == "unchanged":
                 if h is not None and not h.stopped:
                     h.sent_at, h.suspended = sent, False
+                    if not read_only:
+                        h.high_at = sent
             elif a.get("status") == "changed" and a.get("view") is not None:
                 view = _as_shard(a["view"])
                 if h is not None and h.stopped:
@@ -226,21 +232,27 @@ class Holder:
                     h.stopped = True
                     self.log.error("an authorization view shard went back under the same recovery generation; it is "
                                    "stopped until the recovery generation advances", shard=name)
+                elif read_only:  # the high-risk validity carries over from the shard it replaces; a new one has none
+                    self.shards[name] = _Held(view, sent, high_at=h.high_at if h is not None else None)
                 else:
-                    self.shards[name] = _Held(view, sent)
+                    self.shards[name] = _Held(view, sent, high_at=sent)
             # closed: not renewed, it runs out on its own
         return True
 
     def lookup(self, resource_type: str, principal: str, risk: str) -> Grant:
-        """The subject's segments for a resource type in a valid shard; risk high uses W_HIGH."""
-        valid = (W_HIGH if risk == "high" else W_READ) * (1 - DRIFT)
+        """The subject's segments for a resource type in a valid shard; risk high uses W_HIGH, counted from the last
+        renewal that was not read-only (P8.11)."""
+        high = risk == "high"
+        valid = (W_HIGH if high else W_READ) * (1 - DRIFT)
         now = self.boot()
         for h in self.shards.values():
-            if h.stopped or h.suspended or resource_type not in h.shard.applicability or now >= h.sent_at + valid:
+            start = h.high_at if high else h.sent_at
+            if h.stopped or h.suspended or resource_type not in h.shard.applicability or start is None or \
+                    now >= start + valid:
                 continue
             segs, disabled, version = h.shard.subjects.get(principal, ([], False, 0))
             mine = [] if disabled else [s for s in segs if not s.resource_type or s.resource_type == resource_type]
-            return Grant(mine, h.sent_at + valid, version)
+            return Grant(mine, start + valid, version)
         raise errs.new("AUTHORIZATION_VIEW_EXPIRED", "no valid authorization view").with_("resource_type", resource_type)
 
 

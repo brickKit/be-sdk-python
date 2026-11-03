@@ -149,7 +149,7 @@ wheels = [
 
 [[package]]
 name = "be-sdk"
-version = "3.0.0a46"
+version = "3.0.0a47"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -188,7 +188,7 @@ requires-dist = [
     { name = "aiohttp" },
     { name = "asyncpg" },
     { name = "contract-infra-audit", git = "https://github.com/brickKit/infra-audit?subdirectory=contract%2Fpython&rev=contract%2Fv3.0.0-alpha.1" },
-    { name = "contract-infra-authz", git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.1" },
+    { name = "contract-infra-authz", git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.2" },
     { name = "fastapi" },
     { name = "googleapis-common-protos" },
     { name = "grpcio" },
@@ -360,8 +360,8 @@ dependencies = [
 
 [[package]]
 name = "contract-infra-authz"
-version = "3.0.0a1"
-source = { git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.1#8d69296d5a8a9429aacadaf33a25b5261d78edaa" }
+version = "3.0.0a2"
+source = { git = "https://github.com/brickKit/contract-infra-authz?subdirectory=python&rev=v3.0.0-alpha.2#daa05cc1d39856fa3c545a66988dbd7fa2484240" }
 dependencies = [
     { name = "grpcio" },
     { name = "protobuf" },

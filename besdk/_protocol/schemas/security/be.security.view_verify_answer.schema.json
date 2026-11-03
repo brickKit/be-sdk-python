@@ -31,6 +31,9 @@
           },
           "view": {
             "$ref": "#/$defs/be.security.view"
+          },
+          "read_only": {
+            "$ref": "#/$defs/Bool"
           }
         },
         "additionalProperties": false,

@@ -8,7 +8,7 @@ import pytest
 from besdk import errs, protocol, reqctx
 from besdk.authz import (AMOUNT, NULL, UNOBTAINED, Definitions, Dimension, Fact, Field, Holder, Operation, Resource,
                          Segment, Subject, evaluate, mask)
-from besdk.authz.view import DRIFT, INTERVAL, T_STALL, W_READ, Shard, _Held
+from besdk.authz.view import DRIFT, INTERVAL, T_STALL, W_HIGH, W_READ, Shard, _Held
 from besdk.obs import Member, new_logger
 
 ALICE = "0190f3a1-0000-7000-8000-0000000000a1"
@@ -108,14 +108,16 @@ def test_declarations_are_checked_together():  # P8.7, CK-AZ-01
 
 
 class FakeSource:
-    def __init__(self, clock, shard, gen="1", status="changed", delay=0.0):
+    def __init__(self, clock, shard, gen="1", status="changed", delay=0.0, read_only=False):
         self.clock, self.shard, self.gen, self.status, self.delay, self.bad_nonce = clock, shard, gen, status, delay, False
+        self.read_only = read_only
 
     async def verify(self, req):
         self.clock[0] += self.delay  # the answer arrives late
         return {"nonce": "replayed" if self.bad_nonce else req["nonce"],
                 "recovery_generation": {"domain": "authz.recovery", "value": self.gen},
-                "shards": [{"shard": "orders", "status": self.status, "view": self.shard}]}
+                "shards": [{"shard": "orders", "status": self.status, "view": self.shard,
+                            **({"read_only": True} if self.read_only else {})}]}
 
 
 def shard(disabled=False):
@@ -179,6 +181,36 @@ async def test_answers_that_do_not_renew():  # P8.9, P8.11
     await h.verify()
     h.lookup("demo.order", ALICE, "low")
     expired(h, "demo.invoice")  # the shard does not apply to this type
+
+
+async def test_read_only_renewal_leaves_the_high_risk_validity():  # P8.11, security 03 (renewal and closing)
+    h, src, clock = holder()
+    await h.verify()
+    full = clock[0]
+    h.lookup("demo.order", ALICE, "high")  # the precondition: a full renewal is valid for high-risk operations
+    src.status, src.read_only = "unchanged", True
+    clock[0] = full + 3
+    await h.verify()
+    assert h.lookup("demo.order", ALICE, "high").cutoff == full + W_HIGH * (1 - DRIFT), "the high-risk cutoff stays"
+    assert h.lookup("demo.order", ALICE, "low").cutoff == clock[0] + W_READ * (1 - DRIFT), "ordinary reads are renewed"
+    src.status, src.shard = "changed", {**shard(), "digest": "sha256:2"}  # a new view, still read-only
+    clock[0] = full + 4
+    await h.verify()
+    assert h.lookup("demo.order", ALICE, "high").cutoff == full + W_HIGH * (1 - DRIFT)
+    clock[0] = full + W_HIGH
+    expired(h, risk="high")
+    h.lookup("demo.order", ALICE, "low")  # ordinary reads go on
+    src.read_only = False  # the source caught up: a full renewal opens high-risk operations again
+    await h.verify()
+    h.lookup("demo.order", ALICE, "high")
+
+
+async def test_a_read_only_first_view_is_not_valid_for_high_risk():  # P8.11
+    h, src, clock = holder(read_only=True)
+    clock[0] = 1.0  # just after the machine started: a zero high-risk renewal time would still look valid
+    await h.verify()
+    h.lookup("demo.order", ALICE, "low")
+    expired(h, risk="high")
 
 
 async def test_a_stall_invalidates_every_shard():  # P8.10
@@ -269,17 +301,44 @@ def test_view_accept_vectors():  # P8.11
         h.instance = c["held"]["instance"] or ""
         for name, s in c["held"]["shards"].items():
             h.shards[name] = _Held(Shard(name, [], {}, "old", s["revisions"]), before, s.get("stopped", False),
-                                   s.get("suspended", False))
+                                   s.get("suspended", False), high_at=before)
         ans = {"instance": c["answer"]["instance"], "shards": [
-            {"shard": a["shard"], "status": a["status"],
+            {"shard": a["shard"], "status": a["status"], "read_only": a.get("read_only", False),
              **({"view": Shard(a["shard"], [], {}, "new", a["view"]["security_revisions"])} if a.get("view") else {})}
             for a in c["answer"]["shards"]]}
         accepted = h.apply(ans, c["answer"]["recovery"], sent)
         got = {name: "dropped" for name in c["held"]["shards"]}
         for name, x in h.shards.items():
-            got[name] = ("stopped" if x.stopped else "suspended" if x.suspended else
-                         "replaced" if x.sent_at == sent and x.shard.digest == "new" else
-                         "renewed" if x.sent_at == sent else "kept")
+            fresh, carried, new = x.high_at == sent, x.high_at == before, x.shard.digest == "new"
+            if x.stopped or x.suspended:
+                got[name] = "stopped" if x.stopped else "suspended"
+            elif x.sent_at != sent:
+                got[name] = "kept" if carried else "kept with its high-risk validity changed"
+            elif new:
+                got[name] = ("replaced" if fresh else "replaced_read" if carried else
+                             "adopted_read" if x.high_at is None else "replaced with another high-risk validity")
+            else:
+                got[name] = ("renewed" if fresh else "renewed_read" if carried else
+                             "renewed with no high-risk validity")
         assert accepted == (c["expect"]["answer"] == "accepted"), c["id"]
         assert got == c["expect"]["shards"], c["id"]
         assert h.instance == (c["expect"]["instance"] or ""), c["id"]
+
+
+async def test_grpc_source_carries_read_only():  # P8.11: the contract's ShardAnswer.read_only reaches the holder
+    from be.authz.v3 import authz_pb2
+
+    from besdk.authz import GRPCSource
+
+    class Stub:
+        async def Verify(self, req, metadata=None):  # noqa: N802 (the gRPC method name)
+            return authz_pb2.VerifyResponse(
+                nonce=req.nonce, instance="authz-inst-a",
+                recovery_generation=authz_pb2.RevisionRef(domain="authz.recovery", value="1"),
+                shards=[authz_pb2.ShardAnswer(shard="s1", status=authz_pb2.SHARD_STATUS_UNCHANGED, read_only=True),
+                        authz_pb2.ShardAnswer(shard="s2", status=authz_pb2.SHARD_STATUS_UNCHANGED)])
+
+    src = GRPCSource.__new__(GRPCSource)
+    src._stub = Stub()
+    a = await src.verify({"component": "demo/orders", "nonce": "n1", "held": []})
+    assert [s["read_only"] for s in a["shards"]] == [True, False]

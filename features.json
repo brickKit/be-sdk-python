@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.55",
+  "protocol": "3.0.0-alpha.56",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -301,7 +301,10 @@
         "test_authz::test_a_verification_that_times_out_is_not_a_stall",
         "test_authz::test_check_moves_the_cutoff_to_the_evidence",
         "test_security::test_without_a_view_protected_routes_answer_a_retryable_503",
-        "test_authz::test_view_accept_vectors"
+        "test_authz::test_view_accept_vectors",
+        "test_authz::test_read_only_renewal_leaves_the_high_risk_validity",
+        "test_authz::test_a_read_only_first_view_is_not_valid_for_high_risk",
+        "test_authz::test_grpc_source_carries_read_only"
       ]
     },
     "authz-evaluation": {

@@ -1,10 +1,10 @@
 {
   "topic": "view-accept",
-  "protocol": "3.0.0-alpha.55",
+  "protocol": "3.0.0-alpha.56",
   "rules": [
     "P8.11"
   ],
-  "description": "组件收到核验回答之后怎样处理（随机数已核对；安全 03 的接受表）。held 是组件持有的：恢复代次（null 表示进程启动后还没有视图）、已记下的成员实例、各分片的安全修订，以及是否停用（stopped）或暂停（suspended）。answer 是回答的恢复代次、作答的成员实例（instance）与各分片（status：unchanged、changed、closed；changed 带新视图的 security_revisions，每个 RevisionRef 带 instance 与 epoch）。纪元写作“部署恢复代次.时间线”，按两个整数的字典序比较。expect.answer：accepted 或 rollback（整个回答不采用，停用全部视图并告警）；expect.instance：之后记下的成员实例；expect.shards：每个分片的结果——renewed（续期）、replaced（换成新视图并续期）、kept（不续期，到期自然失效）、suspended（整个回答判为回退时，持有的分片暂停使用、修订留作比较；下一个被采用的回答续期或换掉它即恢复）、stopped（判为回退，停用并告警；只在更高的恢复代次之后解除）、dropped（恢复代次更高，旧分片作废）。判断的先后：恢复代次更低、作答的成员实例与记下的不同、或新视图的修订带着别的实例 → rollback；恢复代次更高 → 旧分片全部作废、不比较修订；同一恢复代次 → 逐分片、逐依赖域比较：纪元更早、或同一纪元数值更低 → stopped。",
+  "description": "组件收到核验回答之后怎样处理（随机数已核对；安全 03 的接受表）。held 是组件持有的：恢复代次（null 表示进程启动后还没有视图）、已记下的成员实例、各分片的安全修订，以及是否停用（stopped）或暂停（suspended）。answer 是回答的恢复代次、作答的成员实例（instance）与各分片（status：unchanged、changed、closed；changed 带新视图的 security_revisions，每个 RevisionRef 带 instance 与 epoch；read_only 为真表示只为普通读取续发）。纪元写作“部署恢复代次.时间线”，按两个整数的字典序比较。expect.answer：accepted 或 rollback（整个回答不采用，停用全部视图并告警）；expect.instance：之后记下的成员实例；expect.shards：每个分片的结果——renewed（续期）、replaced（换成新视图并续期）、renewed_read（只续普通读取，高风险的有效期不动）、replaced_read（换成新视图、只续普通读取，高风险的有效期沿用旧分片的）、adopted_read（没有旧分片可沿用：新视图只对普通读取有效，直到一次不带read_only 的续期）、kept（不续期，到期自然失效）、suspended（整个回答判为回退时，持有的分片暂停使用、修订留作比较；下一个被采用的回答续期或换掉它即恢复）、stopped（判为回退，停用并告警；只在更高的恢复代次之后解除）、dropped（恢复代次更高，旧分片作废）。判断的先后：恢复代次更低、作答的成员实例与记下的不同、或新视图的修订带着别的实例 → rollback；恢复代次更高 → 旧分片全部作废、不比较修订；同一恢复代次 → 逐分片、逐依赖域比较：纪元更早、或同一纪元数值更低 → stopped。",
   "fields": {
     "held": "组件持有的状态",
     "answer": "核验回答（摘要与视图内容从略）",
@@ -1226,6 +1226,356 @@
         "instance": "authz-inst-a",
         "shards": {
           "s1": "replaced"
+        }
+      }
+    },
+    {
+      "id": "read-only-unchanged",
+      "note": "未变、只为普通读取续发：普通读取续期，高风险的有效期不动",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged",
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed_read"
+        }
+      }
+    },
+    {
+      "id": "read-only-changed",
+      "note": "换成新视图、只为普通读取续发：新视图沿用旧分片的高风险有效期",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "11",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            },
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "replaced_read"
+        }
+      }
+    },
+    {
+      "id": "read-only-start",
+      "note": "进程启动后第一个回答只为普通读取续发：新分片对高风险操作无效",
+      "held": {
+        "recovery": null,
+        "instance": null,
+        "shards": {}
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "10",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            },
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "adopted_read"
+        }
+      }
+    },
+    {
+      "id": "read-only-recovery-higher",
+      "note": "恢复代次更高、只为普通读取续发：旧分片作废，新分片对高风险操作无效",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 2,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "2.1",
+                  "value": "1",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            },
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "adopted_read"
+        }
+      }
+    },
+    {
+      "id": "read-only-lower-value",
+      "note": "只为普通读取续发也比较修订：更低判为回退、停用",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "changed",
+            "view": {
+              "security_revisions": [
+                {
+                  "domain": "authz.security.legal_entity",
+                  "epoch": "1.1",
+                  "value": "9",
+                  "instance": "authz-inst-a"
+                }
+              ]
+            },
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "read-only-suspended",
+      "note": "暂停的分片被只为普通读取续期：恢复使用，高风险的有效期不动",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "suspended": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged",
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed_read"
+        }
+      }
+    },
+    {
+      "id": "read-only-stopped",
+      "note": "停用的分片答未变、只为普通读取续发：仍停用",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ],
+            "stopped": true
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged",
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "stopped"
+        }
+      }
+    },
+    {
+      "id": "read-only-mixed",
+      "note": "一个分片完整续期、另一个只为普通读取续期：分别处理",
+      "held": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": {
+            "revisions": [
+              {
+                "domain": "authz.security.legal_entity",
+                "epoch": "1.1",
+                "value": "10",
+                "instance": "authz-inst-a"
+              }
+            ]
+          },
+          "s2": {
+            "revisions": [
+              {
+                "domain": "authz.security.org",
+                "epoch": "1.1",
+                "value": "3",
+                "instance": "authz-inst-a"
+              }
+            ]
+          }
+        }
+      },
+      "answer": {
+        "recovery": 1,
+        "instance": "authz-inst-a",
+        "shards": [
+          {
+            "shard": "s1",
+            "status": "unchanged"
+          },
+          {
+            "shard": "s2",
+            "status": "unchanged",
+            "read_only": true
+          }
+        ]
+      },
+      "expect": {
+        "answer": "accepted",
+        "instance": "authz-inst-a",
+        "shards": {
+          "s1": "renewed",
+          "s2": "renewed_read"
         }
       }
     }
