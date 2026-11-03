@@ -1,0 +1,104 @@
+{
+  "topic": "watermark-pull-outcome",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.22",
+    "P9.28"
+  ],
+  "description": "消费者对一个分区的补取响应怎样处理（装配项目协议 02“补取的时序与失败分支”与第 6 步的绊线），响应来自已采用的实现实例与纪元（别的纪元先按 watermark-epoch）：consumer.requested 是这次请求带的位置（null：只要回声），contiguous 是此刻已记录的连续位置（响应在路上时流可能已经推过回声，所以不拿它比较）；response 是回声的位置、需要完整快照的原因，或 unreachable（来源不可达、响应丢失）；expect：apply_to_echo（按位置应用到回声，水位 = m_p）、realign（完整重新取回，不告警）、stall（来源转 stalled、告警、完整重新取回，水位等采用更大的纪元）、hold（水位不动）。",
+  "fields": {
+    "consumer": "这次请求带的位置与此刻的连续位置",
+    "response": "补取响应",
+    "expect": "处理"
+  },
+  "cases": [
+    {
+      "id": "the-check-passed",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "echo_seq": 45
+      },
+      "expect": "apply_to_echo"
+    },
+    {
+      "id": "nothing-new-but-the-echo",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "echo_seq": 41
+      },
+      "expect": "apply_to_echo"
+    },
+    {
+      "id": "echo-only-after-alignment",
+      "consumer": {
+        "requested": null,
+        "contiguous": null
+      },
+      "response": {
+        "echo_seq": 12
+      },
+      "expect": "apply_to_echo"
+    },
+    {
+      "id": "the-stream-moved-past-the-echo-meanwhile",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 47
+      },
+      "response": {
+        "echo_seq": 45
+      },
+      "expect": "apply_to_echo"
+    },
+    {
+      "id": "beyond-the-retention",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "need_snapshot": "beyond_retention"
+      },
+      "expect": "realign"
+    },
+    {
+      "id": "the-row-was-replaced",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "need_snapshot": "rollback_detected"
+      },
+      "expect": "stall"
+    },
+    {
+      "id": "the-echo-below-the-contiguous-position",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "echo_seq": 30
+      },
+      "expect": "stall"
+    },
+    {
+      "id": "the-source-unreachable",
+      "consumer": {
+        "requested": 40,
+        "contiguous": 40
+      },
+      "response": {
+        "unreachable": true
+      },
+      "expect": "hold"
+    }
+  ]
+}

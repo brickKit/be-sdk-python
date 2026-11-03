@@ -1,0 +1,482 @@
+{
+  "topic": "edge-flow",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P11.1",
+    "P11.2",
+    "P11.3",
+    "P11.4",
+    "P11.7"
+  ],
+  "description": "边缘对一个浏览器请求的处理。method、cookie（是否带会话 Cookie）、headers（只列 BE-Request 与 BE-Polling）、body_bytes、cache（这个会话的令牌在缓存里：hit，或 miss）；exchange 是边缘依次调 Exchange 得到的回答（ok、ended 即 SESSION_ENDED、unavailable 即不可达或可重试的错误），answers 是组件依次的回答（状态码、TOKEN_STALE 或 timeout）。expect：browser 是浏览器得到的（组件的回答原样，或边缘自己答的原因），forwarded 是组件收到几次，exchanges 是换取几次，renew_idle 是换取时的取值（没有换取为 null）。B_replay = 1 MiB。",
+  "fields": {
+    "method、cookie、headers、body_bytes、cache": "请求与缓存",
+    "exchange": "Exchange 的回答序列",
+    "answers": "组件的回答序列",
+    "expect": "browser、forwarded、exchanges、renew_idle"
+  },
+  "cases": [
+    {
+      "id": "hit",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "miss-exchanges",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "miss",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "miss-polling-does-not-renew",
+      "method": "GET",
+      "cookie": true,
+      "headers": {
+        "BE-Polling": "1"
+      },
+      "body_bytes": 0,
+      "cache": "miss",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 1,
+        "renew_idle": false,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "miss-session-ended",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "miss",
+      "exchange": [
+        "ended"
+      ],
+      "answers": [],
+      "expect": {
+        "forwarded": 0,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "SESSION_ENDED"
+      }
+    },
+    {
+      "id": "miss-identity-unavailable",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "miss",
+      "exchange": [
+        "unavailable"
+      ],
+      "answers": [],
+      "expect": {
+        "forwarded": 0,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "DEPENDENCY_UNAVAILABLE"
+      }
+    },
+    {
+      "id": "no-cookie-post-is-forwarded",
+      "method": "POST",
+      "cookie": false,
+      "headers": {},
+      "body_bytes": 300,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "post-without-header",
+      "method": "POST",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 300,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [],
+      "expect": {
+        "forwarded": 0,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "CSRF_HEADER_REQUIRED"
+      }
+    },
+    {
+      "id": "delete-without-header",
+      "method": "DELETE",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [],
+      "expect": {
+        "forwarded": 0,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "CSRF_HEADER_REQUIRED"
+      }
+    },
+    {
+      "id": "get-without-header",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "post-with-header",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 300,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "201"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "201"
+      }
+    },
+    {
+      "id": "patch-with-header",
+      "method": "PATCH",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 300,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "200"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "stale-then-success",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1000,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "201"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "201"
+      }
+    },
+    {
+      "id": "stale-twice",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1000,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "TOKEN_STALE"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "SESSION_ENDED"
+      }
+    },
+    {
+      "id": "stale-then-403",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1000,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "403"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "403"
+      }
+    },
+    {
+      "id": "stale-then-409",
+      "method": "PUT",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1000,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "409"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "409"
+      }
+    },
+    {
+      "id": "stale-then-500",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "500"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "500"
+      }
+    },
+    {
+      "id": "stale-session-ended",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [
+        "ended"
+      ],
+      "answers": [
+        "TOKEN_STALE"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "SESSION_ENDED"
+      }
+    },
+    {
+      "id": "stale-identity-unavailable",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [
+        "unavailable"
+      ],
+      "answers": [
+        "TOKEN_STALE"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "DEPENDENCY_UNAVAILABLE"
+      }
+    },
+    {
+      "id": "stale-body-at-the-limit",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1048576,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "201"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "201"
+      }
+    },
+    {
+      "id": "stale-body-over-the-limit",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 1048577,
+      "cache": "hit",
+      "exchange": [
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 1,
+        "renew_idle": true,
+        "browser": "AUTHORIZATION_UNPROVABLE"
+      }
+    },
+    {
+      "id": "miss-then-stale",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "miss",
+      "exchange": [
+        "ok",
+        "ok"
+      ],
+      "answers": [
+        "TOKEN_STALE",
+        "200"
+      ],
+      "expect": {
+        "forwarded": 2,
+        "exchanges": 2,
+        "renew_idle": true,
+        "browser": "200"
+      }
+    },
+    {
+      "id": "500-is-not-retried",
+      "method": "GET",
+      "cookie": true,
+      "headers": {},
+      "body_bytes": 0,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "500"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "500"
+      }
+    },
+    {
+      "id": "timeout-is-not-retried",
+      "method": "POST",
+      "cookie": true,
+      "headers": {
+        "BE-Request": "1"
+      },
+      "body_bytes": 10,
+      "cache": "hit",
+      "exchange": [],
+      "answers": [
+        "timeout"
+      ],
+      "expect": {
+        "forwarded": 1,
+        "exchanges": 0,
+        "renew_idle": null,
+        "browser": "timeout"
+      }
+    }
+  ]
+}

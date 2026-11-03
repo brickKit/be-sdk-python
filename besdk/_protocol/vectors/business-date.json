@@ -1,6 +1,6 @@
 {
   "topic": "business-date",
-  "protocol": "3.0.0-alpha.45",
+  "protocol": "3.0.0-alpha.55",
   "rules": [
     "P5.29"
   ],

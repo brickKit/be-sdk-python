@@ -133,7 +133,8 @@ def sign(key, claims, kid="k1"):
     return jwt.encode(claims, key, algorithm="EdDSA", headers={"typ": "at+jwt", "kid": kid})
 
 
-CLAIMS = {"iss": "https://iam/", "aud": "be:deployment:d", "sub": "0190f3a1-0000-7000-8000-0000000000a1"}
+CLAIMS = {"iss": "https://iam/", "aud": "be:deployment:d", "sub": "0190f3a1-0000-7000-8000-0000000000a1",
+          "be_sv": 1}  # be_sv: P8.1 since protocol alpha.53
 
 
 async def test_keys_this_code_does_not_understand_are_skipped(issuer):  # P8.2, RFC 7517 section 5

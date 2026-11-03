@@ -1,0 +1,574 @@
+{
+  "topic": "watermark-pull-check",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.15"
+  ],
+  "description": "水位来源核对消费者连续位置上的行（装配项目协议 02 第 1 步）：source 是来源这个分区当前的实现实例、纪元、计数与仍在的发件行（rows 按序号，值是行身份：回声的随机数，或记录身份、版本与行摘要）；request 是消费者带来的位置与行身份（没有位置是“只要回声”）；expect 是 ok（通过）、echo_only（不核对，只写回声）、beyond_retention 或 rollback_detected（需要完整快照与原因）。",
+  "fields": {
+    "source": "来源这个分区",
+    "request": "消费者的位置与行身份",
+    "expect": "核对的结果"
+  },
+  "cases": [
+    {
+      "id": "echo-only",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {},
+      "expect": "echo_only"
+    },
+    {
+      "id": "the-row-matches",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 3,
+            "digest": "d-r1-3"
+          }
+        }
+      },
+      "expect": "ok"
+    },
+    {
+      "id": "an-echo-matches",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 8
+        },
+        "row": {
+          "echo_nonce": "n8"
+        }
+      },
+      "expect": "ok"
+    },
+    {
+      "id": "at-the-counter",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 9
+        },
+        "row": {
+          "record": {
+            "record_id": "r2",
+            "version": 1,
+            "digest": "d-r2-1"
+          }
+        }
+      },
+      "expect": "ok"
+    },
+    {
+      "id": "another-version-at-the-position",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 4,
+            "digest": "d-r1-4"
+          }
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "same-version-another-digest",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 3,
+            "digest": "other"
+          }
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "another-record",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "rX",
+            "version": 3,
+            "digest": "d-r1-3"
+          }
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "another-echo",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 8
+        },
+        "row": {
+          "echo_nonce": "n-other"
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "an-echo-where-a-record-is",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "echo_nonce": "n8"
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "past-the-counter",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 12
+        },
+        "row": {
+          "echo_nonce": "n12"
+        }
+      },
+      "expect": "rollback_detected"
+    },
+    {
+      "id": "purged-by-the-retention",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.1",
+          "seq": 3
+        },
+        "row": {
+          "record": {
+            "record_id": "r0",
+            "version": 1,
+            "digest": "d-r0-1"
+          }
+        }
+      },
+      "expect": "beyond_retention"
+    },
+    {
+      "id": "another-epoch",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "1.0",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 3,
+            "digest": "d-r1-3"
+          }
+        }
+      },
+      "expect": "echo_only"
+    },
+    {
+      "id": "a-larger-epoch-than-the-source",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i1",
+          "epoch": "2.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 3,
+            "digest": "d-r1-3"
+          }
+        }
+      },
+      "expect": "echo_only"
+    },
+    {
+      "id": "another-implementation-instance",
+      "source": {
+        "impl": "i1",
+        "epoch": "1.1",
+        "counter": 9,
+        "rows": {
+          "7": {
+            "record": {
+              "record_id": "r1",
+              "version": 3,
+              "digest": "d-r1-3"
+            }
+          },
+          "8": {
+            "echo_nonce": "n8"
+          },
+          "9": {
+            "record": {
+              "record_id": "r2",
+              "version": 1,
+              "digest": "d-r2-1"
+            }
+          }
+        }
+      },
+      "request": {
+        "position": {
+          "impl": "i0",
+          "epoch": "1.1",
+          "seq": 7
+        },
+        "row": {
+          "record": {
+            "record_id": "r1",
+            "version": 3,
+            "digest": "d-r1-3"
+          }
+        }
+      },
+      "expect": "echo_only"
+    }
+  ]
+}

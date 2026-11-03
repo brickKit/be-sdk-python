@@ -40,10 +40,18 @@ class UserGuard:
         if op is None:
             raise errs.from_exception(ValueError(f"route operation {route.operation} is not declared"))  # type: ignore[misc]
         g = self.holder.lookup(op.resource_type, user.subject, op.risk_class)
+        if stale(user.security_version, g.security_version):
+            raise errs.new("TOKEN_STALE", "the credential predates the account's last security change")
         now = self.now()
         cutoff = min(self.boot() + (user.expiry - now), g.cutoff)
         subject = Subject(user.subject, self.defs, self.holder, datetime.fromtimestamp(now, timezone.utc))
         return _bound(user, subject, cutoff)
+
+
+def stale(token_sv: int, view_sv: int) -> bool:
+    """Whether a token issued at the account's security version token_sv is out of date against the version the
+    authorization view holds for the subject (P8.25; 0 when the view has none)."""
+    return view_sv > token_sv
 
 
 @contextlib.contextmanager

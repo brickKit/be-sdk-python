@@ -36,6 +36,7 @@ class User:
 
     subject: str  # the platform principal
     expiry: float  # the credential's own end (UNIX seconds): part of the request's cutoff
+    security_version: int = 1  # be_sv: the account's security version when issued (P8.27), compared at admission
 
 
 class TokenError(Exception):
@@ -201,7 +202,10 @@ class Verifier:
         sub = claims.get("sub")
         if not isinstance(sub, str) or not _PRINCIPAL.fullmatch(sub):
             raise TokenError("sub")
-        return User(sub, float(claims["exp"]))
+        sv = claims.get("be_sv")
+        if isinstance(sv, bool) or not isinstance(sv, (int, float)) or sv < 1 or sv != int(sv) or sv > 2 ** 53:
+            raise TokenError("sv")
+        return User(sub, float(claims["exp"]), int(sv))
 
     def _decode(self, token: str, jwk: jwt.PyJWK, alg: str) -> dict:
         """Signature, issuer and audience; the times are checked against the injectable clock below."""

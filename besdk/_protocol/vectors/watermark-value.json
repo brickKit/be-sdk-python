@@ -1,0 +1,318 @@
+{
+  "topic": "watermark-value",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.20",
+    "P9.23"
+  ],
+  "description": "一个来源的水位（装配项目协议 02 第 4、8 步）：partitions 是各分区的连续已应用位置与流上、补取里出现的回声（位置、这个消费者补取时记下的 m_p；recorded 表示它是这个消费者发起、补取记录仍在的：别人的回声、时钟回拨或纪元变化时删掉的补取都不是）；now 与 max_seen 是消费者主库的当前事务时间与观察到的最大值，consumer_epoch 与 recorded_epoch 是消费者库当前的纪元与记下的纪元；expect 是水位（m_p），null 为没有水位。",
+  "fields": {
+    "state": "消费者的状态",
+    "expect": "水位"
+  },
+  "cases": [
+    {
+      "id": "one-partition",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 900
+    },
+    {
+      "id": "the-minimum-over-partitions",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              }
+            ]
+          },
+          {
+            "contiguous": 7,
+            "echoes": [
+              {
+                "seq": 7,
+                "m_p": 880,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 880
+    },
+    {
+      "id": "the-last-own-echo-in-the-range",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 20,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              },
+              {
+                "seq": 18,
+                "m_p": 950,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 950
+    },
+    {
+      "id": "an-echo-past-a-gap-does-not-count",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 12,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              },
+              {
+                "seq": 15,
+                "m_p": 960,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 900
+    },
+    {
+      "id": "an-echo-past-a-redelivery-wait-does-not-count",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 14,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              },
+              {
+                "seq": 16,
+                "m_p": 970,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 900
+    },
+    {
+      "id": "another-consumers-echo-does-not-count",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 20,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              },
+              {
+                "seq": 18,
+                "m_p": 950,
+                "recorded": false
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 900
+    },
+    {
+      "id": "a-partition-without-an-own-echo",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              }
+            ]
+          },
+          {
+            "contiguous": 5,
+            "echoes": []
+          }
+        ]
+      },
+      "expect": null
+    },
+    {
+      "id": "only-other-consumers-echoes",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": false
+              }
+            ]
+          }
+        ]
+      },
+      "expect": null
+    },
+    {
+      "id": "the-clock-went-back",
+      "state": {
+        "now": 980,
+        "max_seen": 990,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": null
+    },
+    {
+      "id": "the-consumers-epoch-changed",
+      "state": {
+        "now": 1000,
+        "max_seen": 990,
+        "consumer_epoch": "2.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": null
+    },
+    {
+      "id": "after-a-clock-reset-the-old-pulls-are-gone",
+      "state": {
+        "now": 1000,
+        "max_seen": 995,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 10,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": false
+              }
+            ]
+          }
+        ]
+      },
+      "expect": null
+    },
+    {
+      "id": "after-a-clock-reset-a-new-pull",
+      "state": {
+        "now": 1000,
+        "max_seen": 995,
+        "consumer_epoch": "1.1",
+        "recorded_epoch": "1.1",
+        "partitions": [
+          {
+            "contiguous": 12,
+            "echoes": [
+              {
+                "seq": 10,
+                "m_p": 900,
+                "recorded": false
+              },
+              {
+                "seq": 12,
+                "m_p": 960,
+                "recorded": true
+              }
+            ]
+          }
+        ]
+      },
+      "expect": 960
+    }
+  ]
+}

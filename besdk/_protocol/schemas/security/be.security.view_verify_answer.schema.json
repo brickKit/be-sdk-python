@@ -345,6 +345,9 @@
         },
         "accounts_disabled": {
           "$ref": "#/$defs/Bool"
+        },
+        "security_version": {
+          "$ref": "#/$defs/Int"
         }
       },
       "additionalProperties": false,

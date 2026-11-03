@@ -1,0 +1,322 @@
+{
+  "topic": "watermark-epoch",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.26"
+  ],
+  "description": "消费者对一个响应声明的来源身份怎样处理（装配项目协议 02 第 10 步与接收规则的前几行；来源更换实现的登记随 member-switching）：adopted 是已采用的部署身份、实现实例、系统标识与纪元（<部署恢复代次>.<时间线>，按两段的数值比较；实现实例为 null 是第一次）；response 是响应的声明，primary 表示主库作答，purpose 是副本响应的用途；expect：establish（第一次：建立已采用的实现实例、系统标识与纪元，进入对齐）、use（照常使用）、adopt（采用：作废水位与连续位置，推进对齐代次，本次内容丢弃，进入对齐）、ignore（更小的纪元）、stall（来源转 stalled）、block（来源转 blocked）、discard（丢弃并告警）。",
+  "fields": {
+    "adopted": "已采用的来源身份",
+    "response": "响应的声明",
+    "expect": "处理"
+  },
+  "cases": [
+    {
+      "id": "the-adopted-epoch",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2",
+        "primary": true
+      },
+      "expect": "use"
+    },
+    {
+      "id": "a-failover-larger-timeline",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.3",
+        "primary": true
+      },
+      "expect": "adopt"
+    },
+    {
+      "id": "a-recovery-larger-generation",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "4.1",
+        "primary": true
+      },
+      "expect": "adopt"
+    },
+    {
+      "id": "a-major-upgrade-new-system-larger-generation",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s2",
+        "epoch": "4.1",
+        "primary": true
+      },
+      "expect": "adopt"
+    },
+    {
+      "id": "a-late-old-response",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.1",
+        "primary": true
+      },
+      "expect": "ignore"
+    },
+    {
+      "id": "an-older-generation",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "2.9",
+        "primary": true
+      },
+      "expect": "ignore"
+    },
+    {
+      "id": "a-restore-without-advancing-the-generation",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s2",
+        "epoch": "3.2",
+        "primary": true
+      },
+      "expect": "stall"
+    },
+    {
+      "id": "a-new-system-and-a-larger-timeline-only",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s2",
+        "epoch": "3.3",
+        "primary": true
+      },
+      "expect": "stall"
+    },
+    {
+      "id": "another-deployment",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d2",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "9.1",
+        "primary": true
+      },
+      "expect": "block"
+    },
+    {
+      "id": "an-unregistered-implementation-instance",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i9",
+        "system_id": "s1",
+        "epoch": "9.1",
+        "primary": true
+      },
+      "expect": "block"
+    },
+    {
+      "id": "a-replica-in-step",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2",
+        "primary": false
+      },
+      "expect": "use"
+    },
+    {
+      "id": "a-replica-behind-on-the-timeline",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.1",
+        "primary": false
+      },
+      "expect": "discard"
+    },
+    {
+      "id": "a-replica-of-another-system",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s2",
+        "epoch": "3.2",
+        "primary": false
+      },
+      "expect": "discard"
+    },
+    {
+      "id": "a-replica-answering-an-alignment-read",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2",
+        "primary": false,
+        "purpose": "align"
+      },
+      "expect": "discard"
+    },
+    {
+      "id": "a-replica-declaring-a-larger-epoch",
+      "adopted": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "3.2"
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i1",
+        "system_id": "s1",
+        "epoch": "4.1",
+        "primary": false
+      },
+      "expect": "discard"
+    },
+    {
+      "id": "first-contact",
+      "adopted": {
+        "deployment": "d1",
+        "impl": null,
+        "system_id": null,
+        "epoch": null
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i7",
+        "system_id": "s7",
+        "epoch": "5.1",
+        "primary": true
+      },
+      "expect": "establish"
+    },
+    {
+      "id": "first-contact-from-a-replica",
+      "adopted": {
+        "deployment": "d1",
+        "impl": null,
+        "system_id": null,
+        "epoch": null
+      },
+      "response": {
+        "deployment": "d1",
+        "impl": "i7",
+        "system_id": "s1",
+        "epoch": "3.2",
+        "primary": false
+      },
+      "expect": "discard"
+    },
+    {
+      "id": "first-contact-from-another-deployment",
+      "adopted": {
+        "deployment": "d1",
+        "impl": null,
+        "system_id": null,
+        "epoch": null
+      },
+      "response": {
+        "deployment": "d2",
+        "impl": "i7",
+        "system_id": "s1",
+        "epoch": "3.2",
+        "primary": true
+      },
+      "expect": "block"
+    }
+  ]
+}

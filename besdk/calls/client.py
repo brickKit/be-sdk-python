@@ -169,7 +169,15 @@ class HTTP:
                 return Result(err=remote, code=code, remote=remote)
             return Result(err=RuntimeError(f"{self.dep.id} answered {status}"), code=code)
 
-        await self.dep.do(idempotent or method in ("GET", "HEAD"), attempt)
+        try:
+            await self.dep.do(idempotent or method in ("GET", "HEAD"), attempt)
+        except errs.Error as e:
+            if forward_user and e.code == errs.Code.UNAUTHENTICATED:
+                # P8.26: only the entry component's own TOKEN_STALE makes the edge exchange and replay; a downstream
+                # refusing the user's credential is "cannot confirm now", never passed through as a 401
+                raise errs.new("AUTHORIZATION_UNPROVABLE", f"{self.dep.id} did not accept the user's credential")\
+                    .with_("dependency", self.dep.id) from e
+            raise
         if answer and answer[-1]:
             try:
                 return json.loads(answer[-1])

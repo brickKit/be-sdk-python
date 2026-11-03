@@ -1,0 +1,482 @@
+{
+  "topic": "watermark-source-state",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.26"
+  ],
+  "description": "一个来源的对齐状态怎样迁移（装配项目协议 02 的对齐状态表，去掉第 12 步的几行）：current 是状态（aligned、aligning、stalled、blocked）、confirmed（blocked 的“已确认”）、rollback（对齐的起因有回退）、stalled_gen 与 blocked_gen（进入时的部署恢复代次）、prior（进入 blocked 前的状态）；event 是 first_contact、adopt_epoch（采用更大的纪元）、beyond_retention、rollback（绊线，或主库的系统标识不同而代次不更大）、foreign（没有登记的实现实例或别的部署）、operator_confirms、primary_response（matches：属于已采用的实例与部署、系统标识相同或不同而代次更大；row_check：保存的连续位置上的行核对）、alignment_done、environment_copy，gen 是输入声明的部署恢复代次；expect 是之后的这些字段与动作。",
+  "fields": {
+    "current": "来源此刻的状态",
+    "event": "输入",
+    "expect": "之后的状态与动作"
+  },
+  "cases": [
+    {
+      "id": "first-contact",
+      "current": {
+        "state": "aligning"
+      },
+      "event": {
+        "kind": "first_contact",
+        "gen": 3
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "aligned-adopts-a-larger-epoch",
+      "current": {
+        "state": "aligned"
+      },
+      "event": {
+        "kind": "adopt_epoch",
+        "gen": 3
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "aligned-beyond-the-retention",
+      "current": {
+        "state": "aligned"
+      },
+      "event": {
+        "kind": "beyond_retention",
+        "gen": 3
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "aligning-done",
+      "current": {
+        "state": "aligning"
+      },
+      "event": {
+        "kind": "alignment_done",
+        "gen": 3
+      },
+      "expect": {
+        "state": "aligned",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "watermark_from_echoes"
+      }
+    },
+    {
+      "id": "aligned-the-tripwire",
+      "current": {
+        "state": "aligned"
+      },
+      "event": {
+        "kind": "rollback",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "stalled-a-failover-only",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "adopt_epoch",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "keep_refetching"
+      }
+    },
+    {
+      "id": "stalled-the-generation-advanced",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "adopt_epoch",
+        "gen": 4
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "stalled-beyond-the-retention",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "beyond_retention",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "keep_refetching"
+      }
+    },
+    {
+      "id": "stalled-refetch-done",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "alignment_done",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "keep_refetching"
+      }
+    },
+    {
+      "id": "aligning-after-a-rollback-done-generation-advanced",
+      "current": {
+        "state": "aligning",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "alignment_done",
+        "gen": 4
+      },
+      "expect": {
+        "state": "aligned",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "watermark_from_echoes"
+      }
+    },
+    {
+      "id": "aligning-after-a-rollback-done-not-advanced",
+      "current": {
+        "state": "aligning",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "alignment_done",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "alert"
+      }
+    },
+    {
+      "id": "aligned-a-foreign-response",
+      "current": {
+        "state": "aligned"
+      },
+      "event": {
+        "kind": "foreign",
+        "gen": 3
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "alert_and_hold"
+      }
+    },
+    {
+      "id": "stalled-a-foreign-response",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "foreign",
+        "gen": 3
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3,
+        "prior": "stalled",
+        "action": "alert_and_hold"
+      }
+    },
+    {
+      "id": "blocked-again",
+      "current": {
+        "state": "blocked",
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "foreign",
+        "gen": 3
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "alert"
+      }
+    },
+    {
+      "id": "blocked-any-other-input",
+      "current": {
+        "state": "blocked",
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": true,
+        "gen": 3
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "hold"
+      }
+    },
+    {
+      "id": "blocked-the-operator-confirms",
+      "current": {
+        "state": "blocked",
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "operator_confirms"
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": true,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "record_confirmation"
+      }
+    },
+    {
+      "id": "confirmed-a-matching-response",
+      "current": {
+        "state": "blocked",
+        "confirmed": true,
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": true,
+        "row_check": "passed",
+        "gen": 3
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "row_check_then_refetch"
+      }
+    },
+    {
+      "id": "confirmed-the-row-check-fails",
+      "current": {
+        "state": "blocked",
+        "confirmed": true,
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": true,
+        "row_check": "failed",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "confirmed-still-wrong",
+      "current": {
+        "state": "blocked",
+        "confirmed": true,
+        "prior": "aligned",
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": false,
+        "gen": 3
+      },
+      "expect": {
+        "state": "blocked",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": null,
+        "blocked_gen": 3,
+        "prior": "aligned",
+        "action": "alert"
+      }
+    },
+    {
+      "id": "confirmed-was-stalled-not-advanced",
+      "current": {
+        "state": "blocked",
+        "confirmed": true,
+        "prior": "stalled",
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": true,
+        "row_check": "passed",
+        "gen": 3
+      },
+      "expect": {
+        "state": "stalled",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3,
+        "prior": "stalled",
+        "action": "refetch"
+      }
+    },
+    {
+      "id": "confirmed-was-stalled-advanced-meanwhile",
+      "current": {
+        "state": "blocked",
+        "confirmed": true,
+        "prior": "stalled",
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3
+      },
+      "event": {
+        "kind": "primary_response",
+        "matches": true,
+        "row_check": "passed",
+        "gen": 4
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": true,
+        "stalled_gen": 3,
+        "blocked_gen": 3,
+        "prior": "stalled",
+        "action": "row_check_then_refetch"
+      }
+    },
+    {
+      "id": "an-environment-copy",
+      "current": {
+        "state": "stalled",
+        "rollback": true,
+        "stalled_gen": 3
+      },
+      "event": {
+        "kind": "environment_copy"
+      },
+      "expect": {
+        "state": "aligning",
+        "confirmed": false,
+        "rollback": false,
+        "stalled_gen": 3,
+        "blocked_gen": null,
+        "prior": null,
+        "action": "clear_and_refetch"
+      }
+    }
+  ]
+}

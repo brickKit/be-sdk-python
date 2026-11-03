@@ -54,6 +54,9 @@
         "compromised",
         "suspicious"
       ]
+    },
+    "security_version": {
+      "$ref": "#/$defs/Int"
     }
   },
   "additionalProperties": false,
@@ -65,7 +68,8 @@
     "id",
     "revision",
     "account",
-    "status"
+    "status",
+    "security_version"
   ],
   "$defs": {
     "ComponentId": {
@@ -75,6 +79,11 @@
     "Id": {
       "type": "string",
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Int": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
     },
     "Key": {
       "type": "string",

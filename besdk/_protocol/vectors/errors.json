@@ -1,6 +1,6 @@
 {
   "topic": "errors",
-  "protocol": "3.0.0-alpha.45",
+  "protocol": "3.0.0-alpha.55",
   "rules": [
     "P3.1",
     "P3.2",
@@ -86,6 +86,17 @@
       "type": "urn:be:be:TOKEN_STALE"
     },
     {
+      "id": "reason-session_ended",
+      "kind": "reason",
+      "reason": "SESSION_ENDED",
+      "domain": "be",
+      "grpc_code": "UNAUTHENTICATED",
+      "http": 401,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:SESSION_ENDED"
+    },
+    {
       "id": "reason-service_credential_invalid",
       "kind": "reason",
       "reason": "SERVICE_CREDENTIAL_INVALID",
@@ -117,6 +128,17 @@
       "retryable": "no",
       "log_level": "info",
       "type": "urn:be:be:CONTAINMENT_NOT_PROVEN"
+    },
+    {
+      "id": "reason-csrf_header_required",
+      "kind": "reason",
+      "reason": "CSRF_HEADER_REQUIRED",
+      "domain": "be",
+      "grpc_code": "PERMISSION_DENIED",
+      "http": 403,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:CSRF_HEADER_REQUIRED"
     },
     {
       "id": "reason-not_found",

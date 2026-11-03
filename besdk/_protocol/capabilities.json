@@ -1,6 +1,6 @@
 {
-  "protocol": "3.0.0-alpha.45",
-  "description": "能力清单：spec/ 中每条规则恰好属于一项能力（rules 为空的能力只留形状，规则随后续章节加入）。owner 为 sdk 的能力由每个 SDK 在自己仓库的 features.json 中标出状态；component 与 assembly 的能力由组件与装配检查负责。",
+  "protocol": "3.0.0-alpha.55",
+  "description": "能力清单：spec/ 中每条规则恰好属于一项能力（rules 为空的能力只留形状，规则随后续章节加入）。owner 为 sdk 的能力由每个 SDK 在自己仓库的 features.json 中标出状态；component 与 assembly 的能力由组件与装配检查负责；edge 的能力由 be-edge 的测试与一致性套件负责。",
   "capabilities": [
     {
       "id": "lifecycle",
@@ -306,7 +306,8 @@
         "P7.19",
         "P7.20",
         "P7.21",
-        "P7.22"
+        "P7.22",
+        "P7.23"
       ]
     },
     {
@@ -343,6 +344,41 @@
       "rules": [
         "P8.5",
         "P8.6"
+      ]
+    },
+    {
+      "id": "token-staleness",
+      "title": "令牌陈旧：准入比较安全状态版本，下游的 401 不原样返回",
+      "owner": "sdk",
+      "rules": [
+        "P8.25",
+        "P8.26"
+      ]
+    },
+    {
+      "id": "identity-sessions",
+      "title": "身份成员的安全状态版本与会话的标准系统方法",
+      "owner": "component",
+      "rules": [
+        "P8.27",
+        "P8.28"
+      ]
+    },
+    {
+      "id": "edge-session",
+      "title": "边缘的会话层：按会话缓存令牌、令牌陈旧时重放一次、自定义请求头",
+      "owner": "edge",
+      "rules": [
+        "P11.1",
+        "P11.2",
+        "P11.3",
+        "P11.4",
+        "P11.5",
+        "P11.6",
+        "P11.7",
+        "P11.8",
+        "P11.9",
+        "P11.10"
       ]
     },
     {
@@ -446,7 +482,25 @@
       "id": "projection-watermarks",
       "title": "水位来源的回声、补取与连续位置",
       "owner": "sdk",
-      "rules": []
+      "rules": [
+        "P9.13",
+        "P9.14",
+        "P9.15",
+        "P9.16",
+        "P9.17",
+        "P9.18",
+        "P9.19",
+        "P9.20",
+        "P9.21",
+        "P9.22",
+        "P9.23",
+        "P9.24",
+        "P9.25",
+        "P9.26",
+        "P9.27",
+        "P9.28",
+        "P9.29"
+      ]
     },
     {
       "id": "projection-shadow",

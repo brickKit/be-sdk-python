@@ -1,6 +1,6 @@
 {
   "topic": "security-records",
-  "protocol": "3.0.0-alpha.45",
+  "protocol": "3.0.0-alpha.55",
   "rules": [
     "P8.8",
     "P8.11",
@@ -80,14 +80,15 @@
                 }
               }
             ],
-            "accounts_disabled": false
+            "accounts_disabled": false,
+            "security_version": 4
           }
         },
         "capabilities": []
       },
       "valid": true,
-      "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
-      "digest": "sha256:7e95aec3aa7232a587cdd0fb96fb2793f2e88dd5bab4d83e888fdd2632ea100d"
+      "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"security_version\":4,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
+      "digest": "sha256:37fbd17dd96fa5e6fcdc4fa5c7f8fdc778fc9b91b71707f061332fc0066301f2"
     },
     {
       "id": "resource-definition",
@@ -295,11 +296,12 @@
           "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
         },
         "status": "disabled",
-        "security_mark": "compromised"
+        "security_mark": "compromised",
+        "security_version": 4
       },
       "valid": true,
-      "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"status\":\"disabled\"}",
-      "digest": "sha256:6685c8d646928ec8ffa1b9e5d76dac065e455f6661e79e6a7bd46e95d668b4e0"
+      "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"security_version\":4,\"status\":\"disabled\"}",
+      "digest": "sha256:5ec6e2a6ab15bd9c7674a4b8739257d1e30b3086887793de1546411da937bc19"
     },
     {
       "id": "definition-set",
@@ -379,7 +381,8 @@
                 }
               }
             ],
-            "accounts_disabled": false
+            "accounts_disabled": false,
+            "security_version": 4
           }
         },
         "capabilities": []
@@ -453,7 +456,8 @@
                 }
               }
             ],
-            "accounts_disabled": false
+            "accounts_disabled": false,
+            "security_version": 4
           }
         },
         "capabilities": [],
@@ -528,7 +532,8 @@
                 }
               }
             ],
-            "accounts_disabled": false
+            "accounts_disabled": false,
+            "security_version": 4
           }
         },
         "capabilities": [],
@@ -887,10 +892,37 @@
           "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
         },
         "status": "locked",
-        "security_mark": "compromised"
+        "security_mark": "compromised",
+        "security_version": 4
       },
       "valid": false,
       "why": "未知的账号状态"
+    },
+    {
+      "id": "account-status-without-version",
+      "record_type": "be.security.account_status",
+      "record": {
+        "record_type": "be.security.account_status",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/iam-casdoor",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "revision": {
+          "domain": "infra.iam.account_status",
+          "value": "3",
+          "epoch": "1.1",
+          "instance": "iam-inst-a"
+        },
+        "account": {
+          "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+          "kind": "user",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
+        },
+        "status": "disabled",
+        "security_mark": "compromised"
+      },
+      "valid": false,
+      "why": "缺安全状态版本"
     },
     {
       "id": "definition-set-not-digest",

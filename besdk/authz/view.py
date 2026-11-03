@@ -27,14 +27,15 @@ class Shard:
 
     shard: str
     applicability: list[str]
-    subjects: dict[str, tuple[list[Segment], bool]]  # principal -> (segments, accounts disabled)
+    # principal -> (segments, accounts disabled, security version: 0 when the view has none, P8.25)
+    subjects: dict[str, tuple[list[Segment], bool, int]]
     digest: str
     security_revisions: list[dict] = field(default_factory=list)  # RevisionRef: domain, value, epoch, instance
 
     @staticmethod
     def from_dict(d: dict) -> Shard:
-        subjects = {p: ([Segment.from_dict(s) for s in e.get("segments") or []], bool(e.get("accounts_disabled")))
-                    for p, e in (d.get("subjects") or {}).items()}
+        subjects = {p: ([Segment.from_dict(s) for s in e.get("segments") or []], bool(e.get("accounts_disabled")),
+                        int(e.get("security_version") or 0)) for p, e in (d.get("subjects") or {}).items()}
         return Shard(d["shard"], list(d.get("applicability") or []), subjects, d.get("digest", ""),
                      list(d.get("security_revisions") or []))
 
@@ -124,6 +125,7 @@ class Grant:
 
     segments: list[Segment]
     cutoff: float  # the suspend-aware reading after which the evidence is no longer valid
+    security_version: int = 0  # the subject's in the shard used (0 when absent): P8.25
 
 
 @dataclass
@@ -236,9 +238,9 @@ class Holder:
         for h in self.shards.values():
             if h.stopped or h.suspended or resource_type not in h.shard.applicability or now >= h.sent_at + valid:
                 continue
-            segs, disabled = h.shard.subjects.get(principal, ([], False))
+            segs, disabled, version = h.shard.subjects.get(principal, ([], False, 0))
             mine = [] if disabled else [s for s in segs if not s.resource_type or s.resource_type == resource_type]
-            return Grant(mine, h.sent_at + valid)
+            return Grant(mine, h.sent_at + valid, version)
         raise errs.new("AUTHORIZATION_VIEW_EXPIRED", "no valid authorization view").with_("resource_type", resource_type)
 
 

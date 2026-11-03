@@ -1,0 +1,331 @@
+{
+  "topic": "watermark-judge",
+  "protocol": "3.0.0-alpha.55",
+  "rules": [
+    "P9.24"
+  ],
+  "description": "能否依据本地投影做安全或资格判断（装配项目协议 02 第 9 步的判断表，按行序第一条命中）：watermark_source 是来源是否声明为水位来源，source_state 与 projection_state 是来源的对齐状态与投影级状态（serving、aligning、untrusted），quarantined 是所问的主体与读到的行的主体有没有被隔离，watermark、now、freshness 是水位、消费者主库的当前事务时间与声明的新鲜度（秒），row 是读到的行（null 为没有；adopted 表示属于已采用的实现实例与纪元）；expect：usable、provably_absent、unprovable，或 query_the_source（不用投影，同步查询来源）。",
+  "fields": {
+    "query": "判断的输入",
+    "expect": "结果"
+  },
+  "cases": [
+    {
+      "id": "not-a-watermark-source",
+      "query": {
+        "watermark_source": false,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "query_the_source"
+    },
+    {
+      "id": "fresh-and-complete",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "usable"
+    },
+    {
+      "id": "exactly-at-the-freshness",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 940,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "usable"
+    },
+    {
+      "id": "expired",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 939,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "no-watermark",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": null,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "the-source-aligning",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligning",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "the-source-stalled",
+      "query": {
+        "watermark_source": true,
+        "source_state": "stalled",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "the-source-blocked",
+      "query": {
+        "watermark_source": true,
+        "source_state": "blocked",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-new-projection-aligning",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "aligning",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "an-untrusted-projection",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "untrusted",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-quarantined-subject",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": true,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "no-such-row",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": null
+      },
+      "expect": "provably_absent"
+    },
+    {
+      "id": "a-tombstone",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "tombstone",
+          "adopted": true
+        }
+      },
+      "expect": "provably_absent"
+    },
+    {
+      "id": "an-incomplete-row",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "incomplete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-row-of-an-older-epoch",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": false
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-tombstone-of-an-older-epoch",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "tombstone",
+          "adopted": false
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "expired-and-no-row",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 900,
+        "now": 1000,
+        "freshness": 60,
+        "row": null
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-source-state-outside-the-table",
+      "query": {
+        "watermark_source": true,
+        "source_state": "unknown",
+        "projection_state": "serving",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    },
+    {
+      "id": "a-projection-state-outside-the-table",
+      "query": {
+        "watermark_source": true,
+        "source_state": "aligned",
+        "projection_state": "unknown",
+        "quarantined": false,
+        "watermark": 950,
+        "now": 1000,
+        "freshness": 60,
+        "row": {
+          "state": "complete",
+          "adopted": true
+        }
+      },
+      "expect": "unprovable"
+    }
+  ]
+}
