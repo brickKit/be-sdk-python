@@ -46,6 +46,10 @@ class World:
     def __init__(self, directory: pathlib.Path, deployment: str = DEPLOYMENT):
         self.deployment, self.dir, self.issuer = deployment, directory, "https://iam.test/"
         self.signer = ed25519.Ed25519PrivateKey.generate()
+        self.kid = "test-1"
+        self.keys: dict[str, ed25519.Ed25519PrivateKey] = {self.kid: self.signer}  # published in the JWKS
+        self.jwks_fetches = 0  # how often a component fetched the JWKS (CK-ID-01)
+        self.versions: dict[str, int] = {}  # the accounts' security versions (P8.27); a principal not here is at 1
         self.subjects: dict[str, dict] = {}
         self.types: set[str] = set()
         self.gen, self.recovery = 1, "1"
@@ -117,20 +121,42 @@ class World:
 
     # ------------------------------------------------------------------ tokens
 
-    def token(self, subject: str, ttl: int = 600) -> str:
+    def token(self, subject: str, ttl: int = 600, sv: int | None = None, kid: str | None = None) -> str:
+        """An access token at the account's security version (be_sv, P8.27) or sv, signed with the current key; kid
+        names another key ID in the header (one the JWKS does not publish, for CK-ID-01)."""
         now = int(time.time())
-        return jwt.encode({"iss": self.issuer, "aud": "be:deployment:" + self.deployment, "sub": subject, "iat": now,
-                           "exp": now + ttl}, self.signer, algorithm="EdDSA", headers={"typ": "at+jwt", "kid": "test-1"})
+        claims = {"iss": self.issuer, "aud": "be:deployment:" + self.deployment, "sub": subject, "iat": now,
+                  "exp": now + ttl, "be_sv": sv if sv is not None else max(self.versions.get(subject, 1), 1)}
+        return jwt.encode(claims, self.signer, algorithm="EdDSA", headers={"typ": "at+jwt", "kid": kid or self.kid})
+
+    def rotate(self) -> str:
+        """The issuer switches to a new signing key, published from now on next to the old ones; its kid."""
+        self._key_serial = getattr(self, "_key_serial", 1) + 1
+        self.kid = f"test-{self._key_serial}"
+        self.signer = ed25519.Ed25519PrivateKey.generate()
+        self.keys[self.kid] = self.signer
+        return self.kid
+
+    def security_change(self, principal: str) -> None:
+        """An identity-side security change of the account (a password change): its version goes up by one, the next
+        view carries it, and tokens issued before are stale (P8.25, P8.27). Only principals changed this way carry
+        security_version in the view, so components whose schema copy predates it are not sent the field."""
+        self.versions[principal] = max(self.versions.get(principal, 1), 1) + 1
+        self.subjects.setdefault(principal, {"segments": [], "accounts_disabled": False})
+        self.gen += 1
 
     def bearer(self, subject: str) -> str:
         return "Bearer " + self.token(subject)
 
     def _jwks(self) -> bytes:
-        x = self.signer.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
         import base64
 
-        return json.dumps({"keys": [{"kty": "OKP", "crv": "Ed25519", "kid": "test-1", "alg": "EdDSA", "use": "sig",
-                                     "x": base64.urlsafe_b64encode(x).rstrip(b"=").decode()}]}).encode()
+        keys = []
+        for kid, k in self.keys.items():
+            x = k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+            keys.append({"kty": "OKP", "crv": "Ed25519", "kid": kid, "alg": "EdDSA", "use": "sig",
+                         "x": base64.urlsafe_b64encode(x).rstrip(b"=").decode()})
+        return json.dumps({"keys": keys}).encode()
 
     # ------------------------------------------------------------------ grants
 
@@ -172,6 +198,8 @@ class World:
                                                     "digest": "sha256:" + "0" * 64}
                 segs.append(seg.canonical(seg.resource_type))
             subjects[p] = {"segments": canon.sorted_set(segs), "accounts_disabled": bool(e["accounts_disabled"])}
+            if p in self.versions:
+                subjects[p]["security_version"] = self.versions[p]
         rev = {"value": gen, "epoch": "1.1", "instance": INSTANCE}
         return records.seal("be.security.view", {
             "record_type": "be.security.view", "schema": "1.0", "deployment": self.deployment, "authority": "infra/authz",
@@ -183,14 +211,16 @@ class World:
     # ------------------------------------------------------------------ fake members
 
     async def start(self) -> World:
-        jwks = self._jwks()
+        world = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
+                world.jwks_fetches += 1
+                body = world._jwks()  # the keys as they are now: rotate() publishes a new one
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(jwks)
+                self.wfile.write(body)
 
             def log_message(self, *a) -> None:
                 pass
