@@ -39,7 +39,7 @@ class UserGuard:
         op = self.defs.operation(route.operation)
         if op is None:
             raise errs.from_exception(ValueError(f"route operation {route.operation} is not declared"))  # type: ignore[misc]
-        g = self.holder.lookup(op.resource_type, user.subject, op.risk_class)
+        g = self.holder.lookup_for(op.resource_type, user.subject, op.risk_class, op.tightening_only)  # P8.29
         if stale(user.security_version, g.security_version):
             raise errs.new("TOKEN_STALE", "the credential predates the account's last security change")
         now = self.now()

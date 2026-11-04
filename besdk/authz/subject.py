@@ -30,8 +30,10 @@ class Subject:
         risk = o.risk_class
         if (v := self.defs.operation(r.view_operation)) is not None and v.risk_class == "high":  # type: ignore[union-attr]
             risk = "high"
-        g = self.holder.lookup(r.type, self.principal, risk)  # type: ignore[union-attr]
+        _stale.set(None)
+        g = self.holder.lookup_for(r.type, self.principal, risk, o.tightening_only)  # type: ignore[union-attr]
         reqctx.tighten_cutoff(g.cutoff)
+        _stale.set(g.since if g.stale else None)
         return o, r, g  # type: ignore[return-value]
 
     def check(self, op: str, facts: dict[str, Fact]) -> Decision:
@@ -72,3 +74,16 @@ def subject_scope(s: Subject) -> Iterator[None]:
         yield
     finally:
         _subject.reset(token)
+
+
+# the basis of the request's last decision when it was a stale source's last view (P8.29): that shard's last full
+# renewal, wall seconds; None otherwise
+_stale: contextvars.ContextVar[float | None] = contextvars.ContextVar("be_stale_basis", default=None)
+
+
+def stale_basis() -> float | None:
+    """The last full renewal of the view the request's last decision used, when that was a tightening_only operation
+    admitted on the last view of a shard whose source the authorization member said is stale (P8.29); None when the
+    decision used a valid view. The doer marks its audit "basis not proven latest" and applies security 03's table
+    (one person within T_tight, two beyond)."""
+    return _stale.get()

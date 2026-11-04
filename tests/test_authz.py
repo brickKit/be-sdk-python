@@ -7,8 +7,11 @@ import pytest
 
 from besdk import errs, protocol, reqctx
 from besdk.authz import (AMOUNT, NULL, UNOBTAINED, Definitions, Dimension, Fact, Field, Holder, Operation, Resource,
-                         Segment, Subject, evaluate, mask)
+                         Segment, Subject, evaluate, mask, stale_basis)
 from besdk.authz.view import DRIFT, INTERVAL, T_STALL, W_HIGH, W_READ, Shard, _Held
+from besdk.guard import UserGuard
+from besdk.http import Route
+from besdk.identity import User
 from besdk.obs import Member, new_logger
 
 ALICE = "0190f3a1-0000-7000-8000-0000000000a1"
@@ -47,6 +50,9 @@ class OneShard:
         from besdk.authz.view import Grant
 
         return Grant(self.segs, 1e12)
+
+    def lookup_for(self, resource_type, principal, risk, tightening_only):
+        return self.lookup(resource_type, principal, risk)
 
 
 def test_segment_eval_vectors():
@@ -203,6 +209,100 @@ async def test_read_only_renewal_leaves_the_high_risk_validity():  # P8.11, secu
     src.read_only = False  # the source caught up: a full renewal opens high-risk operations again
     await h.verify()
     h.lookup("demo.order", ALICE, "high")
+
+
+async def test_tightening_only_outlives_a_stale_source():  # P8.29
+    h, src, clock = holder()
+    await h.verify()
+    full = clock[0]
+    with pytest.raises(errs.Error):
+        h.lookup_stale("demo.order", ALICE)  # fully renewed and fresh: the ordinary lookup decides, not this one
+
+    # the member says the source is stale (read_only), then closed; past both validities the last view still decides
+    src.status, src.read_only = "unchanged", True
+    clock[0] = full + 1
+    await h.verify()
+    src.status, src.read_only = "closed", False
+    clock[0] = full + W_READ + W_HIGH
+    await h.verify()
+    expired(h)
+    g = h.lookup_stale("demo.order", ALICE)
+    assert g.stale
+    assert len(g.segments) == 1
+    assert g.since == 1792200000 + full, "the last full renewal"
+    assert g.cutoff > clock[0], "the change may commit"
+
+    # a full renewal, then the member stops answering: that is no stale source, the view closes as before
+    src.status = "unchanged"
+    await h.verify()
+    h.lookup("demo.order", ALICE, "high")  # fresh again: the ordinary lookup decides
+    clock[0] += W_READ + W_HIGH
+    expired(h)
+    with pytest.raises(errs.Error) as e:
+        h.lookup_stale("demo.order", ALICE)
+    assert errs.is_(e.value, "be", "AUTHORIZATION_VIEW_EXPIRED")
+
+
+async def test_tightening_only_needs_a_full_renewal_once():  # P8.29
+    h, src, clock = holder(read_only=True)
+    await h.verify()
+    clock[0] += W_READ + W_HIGH
+    with pytest.raises(errs.Error) as e:
+        h.lookup_stale("demo.order", ALICE)
+    assert errs.is_(e.value, "be", "AUTHORIZATION_VIEW_EXPIRED")
+
+
+async def stale_member():
+    """A holder whose source the member closed past both validities, with a tightening-only operation (P8.29)."""
+    sh = shard()
+    segs = sh["subjects"][ALICE]["segments"]
+    for op in ("demo.order.revoke", "demo.order.approve"):
+        segs.append({"resource_type": "demo.order", "operation": op, "atoms": {}, "read_fields": [],
+                     "valid": {"from": "2026-01-01T00:00:00Z"}})
+    h, src, clock = holder(shard=sh)
+    await h.verify()
+    src.status = "closed"
+    clock[0] += W_READ + W_HIGH
+    await h.verify()
+    defs = Definitions("demo/orders", [Resource("demo.order", "demo.order.read", {})],
+                       [Operation("demo.order.read", "demo.order", "read", "low"),
+                        Operation("demo.order.revoke", "demo.order", "manage", "high", ["security_change"],
+                                  tightening_only=True),
+                        Operation("demo.order.approve", "demo.order", "action", "high")])
+    defs.validate()
+    return h, defs, clock
+
+
+async def test_check_admits_tightening_only_on_a_stale_view():  # P8.29
+    h, defs, clock = await stale_member()
+    s = Subject(ALICE, defs, h, datetime.fromisoformat("2026-10-17T00:00:00Z"))
+    with reqctx.cutoff_scope(clock[0] + 100):
+        s.check("demo.order.revoke", {})  # a tightening-only operation on the stale source's last view
+        assert stale_basis() == 1792200000 + 1000.0
+        for op in ("demo.order.approve", "demo.order.read"):
+            with pytest.raises(errs.Error) as e:
+                s.check(op, {})
+            assert errs.is_(e.value, "be", "AUTHORIZATION_VIEW_EXPIRED")
+            assert stale_basis() is None, "a refused decision has no basis"
+
+
+async def test_the_guard_admits_tightening_only_on_a_stale_view():  # P8.29
+    h, defs, clock = await stale_member()
+
+    class Verifier:
+        async def verify(self, token):
+            return User(ALICE, expiry=1792200000 + clock[0] + 600)
+
+    class Request:
+        headers = {"authorization": "Bearer t"}
+
+    g = UserGuard(Verifier(), defs, h, h.log, boot=lambda: clock[0], now=lambda: 1792200000 + clock[0])  # type: ignore[arg-type]
+    with await g.admit(Route("POST", "/revoke", None, "demo.order.revoke"), Request()):  # type: ignore[arg-type]
+        assert reqctx.cutoff() == clock[0] + W_READ * (1 - DRIFT)
+    for op in ("demo.order.approve", "demo.order.read"):
+        with pytest.raises(errs.Error) as e:
+            await g.admit(Route("POST", "/x", None, op), Request())  # type: ignore[arg-type]
+        assert errs.is_(e.value, "be", "AUTHORIZATION_VIEW_EXPIRED")
 
 
 async def test_a_read_only_first_view_is_not_valid_for_high_risk():  # P8.11

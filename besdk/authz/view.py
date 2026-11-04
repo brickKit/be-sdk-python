@@ -120,6 +120,8 @@ class _Held:
     # sent_at of the last renewal that was not read-only; None until there was one, and the shard is then not valid
     # for high-risk operations (P8.11)
     high_at: float | None = None
+    # the member's last answer for it was read_only or closed: it says the source is stale (P8.29)
+    source_stale: bool = False
 
 
 @dataclass
@@ -129,6 +131,10 @@ class Grant:
     segments: list[Segment]
     cutoff: float  # the suspend-aware reading after which the evidence is no longer valid
     security_version: int = 0  # the subject's in the shard used (0 when absent): P8.25
+    # a tightening_only operation decided on the last view of a shard whose source the member said is stale (P8.29);
+    # since is that shard's last full renewal (wall seconds). The doer marks its audit "basis not proven latest".
+    stale: bool = False
+    since: float | None = None
 
 
 @dataclass
@@ -221,7 +227,7 @@ class Holder:
             read_only = bool(a.get("read_only"))
             if a.get("status") == "unchanged":
                 if h is not None and not h.stopped:
-                    h.sent_at, h.suspended = sent, False
+                    h.sent_at, h.suspended, h.source_stale = sent, False, read_only
                     if not read_only:
                         h.high_at = sent
             elif a.get("status") == "changed" and a.get("view") is not None:
@@ -233,11 +239,38 @@ class Holder:
                     self.log.error("an authorization view shard went back under the same recovery generation; it is "
                                    "stopped until the recovery generation advances", shard=name)
                 elif read_only:  # the high-risk validity carries over from the shard it replaces; a new one has none
-                    self.shards[name] = _Held(view, sent, high_at=h.high_at if h is not None else None)
+                    self.shards[name] = _Held(view, sent, high_at=h.high_at if h is not None else None,
+                                              source_stale=True)
                 else:
                     self.shards[name] = _Held(view, sent, high_at=sent)
-            # closed: not renewed, it runs out on its own
+            elif a.get("status") == "closed" and h is not None:
+                h.source_stale = True  # not renewed, it runs out on its own; the member says the source is stale (P8.29)
         return True
+
+    def lookup_for(self, resource_type: str, principal: str, risk: str, tightening_only: bool) -> Grant:
+        """lookup for an operation: a tightening_only one the ordinary lookup refuses falls back on lookup_stale
+        (P8.29); the guard and Subject both admit through it."""
+        try:
+            return self.lookup(resource_type, principal, risk)
+        except errs.Error as e:
+            if tightening_only and errs.is_(e, "be", "AUTHORIZATION_VIEW_EXPIRED"):
+                return self.lookup_stale(resource_type, principal)
+            raise
+
+    def lookup_stale(self, resource_type: str, principal: str) -> Grant:
+        """P8.29 for a tightening_only operation the ordinary lookup refused: the last view of a shard the member last
+        answered read_only or closed, fully renewed once, neither stopped nor suspended, past its validities. A member
+        that stopped answering is no stale source: its shards close as before."""
+        now = self.boot()
+        for h in self.shards.values():
+            if not h.source_stale or h.high_at is None or h.stopped or h.suspended or \
+                    resource_type not in h.shard.applicability:
+                continue
+            segs, disabled, version = h.shard.subjects.get(principal, ([], False, 0))
+            mine = [] if disabled else [s for s in segs if not s.resource_type or s.resource_type == resource_type]
+            # the change may commit within an ordinary read's validity from now
+            return Grant(mine, now + W_READ * (1 - DRIFT), version, stale=True, since=self.wall() + (h.high_at - now))
+        raise errs.new("AUTHORIZATION_VIEW_EXPIRED", "no valid authorization view").with_("resource_type", resource_type)
 
     def lookup(self, resource_type: str, principal: str, risk: str) -> Grant:
         """The subject's segments for a resource type in a valid shard; risk high uses W_HIGH, counted from the last
