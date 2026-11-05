@@ -486,3 +486,24 @@ async def test_grpc_source_carries_read_only():  # P8.11: the contract's ShardAn
     src._stub = Stub()
     a = await src.verify({"component": "demo/orders", "nonce": "n1", "held": []})
     assert [s["read_only"] for s in a["shards"]] == [True, False]
+
+
+def test_a_segment_on_a_non_pushdownable_dimension_makes_the_list_not_completable():
+    """A list whose segment constrains a dimension the resource declares not pushdownable answers
+    QUERY_NOT_COMPLETABLE, never compiled as a local column or dropped (P8.17, security 01's AE16); all on it
+    compiles. The same as be-sdk-go's authz.TestASegmentOnANonPushdownableDimensionMakesTheListNotCompletable."""
+    from besdk.authz.defs import NOT_PUSHDOWNABLE
+    from besdk.authz.plan import compile_plan
+
+    r = Resource("demo.doc", "demo.doc.read", {"team": Dimension("value_set", "team", pushdown=NOT_PUSHDOWNABLE),
+                                               "region": Dimension("value_set", "region")}, {})
+
+    def seg(team):
+        return Segment.from_dict({"resource_type": "demo.doc", "operation": "demo.doc.read", "read_fields": [],
+                                  "valid": {"from": "2026-01-01T00:00:00Z"},
+                                  "atoms": {"team": team, "region": {"kind": "in", "values": ["east"]}}})
+    with pytest.raises(errs.Error) as e:
+        compile_plan(r, [seg({"kind": "in", "values": ["t1"]})], "demo.doc.read", "p", datetime.now(timezone.utc))
+    assert errs.is_(e.value, "be", "QUERY_NOT_COMPLETABLE")
+    p = compile_plan(r, [seg({"kind": "all"})], "demo.doc.read", "p", datetime.now(timezone.utc))
+    assert "team" not in p.where, "all on it constrains nothing"

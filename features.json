@@ -323,7 +323,8 @@
         "test_authz::test_segment_check_vectors",
         "test_authz::test_mask_vectors",
         "test_authz::test_segments_that_do_not_fit_the_definitions_are_refused",
-        "test_authz_sql_integration::test_compiled_lists_match_the_vectors"
+        "test_authz_sql_integration::test_compiled_lists_match_the_vectors",
+        "test_authz::test_a_segment_on_a_non_pushdownable_dimension_makes_the_list_not_completable"
       ]
     },
     "audit": {

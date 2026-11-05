@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from besdk import errs
-from besdk.authz.defs import SECRET, Resource
+from besdk.authz.defs import NOT_PUSHDOWNABLE, SECRET, Resource
 from besdk.authz.segment import Atom, Segment
 
 
@@ -64,6 +64,9 @@ class _Compiler:
     def atom(self, dim: str, a: Atom) -> str:
         d = (self.r.dimensions or {})[dim]
         col = self.col(d.column)
+        if a.kind != "all" and d.pushdown == NOT_PUSHDOWNABLE:  # the database cannot decide it: never drop the segment (P8.17)
+            raise errs.new("QUERY_NOT_COMPLETABLE", "a segment cannot be compiled into the query").with_(
+                "dimension", dim)
         match a.kind:
             case "all":
                 return ""
