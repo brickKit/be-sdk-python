@@ -1,6 +1,6 @@
 {
   "topic": "db-errors",
-  "protocol": "3.0.0-alpha.61",
+  "protocol": "3.0.0-alpha.66",
   "rules": [
     "P5.7",
     "P5.8"

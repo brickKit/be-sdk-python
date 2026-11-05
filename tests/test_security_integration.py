@@ -72,12 +72,15 @@ async def test_audit_records_reach_the_audit_member_with_receipts(world):  # P8.
         try:
             # the denial window is over (as a minute later): the next run appends one summary with the count
             await a.execute(f"UPDATE {name}.be_audit_denial_budget SET minute = minute - interval '1 minute'")
+            # the summary reaches the audit member, then its receipt is written back here: wait for both (the
+            # receipt lands after the member answered, so the summary alone was a race: 1 in 4 runs failed)
             for _ in range(250):
                 kinds = [(r["category"], r["operation"]) for r in world.audited.values()]
-                if ("security_denial", "be.audit.denials_over_budget") in kinds:
+                rows = await a.fetch(f"SELECT seq, transfer_state FROM {name}.be_audit_log ORDER BY seq")
+                if ("security_denial", "be.audit.denials_over_budget") in kinds and \
+                        {r["transfer_state"] for r in rows} == {"received"}:
                     break
                 await asyncio.sleep(0.1)
-            rows = await a.fetch(f"SELECT seq, transfer_state FROM {name}.be_audit_log ORDER BY seq")
         finally:
             await a.close()
         kinds = [(r["category"], r["operation"]) for r in world.audited.values()]

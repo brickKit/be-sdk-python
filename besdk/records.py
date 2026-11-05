@@ -55,4 +55,12 @@ def open_(record_type: str, raw: bytes, digest: str) -> dict[str, Any]:
     validate(record_type, v)
     if not isinstance(v, dict):
         raise Invalid("not an object")
+    for f in v.get("required_features") or []:
+        if f not in KNOWN_FEATURES:
+            raise Invalid(f"{record_type} requires the feature {f!r}, which this reader does not know")
     return v
+
+
+# The feature names this reader understands (P8.30: none in this protocol version). A record that requires any other
+# is refused whole, never read with the requirement ignored (security 09a). Its ext is ignored.
+KNOWN_FEATURES: frozenset[str] = frozenset()

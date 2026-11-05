@@ -141,3 +141,45 @@ async def test_restricted_fields_filters_and_keywords():  # P9.4, P9.5, CK-LS-02
         assert (await page(d, s, Request()))[0] == []
     finally:
         await pool.close()
+
+
+async def test_readable_only_narrows_to_the_rows_that_show_a_field():  # P9.4, security 07's FX12
+    """cost is readable only on the alpha rows; an explicit readable_only narrows the list to them, lets cost sort and
+    filter there, and changes the filter digest. Without it nothing narrows."""
+    d, pool, _, _ = await setup("py_lists_ro")
+    try:
+        from besdk.authz import Dimension
+
+        by_name = Definitions("demo/items", [Resource("demo.item", "demo.item.read",
+                                                      {"name": Dimension("value_set", "name")}, DEFS.resources[0].fields)],
+                              DEFS.operations)
+        by_name.validate()
+        alpha_cost = {**seg("id", "name", "cost"), "atoms": {"name": {"kind": "in", "values": ["alpha"]}}}
+        others = {**seg("id", "name"), "atoms": {"name": {"kind": "all"}}}
+        g = Grants()
+        g.segs = [alpha_cost, others]
+        h = Holder("demo/items", g, new_logger(Member("demo/items", "3.0.0"), "error", io.StringIO()))
+        await h.verify()
+        s = Subject(ALICE, by_name, h, datetime.now(timezone.utc))
+
+        assert len((await page(d, s, Request()))[0]) == 8, "no narrowing unless asked"
+        with pytest.raises(errs.Error) as e:
+            await page(d, s, Request(sort=[Order("cost")]))
+        assert errs.is_(e.value, "be", "FIELD_NOT_QUERYABLE"), "precondition: cost is not readable everywhere"
+
+        narrowed = dict(readable_only=["cost", "cost"], sort=[Order("cost")], filters=[Filter("cost", "gte", ["1"])])
+        ids, nxt = await page(d, s, Request(limit=2, **narrowed))
+        rest, _ = await page(d, s, Request(limit=2, cursor=nxt, **narrowed))
+        assert len(ids + rest) == 3, "the three alpha rows"
+        assert build(s, SPEC, Request(**narrowed)).readable_only == ["cost"], "the answer says how it narrowed"
+        # the same sort, only the narrowing differs: a cursor of the narrowed list does not continue the whole one
+        _, nxt = await page(d, s, Request(readable_only=["cost"], sort=[Order("name")], limit=2))
+        assert nxt, "precondition: a second page"
+        with pytest.raises(errs.Error) as e:
+            await page(d, s, Request(sort=[Order("name")], limit=2, cursor=nxt))
+        assert errs.is_(e.value, "be", "CURSOR_INVALID"), "the narrowing is part of the filter digest"
+        with pytest.raises(errs.Error) as e:
+            await page(d, s, Request(readable_only=["nonexistent"]))
+        assert errs.is_(e.value, "be", "REQUEST_INVALID")
+    finally:
+        await pool.close()

@@ -1,7 +1,7 @@
 """Authorization on the component side: vector segment-eval (single-object part), segment digests of vector
 canonical, the declarations' checks (P8.7) and the view holder (P8.9-P8.13), ported from the Go SDK's tests."""
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -72,8 +72,9 @@ def test_segment_eval_vectors():
         for rec in f["records"]:
             want, rid = c["expect"]["records"][rec["id"]], rec["id"]
             d = evaluate(r, segs, c["action"], facts(r, rec), c["principal"], at)
-            assert (d.visible.value, d.action.value, d.fields) == (want["visible"], want["action"], want["fields"]), \
-                (c["id"], rid)
+            read = evaluate(r, segs, r.view_operation, facts(r, rec), c["principal"], at)
+            assert (d.visible.value, d.action.value, read.fields, d.fields) == (
+                want["visible"], want["action"], want["fields"], want["action_fields"]), (c["id"], rid)
             for op, key in ((r.view_operation, "read_error"), (c["action"], "action_error")):
                 try:
                     subject.check(op, facts(r, rec))
@@ -91,8 +92,51 @@ def test_segment_digests_of_vector_canonical():
             assert Segment.from_dict(c["in"]).digest() == c["expect"]["digest"], c["id"]
 
 
-def test_mask_keeps_only_readable_fields():
-    assert mask({"number": "1", "note": "x", "undeclared": 1}, ["number"]) == {"number": "1"}
+def test_segment_check_vectors():
+    """What a component refuses against its own resource definition (P8.14, EN08-EN10)."""
+    _, r, cases = fixture()
+    checks = [c for c in cases if c["kind"] == "check"]
+    assert checks, "precondition: the vector has check cases"
+    for c in checks:
+        try:
+            Segment.from_dict(c["segment"]).check(r)
+            ok = True
+        except ValueError:
+            ok = False
+        assert ok == c["valid"], c["id"]
+
+
+def test_mask_vectors():
+    """The masked output (P8.31): unreadable declared fields None and named under _masked; secret and undeclared
+    keys dropped."""
+    _, r, cases = fixture()
+    masks = [c for c in cases if c["kind"] == "mask"]
+    assert masks, "precondition: the vector has mask cases"
+    for c in masks:
+        assert mask(r, c["object"], c["readable"]) == c["expect"], c["id"]
+
+
+def test_segments_that_do_not_fit_the_definitions_are_refused():
+    """A segment missing a declared dimension would leave it unconstrained; on adoption it is refused, logged once,
+    and the rest of the view is used (P8.14, FX01, EN08)."""
+    order = Resource("demo.order", "demo.order.read", {"region": Dimension("value_set", "region")},
+                     {"id": Field("ordinary")})
+    defs = Definitions("demo/orders", [order], [Operation("demo.order.read", "demo.order", "read", "low")])
+    defs.validate()
+    base = {"resource_type": "demo.order", "operation": "demo.order.read", "read_fields": ["id"],
+            "valid": {"from": "2026-01-01T00:00:00Z"}}
+    no_region = Segment.from_dict({**base, "atoms": {}})
+    fits = Segment.from_dict({**base, "atoms": {"region": {"kind": "in", "values": ["east"]}}})
+    out = io.StringIO()
+    h = Holder("demo/orders", None, new_logger(Member("demo/orders", "3.0.0"), "info", out), defs=defs)  # type: ignore[arg-type]
+    view = Shard("orders", ["demo.order"], {ALICE: ([no_region, fits], False, 0)}, "sha256:1")
+    assert h.apply({"instance": "", "shards": [{"shard": "orders", "status": "changed", "view": view}]}, 1, h.boot())
+    g = h.lookup("demo.order", ALICE, "low")
+    assert g.segments == [fits], "the segment without the region is not used; the other is"
+    assert out.getvalue().count('"segment_refused"') == 1, out.getvalue()
+    d = evaluate(order, g.segments, "demo.order.read", {"region": Fact.of("west")}, ALICE, datetime.now(timezone.utc))
+    assert d.visible.value == "false", "a west record stays invisible: the refused segment is not read as region all"
+    assert h.shards["orders"].shard.digest == "sha256:1", "the held digest is the received bytes' (P8.11)"
 
 
 def test_declarations_are_checked_together():  # P8.7, CK-AZ-01

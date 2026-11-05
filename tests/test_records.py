@@ -16,6 +16,11 @@ def test_security_record_vectors():
         raw, digest = records.seal(c["record_type"], c["record"])
         assert raw.decode() == c["canonical"], c["id"]
         assert digest == c["digest"], c["id"]
+        if c["read"] == "refused":  # P8.30: schema-valid, a required feature this reader does not know
+            with pytest.raises(records.Invalid):
+                records.open_(c["record_type"], raw, digest)
+            continue
+        assert c["read"] == "accepted", c["id"]
         records.open_(c["record_type"], raw, digest)
 
 

@@ -197,8 +197,12 @@ async def start(d, env):
     return f"http://127.0.0.1:{port}", stop, task, out
 
 
-async def test_protected_routes_verify_the_token_and_decide_by_the_view(world):  # P8.1-P8.3, P8.15, P8.16
+async def test_protected_routes_verify_the_token_and_decide_by_the_view(world):  # P8.1-P8.3, P8.14-P8.16
     world.grant_all(ALICE, ORDERS, only=["demo.order.read"])
+    # a segment with a dimension the resource does not declare (P8.14, EN08): refused against the declarations, so
+    # Bob still sees nothing
+    world.grant(BOB, {"resource_type": "demo.order", "operation": "demo.order.read", "atoms": {"region": {"kind": "all"}},
+                      "read_fields": ["id"], "valid": {"from": "2026-01-01T00:00:00Z"}})
     base, stop, task, out = await start(Definition("demo/orders", "3.0.0", Orders, authz=ORDERS), world.env("demo/orders"))
     assert base, out.getvalue()
     try:
@@ -216,6 +220,7 @@ async def test_protected_routes_verify_the_token_and_decide_by_the_view(world): 
             assert r.status_code == 403 and r.json()["reason"] == "PERMISSION_DENIED", "visible, not allowed"
             r = await c.get("/api/orders/1", headers={"Authorization": world.bearer(BOB)})
             assert r.status_code == 404 and r.json()["reason"] == "NOT_FOUND", "invisible answers 404, not 403"
+            assert "segment_refused" in out.getvalue(), "the refusal is logged"
             world.revoke(ALICE)
             for _ in range(60):  # the next verification (every 2.5 s) brings the revocation
                 r = await c.get("/api/orders/1", headers={"Authorization": world.bearer(ALICE)})

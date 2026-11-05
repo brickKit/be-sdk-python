@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Iterator
 
 from besdk import errs, reqctx
-from besdk.authz.defs import Definitions, Operation, Resource
+from besdk.authz.defs import SECRET, Definitions, Operation, Resource
 from besdk.authz.plan import Plan, compile_plan
 from besdk.authz.segment import Decision, Fact, evaluate
 from besdk.authz.view import Grant, Holder
@@ -52,10 +52,28 @@ class Subject:
         return compile_plan(r, g.segments, o.key, self.principal, self.at, alias, arg_base)
 
 
-def mask(out: dict, readable: list[str]) -> dict:
-    """Keeps only the readable fields of an output object; fields that are not declared never pass."""
+MASKED = "_masked"
+
+
+def mask(r: Resource, out: dict, readable: list[str]) -> dict:
+    """Shapes an output object for the caller (P8.31): readable fields as they are; the resource's other ordinary and
+    restricted fields None and named, sorted, under _masked (only when there is one), so a caller tells "no value"
+    from "not yours to see"; secret and undeclared keys never pass."""
     keep = set(readable)
-    return {k: v for k, v in out.items() if k in keep}
+    shaped: dict = {}
+    masked = []
+    for k, v in out.items():
+        fd = r.fields.get(k)
+        if fd is None or fd.cls == SECRET:
+            continue
+        if k in keep:
+            shaped[k] = v
+        else:
+            shaped[k] = None
+            masked.append(k)
+    if masked:
+        shaped[MASKED] = sorted(masked)
+    return shaped
 
 
 _subject: contextvars.ContextVar[Subject | None] = contextvars.ContextVar("be_subject", default=None)

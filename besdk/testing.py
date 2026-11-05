@@ -59,6 +59,10 @@ class World:
         self.refuse_definitions = ""  # a reason makes Submit refuse every submission
         self.verifications = 0
         self.authz_up = True
+        # the conformance suite's authorization profile: an answer with another nonce (CK-AZ-02), and when the last
+        # answered verification arrived on the monotonic clock (CK-AZ-04 times a transaction against its view)
+        self.wrong_nonce = False
+        self.verified_at = 0.0
         self._ca_key = ec.generate_private_key(ec.SECP256R1())
         now = dt.datetime.now(dt.timezone.utc)
         name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "test deployment root")])
@@ -258,7 +262,9 @@ class _View(authz_pb2_grpc.ViewServiceServicer):
         if not w.authz_up:
             await context.abort(grpc.StatusCode.UNAVAILABLE, "the authorization member is down")
         raw, digest = w.view()
-        out = authz_pb2.VerifyResponse(nonce=request.nonce, computed_at=canon.time(dt.datetime.now(dt.timezone.utc)),
+        w.verified_at = time.monotonic()
+        nonce = "f" * 32 if w.wrong_nonce else request.nonce
+        out = authz_pb2.VerifyResponse(nonce=nonce, computed_at=canon.time(dt.datetime.now(dt.timezone.utc)),
                                        instance=INSTANCE, recovery_generation=authz_pb2.RevisionRef(
                                            domain="authz.recovery", value=w.recovery))
         if any(h.shard == "all" and h.digest == digest for h in request.held):

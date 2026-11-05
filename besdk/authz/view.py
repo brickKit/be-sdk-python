@@ -3,6 +3,7 @@ member, validity counted from when the request left on the suspend-aware clock, 
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import re
 import secrets
 import time
@@ -10,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Protocol
 
 from besdk import clock, errs, reqctx
+from besdk.authz.defs import Definitions
 from besdk.authz.segment import Segment
 from besdk.obs import Logger
 
@@ -152,6 +154,32 @@ class Holder:
     _last_tick: float | None = None
     _last_skew: float = 0.0
     _verifying: asyncio.Lock = field(default_factory=asyncio.Lock)
+    # the component's declarations: a view's segments are checked against them on adoption (P8.14)
+    defs: Definitions | None = None
+
+    def _fitting(self, v: Shard) -> Shard:
+        """The view with only the segments that fit this component's resource definitions (P8.14; security 09a's
+        EN08-EN10, security 07's FX01): a segment missing a declared dimension would otherwise leave it unconstrained,
+        as if it were all. A refused one takes part in nothing; the rest is used. Segments of resource types this
+        component does not declare are kept (never looked up). One warning per refused segment, on adoption only."""
+        if self.defs is None:
+            return v
+        subjects = {}
+        for p, (segs, disabled, version) in v.subjects.items():
+            keep = []
+            for s in segs:
+                r = self.defs.resource(s.resource_type)
+                if r is not None:
+                    try:
+                        s.check(r)
+                    except ValueError as e:
+                        self.log.warn("a view segment does not fit this component's resource definition; it is not used",
+                                      event="segment_refused", resource_type=s.resource_type, operation=s.operation,
+                                      reason=str(e).removeprefix(f"segment for {s.operation}: "))
+                        continue
+                keep.append(s)
+            subjects[p] = (keep, disabled, version)
+        return dataclasses.replace(v, subjects=subjects)
 
     async def run(self, sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> None:
         """Verifies every INTERVAL until cancelled, and detects stalls."""
@@ -231,7 +259,7 @@ class Holder:
                     if not read_only:
                         h.high_at = sent
             elif a.get("status") == "changed" and a.get("view") is not None:
-                view = _as_shard(a["view"])
+                view = self._fitting(_as_shard(a["view"]))
                 if h is not None and h.stopped:
                     continue
                 if h is not None and not newer and _goes_back(h.shard.security_revisions, view.security_revisions):

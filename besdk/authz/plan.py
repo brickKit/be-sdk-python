@@ -28,6 +28,13 @@ class Plan:
                 seen.update(self.sets[i])
         return sorted(seen)
 
+    def readable_where(self, name: str) -> str:
+        """The condition "this row's field is readable": OR over the plan's segments that read it (FALSE when none
+        does). ANDed into a list it narrows to the rows that show the field (security 07's FX12, P9.4's
+        readable_only)."""
+        ors = [self.hits[i] for i, s in enumerate(self.sets) if name in s]
+        return "(" + " OR ".join(ors) + ")" if ors else "FALSE"
+
     def readable_everywhere(self, name: str) -> bool:
         """Every segment of the plan reads the field: every visible row can be filtered, sorted or searched by it
         without revealing it (security 07's sufficient condition, simplified to one segment per row: P9.4)."""

@@ -1,17 +1,19 @@
 {
   "topic": "security-records",
-  "protocol": "3.0.0-alpha.61",
+  "protocol": "3.0.0-alpha.66",
   "rules": [
     "P8.8",
     "P8.11",
-    "P8.20"
+    "P8.20",
+    "P8.30"
   ],
-  "description": "线上的安全记录与审计记录（D76：以规范 JSON 字节放在信封的 bytes 字段里）对 schemas/security/ 下生成的 JSON Schema（装配项目安全 09a 与本章的字段表生成）的校验。valid=true 的记录 schema 接受，并给出规范字节（canonical）与摘要（记录类型取 record_type，主版本 1）；valid=false 的记录 schema 拒绝，why 说明原因。schema 只查结构与类型；约束一列里的条件规则（例如 restricted 字段必有 read_key）由代码检查，不在这里。",
+  "description": "线上的安全记录与审计记录（D76：以规范 JSON 字节放在信封的 bytes 字段里）对 schemas/security/ 下生成的 JSON Schema（装配项目安全 09a 与本章的字段表生成）的校验。valid=true 的记录 schema 接受，并给出规范字节（canonical）与摘要（记录类型取 record_type，主版本 1）；valid=false 的记录 schema 拒绝，why 说明原因。read 是读者打开它的结果（accepted、refused）：schema 拒绝的一定 refused；schema 接受而 required_features 含读者不认识的功能名的也 refused（P8.30，本版本的读者不认识任何功能名）。schema 只查结构与类型；约束一列里的条件规则（例如 restricted 字段必有 read_key）由代码检查，不在这里。",
   "fields": {
     "record_type": "记录类型，也是 schema 文件名（<record_type>.schema.json）",
     "record": "记录内容（不含 digest）",
     "valid": "schema 是否接受",
-    "canonical、digest": "valid=true：规范字节与摘要"
+    "canonical、digest": "valid=true：规范字节与摘要",
+    "read": "读者打开的结果"
   },
   "cases": [
     {
@@ -87,6 +89,7 @@
         "capabilities": []
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"security_version\":4,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
       "digest": "sha256:37fbd17dd96fa5e6fcdc4fa5c7f8fdc778fc9b91b71707f061332fc0066301f2"
     },
@@ -132,6 +135,7 @@
         }
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"authority\":\"demo/order\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"dimensions\":{\"legal_entity\":{\"column\":\"legal_entity\",\"kind\":\"value_set\",\"pushdown\":\"local_column\"},\"owner\":{\"column\":\"owner\",\"kind\":\"principal\",\"principal_role\":\"owner\",\"pushdown\":\"local_column\"}},\"fields\":{\"id\":{\"class\":\"ordinary\"},\"note\":{\"class\":\"secret\"},\"total\":{\"class\":\"restricted\",\"read_key\":\"demo.order.read_total\"}},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.resource_definition\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"schema\":\"1.0\",\"type\":\"demo.order\",\"view_operation\":\"demo.order.read\"}",
       "digest": "sha256:5e4ef1f831d402fe793cb57f68601208f45ec039c8cc8e9e37585135da452fea"
     },
@@ -162,6 +166,7 @@
         "audit": "required"
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"audit\":\"required\",\"authority\":\"demo/order\",\"delegable\":true,\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"impersonation_allowed\":false,\"key\":\"demo.order.approve\",\"minimum_path\":\"default\",\"purpose\":\"action\",\"record_type\":\"be.security.operation_definition\",\"requires_appointment\":false,\"resource_type\":\"demo.order\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"risk_class\":\"high\",\"schema\":\"1.0\",\"side_effects\":[\"business_write\"]}",
       "digest": "sha256:7bea990ba673e74a3aa1d2f950f77526b5008e73e4a796e96843b717e5deb7c0"
     },
@@ -200,6 +205,7 @@
         }
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}",
       "digest": "sha256:b6bb471c36b3465bea8cdb9c2f05bb1238379ef34cf259690781ba17eaedb975"
     },
@@ -223,6 +229,7 @@
         }
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"actor\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"category\":\"business_change\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"occurred_at\":\"2026-10-19T08:00:00.000000Z\",\"operation\":\"demo.order.approve\",\"outcome\":\"succeeded\",\"request\":{\"trace_id\":\"4bf92f3577b34da6\"},\"target\":{\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"revision\":\"4\",\"type\":\"demo.order\"}}",
       "digest": "sha256:7510689e0f3ae8940b465191ec405e761709dfc75f33881fae1ade05983551ef"
     },
@@ -239,6 +246,7 @@
         "actor": "test/probe-go"
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"actor\":\"test/probe-go\",\"category\":\"security_denial\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"occurred_at\":\"2026-10-19T08:00:00.000000Z\",\"operation\":\"demo.order.read\",\"outcome\":\"denied\",\"reason\":\"PERMISSION_DENIED\"}",
       "digest": "sha256:15781be6384c3830c300ff62938481c5b8bfe0f0d8ac9b48316808b9d2d4fbb0"
     },
@@ -272,6 +280,7 @@
         }
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"authority\":\"demo/order\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"dimensions\":{},\"fields\":{\"id\":{\"class\":\"ordinary\"},\"note\":{\"class\":\"secret\"},\"total\":{\"class\":\"restricted\",\"read_key\":\"demo.order.read_total\"}},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.resource_definition\",\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"schema\":\"1.0\",\"type\":\"demo.order\",\"view_operation\":\"demo.order.read\"}",
       "digest": "sha256:85cf3ad971b4aeb5c6c25ee389ae806f3f35722f227bf2421c32e7f9382a5c5a"
     },
@@ -300,6 +309,7 @@
         "security_version": 4
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"security_version\":4,\"status\":\"disabled\"}",
       "digest": "sha256:5ec6e2a6ab15bd9c7674a4b8739257d1e30b3086887793de1546411da937bc19"
     },
@@ -315,8 +325,220 @@
         ]
       },
       "valid": true,
+      "read": "accepted",
       "canonical": "{\"component\":\"demo/order\",\"definitions\":[\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"],\"version\":\"3.0.0\"}",
       "digest": "sha256:9099d5722b92f7be960b9060e3cf93405d75bd6b10ac588c6cf4366d74f3be3b"
+    },
+    {
+      "id": "view-with-ext",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "applicability": [
+          "demo.order"
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false,
+            "security_version": 4
+          }
+        },
+        "capabilities": [],
+        "ext": {
+          "demo_hint": "anything"
+        }
+      },
+      "valid": true,
+      "read": "accepted",
+      "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"ext\":{\"demo_hint\":\"anything\"},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"security_version\":4,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
+      "digest": "sha256:9e9b569a4528727c3c3f7d6e2ac31d70c345c889c081607fde5a83db7fc8ca1a"
+    },
+    {
+      "id": "view-unknown-required-feature",
+      "record_type": "be.security.view",
+      "record": {
+        "record_type": "be.security.view",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/authz",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "authz.view.demo",
+          "value": "12",
+          "epoch": "1.1",
+          "instance": "authz-inst-a"
+        },
+        "shard": "demo",
+        "recovery_generation": {
+          "domain": "authz.recovery",
+          "value": "1"
+        },
+        "security_revisions": [
+          {
+            "domain": "authz.security.legal_entity",
+            "value": "12",
+            "epoch": "1.1",
+            "instance": "authz-inst-a"
+          }
+        ],
+        "applicability": [
+          "demo.order"
+        ],
+        "subjects": {
+          "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f": {
+            "segments": [
+              {
+                "resource_type": "demo.order",
+                "operation": "demo.order.read",
+                "atoms": {
+                  "legal_entity": {
+                    "kind": "in",
+                    "values": [
+                      "le1"
+                    ]
+                  },
+                  "owner": {
+                    "kind": "self"
+                  }
+                },
+                "read_fields": [
+                  "id",
+                  "total"
+                ],
+                "write_fields": [],
+                "valid": {
+                  "from": "2026-10-01T00:00:00.000000Z"
+                },
+                "source": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1",
+                "definition": {
+                  "owner_component": "demo/order",
+                  "kind": "resource",
+                  "key": "demo.order",
+                  "version": "3.0.0",
+                  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              }
+            ],
+            "accounts_disabled": false,
+            "security_version": 4
+          }
+        },
+        "capabilities": [],
+        "required_features": [
+          "authz.relation_atoms"
+        ]
+      },
+      "valid": true,
+      "read": "refused",
+      "why": "required_features 含读者不认识的功能名：拒绝整条记录",
+      "canonical": "{\"applicability\":[\"demo.order\"],\"authority\":\"infra/authz\",\"capabilities\":[],\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.view\",\"recovery_generation\":{\"domain\":\"authz.recovery\",\"value\":\"1\"},\"required_features\":[\"authz.relation_atoms\"],\"revision\":{\"domain\":\"authz.view.demo\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"},\"schema\":\"1.0\",\"security_revisions\":[{\"domain\":\"authz.security.legal_entity\",\"epoch\":\"1.1\",\"instance\":\"authz-inst-a\",\"value\":\"12\"}],\"shard\":\"demo\",\"subjects\":{\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\":{\"accounts_disabled\":false,\"security_version\":4,\"segments\":[{\"atoms\":{\"legal_entity\":{\"kind\":\"in\",\"values\":[\"le1\"]},\"owner\":{\"kind\":\"self\"}},\"definition\":{\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":\"demo.order\",\"kind\":\"resource\",\"owner_component\":\"demo/order\",\"version\":\"3.0.0\"},\"operation\":\"demo.order.read\",\"read_fields\":[\"id\",\"total\"],\"resource_type\":\"demo.order\",\"source\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"valid\":{\"from\":\"2026-10-01T00:00:00.000000Z\"},\"write_fields\":[]}]}}}",
+      "digest": "sha256:3dff7d0f2f6f3924104ca884e64a0d87706dc47a38ca108e9eb0e17efa0ca0ae"
+    },
+    {
+      "id": "resource-unknown-required-feature",
+      "record_type": "be.security.resource_definition",
+      "record": {
+        "record_type": "be.security.resource_definition",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "demo/order",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-0000000000a1",
+        "revision": {
+          "domain": "demo.order.definition",
+          "value": "1"
+        },
+        "type": "demo.order",
+        "view_operation": "demo.order.read",
+        "dimensions": {
+          "legal_entity": {
+            "kind": "value_set",
+            "column": "legal_entity",
+            "pushdown": "local_column"
+          },
+          "owner": {
+            "kind": "principal",
+            "column": "owner",
+            "principal_role": "owner",
+            "pushdown": "local_column"
+          }
+        },
+        "fields": {
+          "id": {
+            "class": "ordinary"
+          },
+          "total": {
+            "class": "restricted",
+            "read_key": "demo.order.read_total"
+          },
+          "note": {
+            "class": "secret"
+          }
+        },
+        "required_features": [
+          "demo.future"
+        ]
+      },
+      "valid": true,
+      "read": "refused",
+      "why": "同上，定义也一样",
+      "canonical": "{\"authority\":\"demo/order\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"dimensions\":{\"legal_entity\":{\"column\":\"legal_entity\",\"kind\":\"value_set\",\"pushdown\":\"local_column\"},\"owner\":{\"column\":\"owner\",\"kind\":\"principal\",\"principal_role\":\"owner\",\"pushdown\":\"local_column\"}},\"fields\":{\"id\":{\"class\":\"ordinary\"},\"note\":{\"class\":\"secret\"},\"total\":{\"class\":\"restricted\",\"read_key\":\"demo.order.read_total\"}},\"id\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000a1\",\"record_type\":\"be.security.resource_definition\",\"required_features\":[\"demo.future\"],\"revision\":{\"domain\":\"demo.order.definition\",\"value\":\"1\"},\"schema\":\"1.0\",\"type\":\"demo.order\",\"view_operation\":\"demo.order.read\"}",
+      "digest": "sha256:188b317200453042b51a1a0f94491b4021790e1c97bf32bdc4c5c2fef1008313"
     },
     {
       "id": "view-no-applicability",
@@ -388,6 +610,7 @@
         "capabilities": []
       },
       "valid": false,
+      "read": "refused",
       "why": "缺必填字段"
     },
     {
@@ -464,6 +687,7 @@
         "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
       },
       "valid": false,
+      "read": "refused",
       "why": "线上的记录不带自己的摘要（随信封传）"
     },
     {
@@ -540,6 +764,7 @@
         "owner": "x"
       },
       "valid": false,
+      "read": "refused",
       "why": "未定义的字段（扩展只能放进 ext）"
     },
     {
@@ -571,6 +796,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "没有维度要写 {}，不能缺省"
     },
     {
@@ -615,6 +841,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "authority 是组件 ID，不是 Key"
     },
     {
@@ -659,6 +886,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "组件 ID 不含下划线"
     },
     {
@@ -688,6 +916,7 @@
         "audit": "required"
       },
       "valid": false,
+      "read": "refused",
       "why": "Key 只用小写"
     },
     {
@@ -717,6 +946,7 @@
         "audit": "required"
       },
       "valid": false,
+      "read": "refused",
       "why": "未知的枚举值"
     },
     {
@@ -754,6 +984,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "Id 是 UUIDv7"
     },
     {
@@ -776,6 +1007,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "时刻固定 6 位小数"
     },
     {
@@ -813,6 +1045,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "不出现浮点数"
     },
     {
@@ -847,6 +1080,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "未知的原子种类"
     },
     {
@@ -869,6 +1103,7 @@
         }
       },
       "valid": false,
+      "read": "refused",
       "why": "未知的结果"
     },
     {
@@ -896,6 +1131,7 @@
         "security_version": 4
       },
       "valid": false,
+      "read": "refused",
       "why": "未知的账号状态"
     },
     {
@@ -922,6 +1158,7 @@
         "security_mark": "compromised"
       },
       "valid": false,
+      "read": "refused",
       "why": "缺安全状态版本"
     },
     {
@@ -935,6 +1172,7 @@
         ]
       },
       "valid": false,
+      "read": "refused",
       "why": "集合里只能是摘要"
     }
   ]

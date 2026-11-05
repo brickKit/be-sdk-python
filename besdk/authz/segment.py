@@ -256,7 +256,9 @@ class Decision:
 
     visible: Tri
     action: Tri  # the asked operation's permission; equals visible for the view operation
-    fields: list[str]  # readable fields (never a secret one), sorted; empty unless visible
+    # readable for the operation asked (security 01's Readable(C,K,r,f), P8.15): its own true segments' read fields,
+    # never a secret one, sorted; empty unless visible. An export or special read outputs these, not the page's.
+    fields: list[str]
 
     def error(self) -> errs.Error | None:
         """The answer (P8.15, P8.16): not visible NOT_FOUND; the operation definitely not allowed PERMISSION_DENIED,
@@ -273,11 +275,13 @@ class Decision:
 
 def evaluate(r: Resource, segs: list[Segment], op: str, facts: dict[str, Fact], principal: str,
              at: datetime) -> Decision:
-    """Decides one record: visibility by the resource's view operation, the operation's permission, readable fields."""
+    """Decides one record: visibility by the resource's view operation, the operation's permission, and the fields
+    readable for the operation."""
     visible, fields = _entitled(segs, r.view_operation, facts, principal, at)
     action = visible
     if op != r.view_operation:
-        action = _and(visible, _entitled(segs, op, facts, principal, at)[0])
+        act, fields = _entitled(segs, op, facts, principal, at)
+        action = _and(visible, act)
     readable = []
     if visible is Tri.TRUE:
         readable = sorted(f for f in fields if (fd := r.fields.get(f)) is not None and fd.cls != SECRET)

@@ -355,7 +355,7 @@ def _guard(member: Member, shared: Shared, outbound: calls.Member, ops: list[str
     if problems or shared.keys is None:
         raise ConfigError(problems)
     channel = outbound.grpc("infra/authz", host_port(values.string("AUTHZ_GRPC_URL")))
-    member.holder = Holder(d.id, GRPCSource(channel), member.logger)
+    member.holder = Holder(d.id, GRPCSource(channel), member.logger, defs=d.authz)
     from be.authz.v3 import authz_pb2_grpc
 
     member.definitions = authz_pb2_grpc.DefinitionServiceStub(channel)

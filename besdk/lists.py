@@ -11,8 +11,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Callable, TypeVar
 
 from besdk import errs
-from besdk.authz.defs import ORDINARY
-from besdk.authz.plan import ident
+from besdk.authz.defs import ORDINARY, SECRET
+from besdk.authz.plan import Plan, ident
 from besdk.authz.subject import Subject
 
 # Page sizes (P9.2).
@@ -72,6 +72,9 @@ class Request:
     q: str = ""
     cursor: str = ""
     limit: int = 0
+    # only the rows whose listed restricted fields the caller can read (P9.4, security 07's FX12): the result
+    # narrows, and those fields may then filter, sort and search
+    readable_only: list[str] = field(default_factory=list)
 
 
 def _bad(name: str, why: str) -> errs.Error:
@@ -109,6 +112,12 @@ class Query:
     sorts: list[Order]
     filter_hash: str
     plan_hash: str
+    readable_only: list[str] = field(default_factory=list)  # the request's narrowing: the answer says it (P9.4)
+    plan: Plan | None = None
+
+    def fields(self, hits: list[bool]) -> list[str]:
+        """A row's readable fields from its hit bitmap (the same as be-sdk-go's Query.Fields)."""
+        return self.plan.fields(hits) if self.plan is not None else []
 
     def next(self, keys: list[str], id: str) -> str:
         """The cursor that continues after a row, given its sort values (as text, in sort order) and ID."""
@@ -180,8 +189,20 @@ def build(subj: Subject, spec: Spec, req: Request) -> Query:
     o = subj.defs.operation(spec.operation)
     r = subj.defs.resource(o.resource_type) if o else None
 
+    narrowed: list[str] = []
+    for name in req.readable_only:
+        fd = r.fields.get(name) if r is not None else None
+        if fd is None or fd.cls == SECRET:
+            raise _bad("readable_only." + name, "not a field of this list")
+        if name not in narrowed:
+            narrowed.append(name)
+            where.append(plan.readable_where(name))
+    narrowed.sort()
+
     def restricted(name: str) -> bool:
-        return r is not None and name in r.fields and r.fields[name].cls != ORDINARY
+        # a restricted field may filter or sort where every listed row shows it: every segment reads it, or the
+        # list is narrowed to the rows that do
+        return r is not None and name in r.fields and r.fields[name].cls != ORDINARY and name not in narrowed
 
     for f in req.filters:
         c = b.cols.get(f.field)
@@ -201,12 +222,14 @@ def build(subj: Subject, spec: Spec, req: Request) -> Query:
             raise _bad("sort." + s.field, "not a sortable field")
         if restricted(s.field) and not plan.readable_everywhere(s.field):
             raise errs.new("FIELD_NOT_QUERYABLE", "this field cannot be used to sort here").with_("field", s.field)
-    filter_hash = _digest({"filters": [asdict(f) for f in req.filters], "q": q, "sort": [asdict(s) for s in req.sort]})
+    filter_hash = _digest({"filters": [asdict(f) for f in req.filters], "q": q, "sort": [asdict(s) for s in req.sort],
+                           "readable_only": narrowed})
     if req.cursor:
         where.append(b.resume(req.cursor, req.sort, filter_hash, plan.digest))
     order = [f"{b.col(b.cols[s.field].column)} {'DESC' if s.desc else 'ASC'}" for s in req.sort]
     order.append(f"{b.col(spec.id_column)} ASC")
-    return Query(" AND ".join(where), b.args, ", ".join(order), spec.alias, limit, plan.hits, list(req.sort), filter_hash, plan.digest)
+    return Query(" AND ".join(where), b.args, ", ".join(order), spec.alias, limit, plan.hits, list(req.sort), filter_hash,
+                 plan.digest, narrowed, plan)
 
 
 T = TypeVar("T")

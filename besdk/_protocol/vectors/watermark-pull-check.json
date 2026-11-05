@@ -1,6 +1,6 @@
 {
   "topic": "watermark-pull-check",
-  "protocol": "3.0.0-alpha.61",
+  "protocol": "3.0.0-alpha.66",
   "rules": [
     "P9.15"
   ],
