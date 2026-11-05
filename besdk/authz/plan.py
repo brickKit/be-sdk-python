@@ -119,4 +119,5 @@ def compile_plan(r: Resource, segs: list[Segment], op: str, principal: str, at: 
     sets = [[f for f in s.read_fields if f in r.fields and r.fields[f].cls != SECRET] for s in field_segs]
     digests = sorted(s.digest() for s in used)
     digest = hashlib.sha256("\n".join(digests + [r.digest(), op]).encode()).hexdigest()[:32]
-    return Plan(where, c.args, hit_preds, digest, sets)
+    # each bit a boolean: a predicate NULL because of a NULL column is not a hit (P8.17)
+    return Plan(where, c.args, [f"COALESCE({h}, FALSE)" for h in hit_preds], digest, sets)

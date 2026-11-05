@@ -1,6 +1,6 @@
 {
   "topic": "watermark-value",
-  "protocol": "3.0.0-alpha.66",
+  "protocol": "3.0.0-alpha.68",
   "rules": [
     "P9.20",
     "P9.23"

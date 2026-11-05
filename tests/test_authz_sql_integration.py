@@ -47,7 +47,9 @@ async def test_compiled_lists_match_the_vectors():  # P8.17, P8.18, CK-AZ-05
             async def run(tx):
                 return await tx.fetch(f"SELECT {sel} FROM demo_order o WHERE {where} ORDER BY o.id", *args)
             rows = await d.tx(run)
-            return {row[0]: p.fields([bool(x) for x in row[1:]]) for row in rows}
+            for row in rows:  # each bit a boolean, never NULL (P8.17): a component reads them as they are
+                assert all(isinstance(x, bool) for x in row[1:]), (op, row[0], list(row[1:]))
+            return {row[0]: p.fields(list(row[1:])) for row in rows}
 
         n = 0
         for c in cases:
