@@ -12,7 +12,7 @@ import time
 import uuid
 from typing import Any
 
-from besdk import reqctx
+from besdk import crash, reqctx
 from besdk.db.pool import DB, Tx
 from besdk.obs import Logger
 from besdk.work.job import (BACKOFF_CAP, BACKOFF_START, CRON, EVERY, NON_IDEMPOTENT_EXTERNAL, QUEUE, SINGLETON, Item,
@@ -259,8 +259,11 @@ class Runner:
                         decode(row["args"]), decode(row["progress"]), row["slot"], decode(row["call_results"]) or {})
             out.append(Run(item, self.jobs[row["job"]], self.db, row["epoch"], row["claim_db_generation"],
                            row["claim_db_timeline"]))
+            crash.point("work.claim/commit")
 
         await self.db.background_tx(body)
+        if out:
+            crash.point("work.claim/done")
         return out[0] if out else None
 
     async def run(self, r: Run) -> None:
@@ -343,12 +346,12 @@ class Runner:
                 last_error = $5, waiting_since = coalesce(waiting_since, now()), run_at = now() + make_interval(
                 secs => least($7::float8, greatest($6::float8,
                     extract(epoch FROM now() - coalesce(waiting_since, now()))::float8)))""",
-                         (msg, BACKOFF_START, BACKOFF_CAP))
+                         (msg, BACKOFF_START, BACKOFF_CAP), point="work.wait")
         elif kind == "permanent":
             await self._dead(r, cause)
         elif j.effect == NON_IDEMPOTENT_EXTERNAL and kind != "not_effective" and await self._unknown(r):
             await r.exec("""state = 'paused', pause_reason = 'outcome_unknown', holder = NULL, lease_until = NULL,
-                last_error = $5""", (msg,))
+                last_error = $5""", (msg,), point="work.pause")
             self.log.error("a non-idempotent call failed without proof it did not take effect; paused", job=r.job,
                            item=r.id)
         elif r.attempts >= r.max_attempts:
@@ -357,7 +360,8 @@ class Runner:
             self.log.warn("a work item failed; it is retried after a backoff", job=r.job, item=r.id,
                           attempt=r.attempts, error=msg)
             await r.exec("""state = 'retry_wait', outcome_unknown = false, holder = NULL, lease_until = NULL,
-                last_error = $5, run_at = now() + make_interval(secs => $6)""", (msg, backoff(r.attempts)))
+                last_error = $5, run_at = now() + make_interval(secs => $6)""", (msg, backoff(r.attempts)),
+                         point="work.retry")
 
     async def _unknown(self, r: Run) -> bool:
         return bool(await self.db.background_tx(lambda tx: tx.fetchval(
@@ -371,5 +375,5 @@ class Runner:
                 await j.dead_letter(tx, r, cause)
 
         await r.exec("""state = 'dead', outcome_unknown = false, holder = NULL, lease_until = NULL, last_error = $5,
-            finished_at = now()""", (str(cause) or type(cause).__name__,), letter)
+            finished_at = now()""", (str(cause) or type(cause).__name__,), letter, "work.dead")
         self.log.error("a work item is dead; an operator decides", job=r.job, item=r.id, error=str(cause))

@@ -1,6 +1,6 @@
 {
   "topic": "reserve-participant",
-  "protocol": "3.0.0-alpha.116",
+  "protocol": "3.0.0-alpha.117",
   "rules": [
     "P16.1",
     "P16.2",

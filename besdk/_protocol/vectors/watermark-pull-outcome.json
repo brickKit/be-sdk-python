@@ -1,6 +1,6 @@
 {
   "topic": "watermark-pull-outcome",
-  "protocol": "3.0.0-alpha.116",
+  "protocol": "3.0.0-alpha.117",
   "rules": [
     "P9.22",
     "P9.28"

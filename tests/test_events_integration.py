@@ -196,6 +196,37 @@ async def test_redelivery_once_dead_letters_and_hops():  # P6.15, P6.20, P6.25, 
         await pool.close()
 
 
+async def test_the_last_delivery_leaves_a_dead_letter_while_it_runs():  # P6.20
+    """Before the last delivery is handled its dead letter is committed, so a process that dies while handling it
+    (no outcome: the transport stops delivering it) leaves the dead letter; a handling that succeeds, or finds the
+    event applied, takes it away; earlier deliveries leave none. The long simulation lost a message whose three
+    deliveries each met a crash."""
+    d, pool = await consumer_db("py_evc6")
+    during = []
+    a = await pgtest.admin()
+
+    async def handle(tx, r):
+        # what a process that died right here would leave behind (read outside this transaction)
+        during.append(await a.fetchval("SELECT count(*) FROM py_evc6.be_dead_letter "
+                                       "WHERE error LIKE '%the last delivery ended without an outcome%'"))
+        await tx.execute("INSERT INTO seen VALUES ($1, $2)", uuid.UUID(r.id), len(r.data))
+
+    c = Consumer("demo/py_evc6", Sub("moves", [STOCK.name], handle), d, LOG)
+    hdr = {"ce-id": str(uuid.uuid7()), "ce-type": "demo.stock.moved.v1", "ce-behops": "0", "ce-beversion": "1"}
+    try:
+        assert await c.handle(Delivery("s", dict(hdr), b"{}", 2)) == Outcome.ACK
+        assert during == [0], "an earlier delivery leaves no dead letter"
+        other = {**hdr, "ce-id": str(uuid.uuid7())}
+        assert await c.handle(Delivery("s", dict(other), b"{}", 3)) == Outcome.ACK
+        assert during == [0, 1], "the last delivery's dead letter is committed before it is handled"
+        assert await a.fetchval("SELECT count(*) FROM py_evc6.be_dead_letter") == 0, "handled: taken away"
+        assert await c.handle(Delivery("s", dict(other), b"{}", 3)) == Outcome.ACK, "the last delivery again"
+        assert await a.fetchval("SELECT count(*) FROM py_evc6.be_dead_letter") == 0, "applied: none either"
+    finally:
+        await a.close()
+        await pool.close()
+
+
 async def test_emitting_while_handling_counts_hops():  # P6.15
     d, pool, p = await source("py_ev5")
     try:

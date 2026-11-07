@@ -25,6 +25,7 @@
 | `obs.py` | 每个成员自己的日志、指标与追踪 | 第 10 章 |
 | `http.py`、`system.py` | 用户面（FastAPI）与系统面（`grpc.aio`）的服务器与中间件链 | 第 04、08 章 |
 | `clock.py` | 系统挂起时也计时的时钟 | P1.11 |
+| `crash.py` | 崩溃点：状态迁移处的 `crash.point(名字)`，平时什么也不做，长时间推演挂上钩子在那里结束进程 | — |
 | `mergesafety.py` | 找出合进外壳会坏的代码（进程级的全局状态、事件循环上的阻塞） | 协议 17 |
 | `manifest.py` | 组件自己的测试拿来核对文档的：`configSchema` 等 | 协议 19 |
 | `testing.py` | 测试用的安全部署：令牌、信任根、授权与审计的替身（只给测试） | — |
@@ -45,6 +46,7 @@
 
 - `make test`（`uv run pytest -q`）：单元测试与协议向量。
 - `make test-integration`（`uv run pytest -q -m integration`）：要 `BE_SDK_TEST_PG_ADMIN`、`BE_SDK_TEST_NATS_URL` 与 `BE_SDK_TEST_S3_*`（装配项目的 `itenv.sh` 设置）；缺环境就失败，不跳过。互通测试会构建 `tests/interop/` 下的 Go 小程序。
+- `make simulation`（`tests/sim`）：长时间推演：两个成员的几个副本（其中一个是承载两者的外壳）轮流在每个崩溃点结束自己、不时被杀掉，之后核对终态（每条事件进了收件表或死信、作业都有结局）；要 `make test-integration` 的环境，`SIM_MINUTES` 是注入崩溃的时长（默认 30），按长任务放后台。
 - `make protocol-check`：协议副本与它记下的标签逐字节相同。
 - 运行 Python 时设 `PYTHONDONTWRITEBYTECODE=1`，不在仓库里留字节码。
 

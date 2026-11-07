@@ -1,6 +1,6 @@
 {
   "topic": "cron-slots",
-  "protocol": "3.0.0-alpha.116",
+  "protocol": "3.0.0-alpha.117",
   "rules": [
     "P7.15",
     "P7.16"
@@ -444,6 +444,21 @@
         "pending": [],
         "paused": [],
         "watermark": "2026-10-17T06:00:30Z"
+      }
+    },
+    {
+      "id": "none-last-due-over-a-minute-ago",
+      "kind": "materialize",
+      "cron": "0 * * * *",
+      "tz": "UTC",
+      "policy": "none",
+      "max_backlog": 24,
+      "watermark": "2026-10-17T06:00:30Z",
+      "now": "2026-10-17T11:05:00Z",
+      "expect": {
+        "pending": [],
+        "paused": [],
+        "watermark": "2026-10-17T11:00:00Z"
       }
     }
   ]

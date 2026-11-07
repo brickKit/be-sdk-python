@@ -1,4 +1,4 @@
-.PHONY: test test-integration protocol-check gen gen-check lint
+.PHONY: test test-integration simulation protocol-check gen gen-check lint
 
 test:  ## unit and vector tests
 	uv run pytest -q
@@ -8,6 +8,12 @@ test:  ## unit and vector tests
 # environment fails, never skips. The interoperability tests build small Go helpers under tests/interop (Go 1.27).
 test-integration:
 	uv run pytest -q -m integration
+
+# The long simulation (tests/sim): replicas of two members, one of them a shell hosting both, each ending itself at a
+# crash point taken in turn, killed now and then; then the final state is checked. The environment of
+# test-integration; SIM_MINUTES (default 30) is how long the crashes go on. A long run: in the background.
+simulation:
+	uv run pytest -q -s -m simulation tests/sim
 
 protocol-check:  ## the copy of be-protocol equals its recorded tag
 	python3 -I scripts/protocol.py check

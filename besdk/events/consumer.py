@@ -9,6 +9,7 @@ from typing import Any, Awaitable, Callable
 
 from opentelemetry import context as otel_context
 
+from besdk import crash
 from besdk.config import Key, Type
 from besdk.db.pool import DB, Tx
 from besdk.events.core import (H_EPOCH, H_HOPS, H_ID, H_IMPL, H_PARTITION, H_PROJECTION, H_SEQ, H_SOURCE, H_STREAM,
@@ -98,27 +99,37 @@ class Consumer:
 
     async def handle(self, d: Delivery) -> Outcome:
         """Claim check, hop limit, inbox and business write in one transaction; a failure on the last delivery
-        becomes a dead letter."""
+        becomes a dead letter (P6.20). The last delivery's dead letter is committed before it is handled (the cause:
+        no outcome), so a process that dies while handling it leaves the dead letter; the handling's own transaction
+        takes it away, and a failure replaces its cause."""
+        last = d.attempt >= self.spec().max_deliver
+        if last:
+            try:
+                await self._dead_letter(d, NO_OUTCOME)
+            except Exception as e:  # noqa: BLE001
+                self.log.error("the last delivery of an event could not be dead-lettered beforehand; not handled",
+                               subscription=self.sub.name, event_id=d.id, error=repr(e))
+                return Outcome.NAK
         try:
-            await self._process(d)
+            await self._process(d, last)
             return Outcome.ACK
         except Exception as e:  # noqa: BLE001 - every failure is a nak or a dead letter
             err = e
-        if d.attempt < self.spec().max_deliver:
+        if not last:
             self.log.warn("an event failed; it will be delivered again", subscription=self.sub.name, event_id=d.id,
                           attempt=d.attempt, error=repr(err))
             return Outcome.NAK
         try:
-            await self._dead_letter(d, err)
+            await self._dead_letter(d, repr(err))
         except Exception as e:  # noqa: BLE001
-            self.log.error("an event failed for the last time and its dead letter could not be written",
-                           subscription=self.sub.name, event_id=d.id, error=repr(e))
-            return Outcome.NAK  # not lost: the transport keeps it until the limit stops it
+            self.log.error("an event failed for the last time; its dead letter keeps the cause \"no outcome\"",
+                           subscription=self.sub.name, event_id=d.id, error=repr(err), dead_letter_error=repr(e))
+            return Outcome.TERM  # the dead letter committed beforehand stays
         self.log.error("an event failed for the last time; recorded as a dead letter", subscription=self.sub.name,
                        event_id=d.id, attempts=d.attempt, error=repr(err))
         return Outcome.TERM
 
-    async def _process(self, d: Delivery) -> None:
+    async def _process(self, d: Delivery, last: bool) -> None:
         r = received(d)
         if r.hops > MAX_HOPS:
             raise ValueError(f"event {r.id}: {r.hops} hops exceed the limit of {MAX_HOPS}")
@@ -136,19 +147,29 @@ class Consumer:
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING""",
                         self.sub.name, uuid.UUID(r.id), r.source.removeprefix("urn:be:") or None, r.impl or None,
                         r.stream or None, r.partition if r.stream else None, gen, tl, r.seq if gen is not None else None)
+                    if last:  # an outcome: the dead letter committed beforehand goes in this transaction (P6.20)
+                        await tx.execute("DELETE FROM be_dead_letter WHERE subscription = $1 AND event_id = $2",
+                                         self.sub.name, r.id)
                     if status.endswith(" 0"):
                         return  # already applied: a redelivery takes effect once
                     await self.sub.handle(tx, r)
+                    crash.point("events.inbox/commit")
 
                 await self.db.background_tx(apply)
+                crash.point("events.inbox/done")
         finally:
             otel_context.detach(token)
 
-    async def _dead_letter(self, d: Delivery, cause: BaseException) -> None:
+    async def _dead_letter(self, d: Delivery, cause: str) -> None:
         await self.db.background_tx(lambda tx: tx.execute(
             """INSERT INTO be_dead_letter (subscription, event_id, type, headers, payload, error, attempts)
-            VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7) ON CONFLICT DO NOTHING""", self.sub.name, d.id,
-            d.headers.get(H_TYPE, ""), json.dumps(d.headers), d.data, repr(cause), d.attempt))
+            VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7) ON CONFLICT (subscription, event_id)
+            DO UPDATE SET error = excluded.error, attempts = excluded.attempts""", self.sub.name, d.id,
+            d.headers.get(H_TYPE, ""), json.dumps(d.headers), d.data, cause, d.attempt))
+
+
+# the cause a last delivery's dead letter carries until its handling has an outcome (P6.20)
+NO_OUTCOME = "the last delivery ended without an outcome"
 
 
 def _epoch(s: str) -> tuple[int | None, int | None]:

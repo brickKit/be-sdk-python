@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Iterator, Protocol
 
-from besdk import errs
+from besdk import crash, errs
 from besdk.db.batch import BATCH as PURGE_BATCH
 from besdk.db.pool import DB, Tx, TxOptions
 from besdk.events.core import (MAX_HOPS, MAX_PAYLOAD, MAX_SUBJECTS, REDELIVERY_RETENTION, Event, Message, Projection,
@@ -266,9 +266,12 @@ class Forwarder:
         async def numbered(tx: Tx) -> list[Row]:
             # numbering and reading what is numbered and unpublished in one transaction: one round trip fewer
             await number_in(tx, stream, p, self.batch)
-            return await self._unpublished(tx, stream, p)
+            got = await self._unpublished(tx, stream, p)
+            crash.point("events.number/commit")
+            return got
 
         rows = await self.db.background_tx(numbered, NUMBER_LIMITS)
+        crash.point("events.number/done")
         done: list[int] = []
         claimed: list[int] = []
         # the messages are prepared in the background and published in position order as each is ready: the
@@ -286,6 +289,7 @@ class Forwarder:
             for r, t in zip(rows, tasks):
                 m, is_claim = await t
                 await self.transport.publish(m)  # published again later if this fails: at least once (P6.10)
+                crash.point("events.publish/done")
                 done.append(r.ord)
                 if is_claim:
                     claimed.append(r.ord)
@@ -294,9 +298,13 @@ class Forwarder:
                 t.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
             if done:
-                await self.db.background_tx(lambda tx: tx.execute(
-                    """UPDATE be_outbox SET published_at = now(), claim = coalesce(ord = ANY($2), false)
-                    WHERE ord = ANY($1) AND published_at IS NULL""", done, claimed))
+                async def mark(tx: Tx) -> None:
+                    await tx.execute("""UPDATE be_outbox SET published_at = now(), claim = coalesce(ord = ANY($2), false)
+                        WHERE ord = ANY($1) AND published_at IS NULL""", done, claimed)
+                    crash.point("events.published/commit")
+
+                await self.db.background_tx(mark)
+                crash.point("events.published/done")
         return len(done)
 
     async def _message(self, r: Row) -> tuple[Message, bool]:
