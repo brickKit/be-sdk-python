@@ -311,6 +311,10 @@ def map_error(err: BaseException | None) -> errs.Error:
         return errs.new("LOCK_TIMEOUT", "waiting for a lock took too long").wrap(err)
     if isinstance(err, asyncpg.QueryCanceledError):
         return errs.new("STATEMENT_TIMEOUT", "the database took too long").wrap(err)
+    if isinstance(err, asyncpg.PostgresError) and err.sqlstate == "BE001":
+        # the tiering write barrier (be-protocol P15.13): the row belongs to a sealed unit
+        return errs.new("RECORD_SEALED", "the record belongs to a sealed archive unit").with_(
+            "record", getattr(err, "detail", None) or "").wrap(err)
     if isinstance(err, _UNAVAILABLE) or (isinstance(err, (OSError, asyncpg.InterfaceError,
                                                           asyncpg.ConnectionDoesNotExistError))):
         return errs.new("DEPENDENCY_UNAVAILABLE", "the database is unavailable").with_("dependency", "db").wrap(err)

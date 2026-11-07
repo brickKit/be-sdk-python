@@ -110,6 +110,31 @@ async def test_hosts_members_on_their_own_ports():
             pass
 
 
+async def test_a_shell_in_recovery():
+    # P1.22: the shell and its members are recovery_ready in the phase one member sets; the user surface answers
+    # MAINTENANCE (P1.23); the self-descriptions say the phase
+    pa, pb, ps = free_port(), free_port(), free_port()
+    js = served(("demo/alpha", "0.1.0", pa, {"GREETING": "x", "RECOVERY_PHASE": "frozen"}),
+                ("demo/beta", "0.1.0", pb, {"GREETING": "x"}))
+    stop = asyncio.Event()
+    run = asyncio.create_task(shell.run(SELF, [definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0")],
+                                        shell.Options(env=shell_env(ps, js), stdout=io.StringIO(), stderr=io.StringIO(),
+                                                      host="127.0.0.1", installed_of=installed(
+                                                          {"demo/alpha": "0.1.0", "demo/beta": "0.1.0"})), stop))
+    base = f"http://127.0.0.1:{ps}"
+    await wait_ready(base)
+    async with httpx.AsyncClient() as c:
+        for port in (ps, pa, pb):
+            r = await c.get(f"http://127.0.0.1:{port}/readyz")
+            assert r.json() == {"state": "recovery_ready", "phase": "frozen"}, port
+        r = await c.get(f"http://127.0.0.1:{pb}/api/hello")
+        assert r.status_code == 503 and r.json()["reason"] == "MAINTENANCE"
+        desc = (await c.get(base + "/.well-known/be-component")).json()
+        assert desc["recovery_phase"] == "frozen" and all(m["recovery_phase"] == "frozen" for m in desc["members"])
+    stop.set()
+    assert await run == 0
+
+
 async def test_refuses_member_not_installed():
     js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x"}), ("demo/beta", "0.1.0", 18082, {"GREETING": "x"}))
     out = await refuse(shell_env(18080, js), installed({"demo/alpha": "0.1.0"}), definition("demo/alpha", "0.1.0"))
@@ -196,6 +221,23 @@ async def test_refuses_process_keys_that_disagree():
                        definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0"), definition("demo/gamma", "0.1.0"))
     assert "demo/beta:OTEL_URL" in out
     assert "demo/gamma" not in out and "demo/alpha:OTEL_URL" not in out
+
+
+async def test_a_member_without_a_phase_runs_in_the_shells_phase():
+    # P1.22: the shell's phase is the members' one; a member whose manifest declares none (a probe's) still runs in
+    # the phase the others set, never on while they are frozen; two phases disagree like any process-level key
+    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x", "RECOVERY_PHASE": "frozen"}),
+                ("demo/beta", "0.1.0", 18082, {"GREETING": "x"}))
+    plans, refusals, _ = shell.check(js, [definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0")],
+                                     installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0"}), False)
+    assert refusals == []
+    assert {p.definition.id: p.values.string("RECOVERY_PHASE") for p in plans} == {"demo/alpha": "frozen",
+                                                                                  "demo/beta": "frozen"}
+    js = served(("demo/alpha", "0.1.0", 18081, {"GREETING": "x", "RECOVERY_PHASE": "frozen"}),
+                ("demo/beta", "0.1.0", 18082, {"GREETING": "x", "RECOVERY_PHASE": "verifying"}))
+    _, refusals, _ = shell.check(js, [definition("demo/alpha", "0.1.0"), definition("demo/beta", "0.1.0")],
+                                 installed({"demo/alpha": "0.1.0", "demo/beta": "0.1.0"}), False)
+    assert [r.key for r in refusals] == ["demo/beta:RECOVERY_PHASE"]
 
 
 async def test_shell_does_not_migrate():

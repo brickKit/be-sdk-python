@@ -1,0 +1,256 @@
+{
+  "topic": "external-reconcile",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P13.12"
+  ],
+  "description": "整套恢复第 7 步的外部对账：对上而终结（外部未终结的取 accepted）、写重发截止（保留期从最近一次起算的也写）、unknown、manual（manual 不被降级）、外部有本地无、可能已对外执行待核实",
+  "fields": {
+    "input": "T, now, commands, external, issued, capabilities, failed_at",
+    "expected": "reference -> conclusion"
+  },
+  "cases": [
+    {
+      "id": "step-7",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-matched",
+            "state": "retry_wait",
+            "first_reached_at": "2026-11-05T10:10:00.000000Z"
+          },
+          {
+            "reference": "p-prepared-dedupe",
+            "state": "prepared"
+          },
+          {
+            "reference": "p-sending-dedupe",
+            "state": "sending",
+            "sending_at": "2026-11-05T09:00:00.000000Z"
+          },
+          {
+            "reference": "p-sending-old",
+            "state": "unknown",
+            "sending_at": "2026-11-03T09:00:00.000000Z"
+          },
+          {
+            "reference": "p-old",
+            "state": "unknown",
+            "first_reached_at": "2026-11-03T10:00:00.000000Z"
+          },
+          {
+            "reference": "p-expired",
+            "state": "unknown",
+            "first_reached_at": "2026-11-05T11:00:00.000000Z",
+            "last_reached_at": "2026-11-05T11:00:00.000000Z",
+            "expires_at": "2026-11-05T12:00:00.000000Z"
+          }
+        ],
+        "external": {
+          "p-matched": "succeeded",
+          "p-external-only": "succeeded"
+        },
+        "issued": [
+          "p-matched",
+          "p-issued-lost"
+        ],
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        }
+      },
+      "expected": {
+        "p-matched": {
+          "conclusion": "matched",
+          "state": "succeeded"
+        },
+        "p-prepared-dedupe": {
+          "conclusion": "deadline",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "p-sending-dedupe": {
+          "conclusion": "deadline",
+          "resend_deadline": "2026-11-06T06:36:00.000000Z"
+        },
+        "p-sending-old": {
+          "conclusion": "manual",
+          "reason": "the earlier request may still land"
+        },
+        "p-old": {
+          "conclusion": "manual",
+          "reason": "the earlier request may still land"
+        },
+        "p-expired": {
+          "conclusion": "deadline",
+          "resend_deadline": "2026-11-06T08:36:00.000000Z"
+        },
+        "p-external-only": {
+          "conclusion": "external_only"
+        },
+        "p-issued-lost": {
+          "conclusion": "possibly_executed"
+        }
+      }
+    },
+    {
+      "id": "no-dedupe-prepared",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-x",
+            "state": "prepared"
+          }
+        ],
+        "external": {},
+        "issued": [],
+        "capabilities": {
+          "query": true
+        }
+      },
+      "expected": {
+        "p-x": {
+          "conclusion": "manual",
+          "reason": "the earlier request may still land"
+        }
+      }
+    },
+    {
+      "id": "no-dedupe-expired",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-y",
+            "state": "unknown",
+            "first_reached_at": "2026-11-05T11:00:00.000000Z",
+            "last_reached_at": "2026-11-05T11:00:00.000000Z",
+            "expires_at": "2026-11-05T12:00:00.000000Z"
+          }
+        ],
+        "external": {},
+        "issued": [],
+        "capabilities": {
+          "query": true
+        }
+      },
+      "expected": {
+        "p-y": {
+          "conclusion": "unknown",
+          "reason": "the request's expiry has passed"
+        }
+      }
+    },
+    {
+      "id": "last-use-manual-not-final",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-last-use",
+            "state": "prepared"
+          },
+          {
+            "reference": "p-manual",
+            "state": "manual"
+          },
+          {
+            "reference": "p-manual-found",
+            "state": "manual"
+          },
+          {
+            "reference": "p-pending",
+            "state": "sending",
+            "sending_at": "2026-11-05T09:30:00.000000Z"
+          }
+        ],
+        "external": {
+          "p-manual-found": "failed",
+          "p-pending": "processing"
+        },
+        "issued": [],
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "last_use",
+          "query": true
+        }
+      },
+      "expected": {
+        "p-last-use": {
+          "conclusion": "deadline",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "p-manual": {
+          "conclusion": "manual",
+          "reason": "manual: only a person registers it"
+        },
+        "p-manual-found": {
+          "conclusion": "matched",
+          "state": "failed"
+        },
+        "p-pending": {
+          "conclusion": "matched",
+          "state": "accepted"
+        }
+      }
+    },
+    {
+      "id": "longest-processing-after-the-failure",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-mp",
+            "state": "retry_wait"
+          }
+        ],
+        "external": {},
+        "issued": [],
+        "capabilities": {
+          "query": true,
+          "max_processing": 3600
+        },
+        "failed_at": "2026-11-05T12:30:00.000000Z"
+      },
+      "expected": {
+        "p-mp": {
+          "conclusion": "unknown",
+          "reason": "the longest processing time has passed"
+        }
+      }
+    },
+    {
+      "id": "longest-processing-within",
+      "input": {
+        "T": "2026-11-05T10:00:00.000000Z",
+        "now": "2026-11-05T14:00:00.000000Z",
+        "commands": [
+          {
+            "reference": "p-mp",
+            "state": "retry_wait"
+          }
+        ],
+        "external": {},
+        "issued": [],
+        "capabilities": {
+          "query": true,
+          "max_processing": 3600
+        },
+        "failed_at": "2026-11-05T13:30:00.000000Z"
+      },
+      "expected": {
+        "p-mp": {
+          "conclusion": "manual",
+          "reason": "the earlier request may still land"
+        }
+      }
+    }
+  ]
+}

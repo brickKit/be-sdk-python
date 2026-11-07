@@ -1,6 +1,6 @@
 {
   "topic": "errors",
-  "protocol": "3.0.0-alpha.68",
+  "protocol": "3.0.0-alpha.116",
   "rules": [
     "P3.1",
     "P3.2",
@@ -218,6 +218,17 @@
       "type": "urn:be:be:LAST_ADMIN_PROTECTED"
     },
     {
+      "id": "reason-record_sealed",
+      "kind": "reason",
+      "reason": "RECORD_SEALED",
+      "domain": "be",
+      "grpc_code": "FAILED_PRECONDITION",
+      "http": 409,
+      "retryable": "no",
+      "log_level": "info",
+      "type": "urn:be:be:RECORD_SEALED"
+    },
+    {
       "id": "reason-idempotency_key_reused",
       "kind": "reason",
       "reason": "IDEMPOTENCY_KEY_REUSED",
@@ -392,6 +403,17 @@
       "retryable": "yes",
       "log_level": "warn",
       "type": "urn:be:be:RECOVERY_IN_PROGRESS"
+    },
+    {
+      "id": "reason-maintenance",
+      "kind": "reason",
+      "reason": "MAINTENANCE",
+      "domain": "be",
+      "grpc_code": "UNAVAILABLE",
+      "http": 503,
+      "retryable": "yes",
+      "log_level": "warn",
+      "type": "urn:be:be:MAINTENANCE"
     },
     {
       "id": "reason-member_switch_in_progress",

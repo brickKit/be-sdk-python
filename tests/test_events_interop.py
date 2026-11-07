@@ -138,8 +138,11 @@ async def start_python(d, env):
     return f"http://127.0.0.1:{port}", stop, task
 
 
-async def start_go(binary, member_id, role, env):
-    full = {**os.environ, **env, "MEMBER_ID": member_id, "ROLE": role, "COMPONENT_ID": member_id}
+async def start_go(binary, member_id, role, env, world):
+    """The Go member with a service identity from the test deployment: a member with a database answers a full
+    recovery's checks on its system surface (be-sdk-go alpha.117, P14.1)."""
+    full = {**os.environ, **world.env(member_id), **env, "MEMBER_ID": member_id, "ROLE": role,
+            "COMPONENT_ID": member_id, "GRPC_PORT": str(free_port())}
     p = await asyncio.to_thread(subprocess.run, [str(binary), "migrate"], env=full, capture_output=True, text=True)
     assert p.returncode == 0, p.stdout + p.stderr
     port = free_port()
@@ -187,13 +190,13 @@ def go_binary(tmp_path_factory):
 
 
 @pytest.mark.parametrize("kind", ["jetstream", "pgqueue"])
-async def test_python_to_go(kind, go_binary):
+async def test_python_to_go(kind, go_binary, world):
     async with bus(kind) as url:
         sfx = uuid.uuid4().hex[:6]
         prod_env = await member_env("py_iop_pp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
                                                   **s3_env("py-iop-pp/")})
         cons_env = await member_env("py_iop_gc", {"BUS_URL": url})
-        gurl, gproc = await start_go(go_binary, "demo/gocons" + sfx, "consumer", cons_env)
+        gurl, gproc = await start_go(go_binary, "demo/gocons" + sfx, "consumer", cons_env, world)
         purl, pstop, ptask = await start_python(Definition(
             "demo/pyprod" + sfx, "3.0.0", PyProducer, migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
             streams=[THINGS]), prod_env)
@@ -210,7 +213,7 @@ async def test_python_to_go(kind, go_binary):
 
 
 @pytest.mark.parametrize("kind", ["jetstream", "pgqueue"])
-async def test_go_to_python(kind, go_binary):
+async def test_go_to_python(kind, go_binary, world):
     async with bus(kind) as url:
         sfx = uuid.uuid4().hex[:6]
         prod_env = await member_env("py_iop_gp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
@@ -220,7 +223,7 @@ async def test_go_to_python(kind, go_binary):
             "demo/pycons" + sfx, "3.0.0", PyConsumer, subscribes=True,
             migrations={"0001_seen.up.sql": "CREATE TABLE seen (event_id uuid PRIMARY KEY, size int NOT NULL);"}),
             cons_env)
-        gurl, gproc = await start_go(go_binary, "demo/goprod" + sfx, "producer", prod_env)
+        gurl, gproc = await start_go(go_binary, "demo/goprod" + sfx, "producer", prod_env, world)
         try:
             async with httpx.AsyncClient() as c:
                 for i in range(5):

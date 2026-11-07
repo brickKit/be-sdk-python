@@ -1,0 +1,85 @@
+{
+  "topic": "tier-manifest",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P15.15",
+    "P15.16"
+  ],
+  "description": "对象的键与清单的规范形式",
+  "fields": {
+    "input": "prefix, class, unit, generation, version, table, part | manifest",
+    "expected": "key | canonical"
+  },
+  "cases": [
+    {
+      "id": "object-key",
+      "description": "the component's prefix, the class, the unit, generation.version, the table and the part",
+      "input": {
+        "prefix": "sales",
+        "class": "sales.orders",
+        "unit": "0190f3a1-0000-7000-8000-0000000000c1",
+        "generation": 3,
+        "version": 1,
+        "table": "order_lines",
+        "part": 0
+      },
+      "expected": {
+        "key": "sales/sales.orders/0190f3a1-0000-7000-8000-0000000000c1/3.1/order_lines-0.parquet"
+      }
+    },
+    {
+      "id": "manifest-canonical",
+      "description": "a manifest's canonical bytes (counts as decimal strings)",
+      "input": {
+        "manifest": {
+          "record_type": "be.tier.manifest",
+          "schema": "1.0",
+          "unit": "0190f3a1-0000-7000-8000-0000000000c1",
+          "class": "sales.orders",
+          "version": 1,
+          "route": "object-parquet",
+          "generation": 3,
+          "epoch": "1.1",
+          "format": "parquet-1",
+          "schema_version": "1",
+          "digest_version": 1,
+          "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "tables": [
+            {
+              "name": "order_lines",
+              "pk": [
+                "order_id",
+                "line"
+              ],
+              "columns": [
+                {
+                  "name": "line",
+                  "type": "int4",
+                  "nullable": false
+                },
+                {
+                  "name": "order_id",
+                  "type": "uuid",
+                  "nullable": false
+                }
+              ],
+              "rows": "3",
+              "objects": [
+                {
+                  "key": "sales/sales.orders/0190f3a1-0000-7000-8000-0000000000c1/3.1/order_lines-0.parquet",
+                  "rows": "3",
+                  "bytes": "1024",
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                }
+              ]
+            }
+          ],
+          "created_at": "2026-11-06T10:00:00.000000Z"
+        }
+      },
+      "expected": {
+        "canonical": "{\"class\":\"sales.orders\",\"created_at\":\"2026-11-06T10:00:00.000000Z\",\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"digest_version\":1,\"epoch\":\"1.1\",\"format\":\"parquet-1\",\"generation\":3,\"record_type\":\"be.tier.manifest\",\"route\":\"object-parquet\",\"schema\":\"1.0\",\"schema_version\":\"1\",\"tables\":[{\"columns\":[{\"name\":\"line\",\"nullable\":false,\"type\":\"int4\"},{\"name\":\"order_id\",\"nullable\":false,\"type\":\"uuid\"}],\"name\":\"order_lines\",\"objects\":[{\"bytes\":\"1024\",\"key\":\"sales/sales.orders/0190f3a1-0000-7000-8000-0000000000c1/3.1/order_lines-0.parquet\",\"rows\":\"3\",\"sha256\":\"1111111111111111111111111111111111111111111111111111111111111111\"}],\"pk\":[\"order_id\",\"line\"],\"rows\":\"3\"}],\"unit\":\"0190f3a1-0000-7000-8000-0000000000c1\",\"version\":1}"
+      }
+    }
+  ]
+}

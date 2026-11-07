@@ -48,7 +48,8 @@
       "enum": [
         "admin",
         "identity_side",
-        "admin_recovery"
+        "admin_recovery",
+        "recovery_review"
       ]
     },
     "subject_employee": {

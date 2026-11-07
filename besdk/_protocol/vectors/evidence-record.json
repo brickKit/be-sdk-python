@@ -1,0 +1,593 @@
+{
+  "topic": "evidence-record",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P12.9",
+    "P12.10"
+  ],
+  "description": "证据记录：类别的取值、规范摘要（前缀 be.evidence.record.v1），证据存储按（id，phase）的回答：已收下、重复、冲突",
+  "fields": {
+    "input": "record | stored, incoming",
+    "expected": "categories | digest | answer"
+  },
+  "cases": [
+    {
+      "id": "categories",
+      "expected": {
+        "categories": [
+          "security_tightening",
+          "security_widening",
+          "employment_end",
+          "org_tightening",
+          "account_status",
+          "account_reenable",
+          "identity_signing_key_revocation",
+          "credential_tightening",
+          "credential_tightening_in_product",
+          "session_revocation",
+          "recovery_credential_rotation",
+          "document_number",
+          "member_switch_handover",
+          "destruction",
+          "erasure",
+          "external_command_issued",
+          "external_command_outcome",
+          "deployment_generation",
+          "authz_generation",
+          "evidence_double_failure"
+        ]
+      }
+    },
+    {
+      "id": "position-by-phase",
+      "description": "only effective and general carry a position",
+      "expected": {
+        "with_position": [
+          "effective",
+          "general"
+        ],
+        "without_position": [
+          "intent",
+          "cancelled"
+        ]
+      }
+    },
+    {
+      "id": "digest-intent",
+      "input": {
+        "record": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "intent",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "digest": "sha256:48d7e4d9871e5d87c6af002fad1eb7ebeef0579940995bee2202e0784a8e6a2a"
+      }
+    },
+    {
+      "id": "digest-effective",
+      "input": {
+        "record": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "effective",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 107
+          }
+        }
+      },
+      "expected": {
+        "digest": "sha256:b76034c36b1a7b8f3477b5c6008fbd2825c257f55720c16da95c764e7ffa9d4b"
+      }
+    },
+    {
+      "id": "digest-cancelled",
+      "input": {
+        "record": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "cancelled",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "digest": "sha256:2cc4d46348919006694b783f9f8fa8d76613e449f911f02f7faec15cee25232e"
+      }
+    },
+    {
+      "id": "digest-general",
+      "input": {
+        "record": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "general",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 107
+          }
+        }
+      },
+      "expected": {
+        "digest": "sha256:20c3368f4a5e05099cd2f63fafcf59ea39654551c436e866a7978d3d77d2acf9"
+      }
+    },
+    {
+      "id": "store-first-intent",
+      "input": {
+        "stored": [],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "intent",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "answer": "accepted"
+      }
+    },
+    {
+      "id": "store-same-intent-again",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "intent",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "answer": "duplicate"
+      }
+    },
+    {
+      "id": "store-intent-other-bytes",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "intent",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "narrow"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "answer": "conflict"
+      }
+    },
+    {
+      "id": "store-conclusion-matches",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "effective",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 107
+          }
+        }
+      },
+      "expected": {
+        "answer": "accepted"
+      }
+    },
+    {
+      "id": "store-conclusion-other-subject",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "effective",
+          "subject": "0190f3a1-0000-7000-8000-0000000000c3",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 107
+          }
+        }
+      },
+      "expected": {
+        "answer": "conflict"
+      }
+    },
+    {
+      "id": "store-conclusion-without-intent",
+      "input": {
+        "stored": [],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "effective",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 107
+          }
+        }
+      },
+      "expected": {
+        "answer": "accepted"
+      }
+    },
+    {
+      "id": "store-cancelled-after-intent",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "cancelled",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z"
+        }
+      },
+      "expected": {
+        "answer": "accepted"
+      }
+    },
+    {
+      "id": "store-conclusion-again-other-position",
+      "input": {
+        "stored": [
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "intent",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z"
+          },
+          {
+            "record_type": "be.evidence.record",
+            "schema": "1.0",
+            "id": "0190f3a1-0000-7000-8000-0000000000e7",
+            "recorder": {
+              "component": "infra/authz",
+              "instance": "authz-1"
+            },
+            "category": "security_tightening",
+            "phase": "effective",
+            "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+            "object": {
+              "type": "infra.authz.security_record",
+              "id": "0190f3a1-0000-7000-8000-0000000000f1",
+              "version": "3"
+            },
+            "change": {
+              "termination": "revoke"
+            },
+            "at": "2026-11-05T10:20:00.000000Z",
+            "position": {
+              "epoch": "1.1",
+              "commit_seq": 107
+            }
+          }
+        ],
+        "incoming": {
+          "record_type": "be.evidence.record",
+          "schema": "1.0",
+          "id": "0190f3a1-0000-7000-8000-0000000000e7",
+          "recorder": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "category": "security_tightening",
+          "phase": "effective",
+          "subject": "0190f3a1-0000-7000-8000-0000000000b2",
+          "object": {
+            "type": "infra.authz.security_record",
+            "id": "0190f3a1-0000-7000-8000-0000000000f1",
+            "version": "3"
+          },
+          "change": {
+            "termination": "revoke"
+          },
+          "at": "2026-11-05T10:20:00.000000Z",
+          "position": {
+            "epoch": "1.1",
+            "commit_seq": 108
+          }
+        }
+      },
+      "expected": {
+        "answer": "conflict"
+      }
+    }
+  ]
+}

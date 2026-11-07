@@ -57,6 +57,12 @@
     },
     "security_version": {
       "$ref": "#/$defs/Int"
+    },
+    "confirmation": {
+      "$ref": "#/$defs/Id"
+    },
+    "evidence": {
+      "$ref": "#/$defs/Id"
     }
   },
   "additionalProperties": false,

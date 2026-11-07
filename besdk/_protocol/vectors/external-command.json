@@ -1,0 +1,641 @@
+{
+  "topic": "external-command",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P13.2",
+    "P13.3",
+    "P13.4",
+    "P13.5",
+    "P13.6",
+    "P13.7",
+    "P13.8"
+  ],
+  "description": "对外命令：状态转移（按行序第一条命中）、查询“不存在”之后是否重发、重发截止时刻的公式、请求按参考号与参数摘要的幂等",
+  "fields": {
+    "input": "command, event, capabilities, now | command, capabilities | stored, incoming",
+    "expected": "state, reason | resend_deadline | digest, answer"
+  },
+  "cases": [
+    {
+      "id": "ei01-read-timeout",
+      "input": {
+        "command": {
+          "state": "sending"
+        },
+        "event": {
+          "kind": "send_result",
+          "result": "maybe_reached"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "unknown",
+        "reason": "may have been processed: query first"
+      },
+      "description": "EI01: a read timeout is unknown, queried first"
+    },
+    {
+      "id": "connection-failed",
+      "input": {
+        "command": {
+          "state": "sending"
+        },
+        "event": {
+          "kind": "send_result",
+          "result": "not_reached"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "retry_wait",
+        "reason": "certainly not processed: backoff and send again"
+      }
+    },
+    {
+      "id": "accepted",
+      "input": {
+        "command": {
+          "state": "sending"
+        },
+        "event": {
+          "kind": "send_result",
+          "result": "accepted"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "accepted",
+        "reason": "accepted, not final"
+      },
+      "description": "EI12: accepted is not paid"
+    },
+    {
+      "id": "rejected",
+      "input": {
+        "command": {
+          "state": "sending"
+        },
+        "event": {
+          "kind": "send_result",
+          "result": "rejected"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "rejected",
+        "reason": "refused for good"
+      }
+    },
+    {
+      "id": "ei02-query-unavailable",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "unavailable"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T11:00:00.000000Z"
+      },
+      "expected": {
+        "state": "unknown",
+        "reason": "the query is unavailable: backoff"
+      },
+      "description": "EI02: the query unavailable: backoff"
+    },
+    {
+      "id": "ei02-past-the-manual-limit",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "unavailable"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-06T10:00:01.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "no answer within the manual limit"
+      },
+      "description": "EI02: past the manual limit"
+    },
+    {
+      "id": "ei03-not-found-no-dedupe",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:05:00.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "the earlier request may still land"
+      },
+      "description": "EI03: not found, no dedupe, no expiry, no longest processing time"
+    },
+    {
+      "id": "ei04-not-found-dedupe",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        },
+        "now": "2026-11-05T12:00:00.000000Z"
+      },
+      "expected": {
+        "state": "sending",
+        "reason": "the external system deduplicates and the deadline has not passed"
+      },
+      "description": "EI04: not found, the external system deduplicates: same reference"
+    },
+    {
+      "id": "ei36-not-found-past-the-window",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        },
+        "now": "2026-11-08T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "the earlier request may still land"
+      },
+      "description": "EI36: the dedupe window passed: not by dedupe"
+    },
+    {
+      "id": "ei39-first-use-window",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-06T09:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        },
+        "now": "2026-11-06T16:00:00.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "the earlier request may still land"
+      },
+      "description": "EI39: counted from the first use, 30 h after it"
+    },
+    {
+      "id": "last-use-window",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-06T09:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-07T06:36:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "last_use",
+          "query": true
+        },
+        "now": "2026-11-06T16:00:00.000000Z"
+      },
+      "expected": {
+        "state": "sending",
+        "reason": "the external system deduplicates and the deadline has not passed"
+      },
+      "description": "a last-use window counts from the latest send"
+    },
+    {
+      "id": "expiry-passed",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "expires_at": "2026-11-05T10:30:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T11:00:00.000000Z"
+      },
+      "expected": {
+        "state": "sending",
+        "reason": "the request's expiry has passed"
+      }
+    },
+    {
+      "id": "longest-processing-passed",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "query": true,
+          "max_processing": 3600
+        },
+        "now": "2026-11-05T11:00:01.000000Z"
+      },
+      "expected": {
+        "state": "sending",
+        "reason": "the longest processing time has passed"
+      }
+    },
+    {
+      "id": "longest-processing-unrecorded",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z",
+          "unrecorded_until": "2026-11-05T10:30:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "not_found"
+        },
+        "capabilities": {
+          "query": true,
+          "max_processing": 3600
+        },
+        "now": "2026-11-05T11:00:01.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "the earlier request may still land"
+      },
+      "description": "a full recovery: sends until the failure may be unrecorded; the longest processing time counts from it"
+    },
+    {
+      "id": "found-succeeded",
+      "input": {
+        "command": {
+          "state": "unknown",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "unknown_since": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "found",
+          "external_state": "succeeded"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "succeeded",
+        "reason": "the external record"
+      }
+    },
+    {
+      "id": "ei08-late-in-progress",
+      "input": {
+        "command": {
+          "state": "succeeded",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "query",
+          "result": "found",
+          "external_state": "accepted"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "succeeded",
+        "reason": "a terminal state absorbs every later result"
+      },
+      "description": "EI08: a terminal state absorbs a later result"
+    },
+    {
+      "id": "ei30-lease-lost",
+      "input": {
+        "command": {
+          "state": "sending"
+        },
+        "event": {
+          "kind": "lease_lost"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "unknown",
+        "reason": "the claimant is gone: whether it sent is not known"
+      },
+      "description": "EI29, EI30: the claimant gone while sending: unknown, queried, not resent"
+    },
+    {
+      "id": "claim-past-deadline",
+      "input": {
+        "command": {
+          "state": "retry_wait",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "event": {
+          "kind": "claim"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        },
+        "now": "2026-11-06T09:30:00.000000Z"
+      },
+      "expected": {
+        "state": "unknown",
+        "reason": "claimed past the resend deadline"
+      }
+    },
+    {
+      "id": "ei40-past-deadline-before-send",
+      "input": {
+        "command": {
+          "state": "sending",
+          "first_reached_at": "2026-11-05T10:00:00.000000Z",
+          "last_reached_at": "2026-11-05T10:00:00.000000Z",
+          "resend_deadline": "2026-11-06T07:36:00.000000Z"
+        },
+        "event": {
+          "kind": "before_send"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        },
+        "now": "2026-11-06T07:40:00.000000Z"
+      },
+      "expected": {
+        "state": "unknown",
+        "reason": "past the resend deadline before the send: not sent"
+      },
+      "description": "EI40: within the deadline at the claim, past it before the send: not sent"
+    },
+    {
+      "id": "ei31-no-query-manual",
+      "input": {
+        "command": {
+          "state": "accepted",
+          "accepted_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "finality_passed"
+        },
+        "capabilities": {},
+        "now": "2026-11-06T10:00:01.000000Z"
+      },
+      "expected": {
+        "state": "manual",
+        "reason": "no query and past the manual limit"
+      },
+      "description": "EI31: no query, past the manual limit"
+    },
+    {
+      "id": "ei31-query",
+      "input": {
+        "command": {
+          "state": "accepted",
+          "accepted_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "event": {
+          "kind": "finality_passed"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-06T10:00:01.000000Z"
+      },
+      "expected": {
+        "state": "accepted",
+        "reason": "past the finality limit: query"
+      }
+    },
+    {
+      "id": "manual-registered",
+      "input": {
+        "command": {
+          "state": "manual"
+        },
+        "event": {
+          "kind": "registered",
+          "result": "succeeded"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "succeeded",
+        "reason": "registered by a person, with its grounds"
+      }
+    },
+    {
+      "id": "off-table",
+      "input": {
+        "command": {
+          "state": "prepared"
+        },
+        "event": {
+          "kind": "send_result",
+          "result": "succeeded"
+        },
+        "capabilities": {
+          "query": true
+        },
+        "now": "2026-11-05T10:00:00.000000Z"
+      },
+      "expected": {
+        "state": "prepared",
+        "reason": "not a transition of the table: unchanged, logged"
+      }
+    },
+    {
+      "id": "deadline-24h",
+      "input": {
+        "command": {
+          "first_reached_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        }
+      },
+      "expected": {
+        "resend_deadline": "2026-11-06T07:36:00.000000Z"
+      }
+    },
+    {
+      "id": "deadline-2h-margin-1h",
+      "input": {
+        "command": {
+          "first_reached_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "capabilities": {
+          "dedupe_window": 7200,
+          "window_from": "first_use",
+          "query": true
+        }
+      },
+      "expected": {
+        "resend_deadline": "2026-11-05T11:00:00.000000Z"
+      }
+    },
+    {
+      "id": "deadline-none-without-reach",
+      "input": {
+        "command": {},
+        "capabilities": {
+          "dedupe_window": 86400,
+          "window_from": "first_use",
+          "query": true
+        }
+      },
+      "expected": {
+        "resend_deadline": null
+      }
+    },
+    {
+      "id": "deadline-none-without-dedupe",
+      "input": {
+        "command": {
+          "first_reached_at": "2026-11-05T10:00:00.000000Z"
+        },
+        "capabilities": {
+          "query": true
+        }
+      },
+      "expected": {
+        "resend_deadline": null
+      }
+    },
+    {
+      "id": "ei05-same-reference-other-amount",
+      "description": "EI05",
+      "input": {
+        "stored": "sha256:b36a438e2389bd74e2fd8e8957a49e4da7f70ca54ecb0a7c83650955d1e5df7c",
+        "incoming": {
+          "amount": "120.00",
+          "currency": "EUR"
+        }
+      },
+      "expected": {
+        "digest": "sha256:6db5bc98266c144b5fffa7d9c05c927d7ca20a8946743c6ffab6d5d1e51aea72",
+        "answer": "IDEMPOTENCY_KEY_REUSED"
+      }
+    },
+    {
+      "id": "same-reference-same-params",
+      "input": {
+        "stored": "sha256:b36a438e2389bd74e2fd8e8957a49e4da7f70ca54ecb0a7c83650955d1e5df7c",
+        "incoming": {
+          "amount": "100.00",
+          "currency": "EUR"
+        }
+      },
+      "expected": {
+        "digest": "sha256:b36a438e2389bd74e2fd8e8957a49e4da7f70ca54ecb0a7c83650955d1e5df7c",
+        "answer": "existing"
+      }
+    }
+  ]
+}

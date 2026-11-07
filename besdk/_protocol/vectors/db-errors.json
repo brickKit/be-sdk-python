@@ -1,6 +1,6 @@
 {
   "topic": "db-errors",
-  "protocol": "3.0.0-alpha.68",
+  "protocol": "3.0.0-alpha.116",
   "rules": [
     "P5.7",
     "P5.8"
@@ -40,6 +40,13 @@
       "reason": "STATEMENT_TIMEOUT",
       "retried": false,
       "note": "statement_timeout (query canceled)"
+    },
+    {
+      "id": "db-BE001",
+      "sqlstate": "BE001",
+      "reason": "RECORD_SEALED",
+      "retried": false,
+      "note": "the tiering write barrier: the row belongs to a sealed unit (P15.13)"
     },
     {
       "id": "db-53300",

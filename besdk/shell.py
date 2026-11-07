@@ -165,6 +165,8 @@ def check(raw: str, defs: list[Definition], lookup: Callable[[Definition], tuple
         return [], [_refusal("shell", "BRICKKIT_SERVED_MEMBERS_CONFIG", "invalid", f"JSON list of members: {e}")], []
     by_id = {d.id: d for d in defs}
     out, refusals, warnings = [], [], []
+    # the recovery phase is the process's (P1.22): a member that sets none runs in the one the others set
+    phase = next((s.config.get("RECOVERY_PHASE", "") for s in served if s.config.get("RECOVERY_PHASE")), "")
     seen_ids: set[str] = set()
     seen_ports: dict[int, str] = {}
     for s in served:
@@ -200,7 +202,8 @@ def check(raw: str, defs: list[Definition], lookup: Callable[[Definition], tuple
                 else:
                     refusals.append(_refusal(mid, "distribution", "invalid", "no local install in a release build; " + msg))
         try:
-            out.append(Planned(d, s, config.parse(host.keys(d), MapSource(s.config))))
+            cfg = s.config if not phase or s.config.get("RECOVERY_PHASE") else {**s.config, "RECOVERY_PHASE": phase}
+            out.append(Planned(d, s, config.parse(host.keys(d), MapSource(cfg))))
         except ConfigError as e:
             refusals += [_refusal(mid, p.key, p.kind, p.expected) for p in e.problems]
     return out, refusals + process_keys_agree(out) + targets_agree(out), warnings
@@ -426,13 +429,18 @@ def _own_surface(self: Identity, sv: config.Values, members: list[host.Member]):
             return True, host.READY, []
         return False, host.STOPPING if members and members[0].state == host.STOPPING else host.STARTING, waiting
 
+    phase = members[0].phase if members else ""  # the members agree on it (check): the shell's phase (P1.22)
+
     def describe() -> dict:
-        return {"component_id": self.id, "version": self.version, "protocol": protocol.capabilities()["protocol"],
-                "sdk": "be-sdk-python/" + besdk.Version, "capabilities": [], "members": [m.describe() for m in members]}
+        out = {"component_id": self.id, "version": self.version, "protocol": protocol.capabilities()["protocol"],
+               "sdk": "be-sdk-python/" + besdk.Version, "capabilities": [], "members": [m.describe() for m in members]}
+        if phase:
+            out["recovery_phase"] = phase
+        return out
 
     tracer = obs.new_tracer_provider(me, sv.string("OTEL_URL")).get_tracer(self.id)
     return build_app(Deps(obs.new_logger(me, sv.string("LOG_LEVEL"), _Discard()), obs.new_registry(), tracer,
-                          Platform(ready, describe, lambda: generate_latest(aggregate))), Routes())
+                          Platform(ready, describe, lambda: generate_latest(aggregate), phase=phase)), Routes())
 
 
 class _Discard:

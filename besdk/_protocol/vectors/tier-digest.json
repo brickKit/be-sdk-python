@@ -1,0 +1,538 @@
+{
+  "topic": "tier-digest",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P15.8",
+    "P15.9",
+    "P15.10"
+  ],
+  "description": "规范行（按列的类型，null 不写）、主键的规范形式、表的散列（按主键排序，长度前缀）与单元的摘要",
+  "fields": {
+    "input": "columns, row | pk | rows | class, schema_version, tables",
+    "expected": "canonical_row | refused | canonical_pk | sha256 | digest"
+  },
+  "cases": [
+    {
+      "id": "all-types",
+      "description": "every type once",
+      "input": {
+        "columns": {
+          "id": "uuid",
+          "legal_entity": "uuid",
+          "code": "text",
+          "note": "text",
+          "total": "numeric",
+          "lines": "int4",
+          "closed_at": "timestamptz",
+          "day": "date",
+          "paid": "bool",
+          "attrs": "jsonb",
+          "blob": "bytea"
+        },
+        "row": {
+          "id": "0190f3a1-0000-7000-8000-0000000000a1",
+          "legal_entity": "0190f3a1-0000-7000-8000-00000000e001",
+          "code": "SO-1",
+          "note": "café",
+          "total": "1250.50",
+          "lines": 3,
+          "closed_at": "2026-03-01T08:00:00.5+01:00",
+          "day": "2026-03-01",
+          "paid": true,
+          "attrs": "{\"channel\": \"web\"}",
+          "blob": "00ff10"
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"attrs\":\"{\\\"channel\\\": \\\"web\\\"}\",\"blob\":\"AP8Q\",\"closed_at\":\"2026-03-01T07:00:00.500000Z\",\"code\":\"SO-1\",\"day\":\"2026-03-01\",\"id\":\"0190f3a1-0000-7000-8000-0000000000a1\",\"legal_entity\":\"0190f3a1-0000-7000-8000-00000000e001\",\"lines\":\"3\",\"note\":\"café\",\"paid\":true,\"total\":\"1250.5\"}"
+      }
+    },
+    {
+      "id": "null-is-not-written",
+      "description": "a null column is left out; an empty string is kept",
+      "input": {
+        "columns": {
+          "code": "text",
+          "note": "text"
+        },
+        "row": {
+          "code": "",
+          "note": null
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"code\":\"\"}"
+      }
+    },
+    {
+      "id": "nfc",
+      "description": "text is NFC: e and a combining acute become é",
+      "input": {
+        "columns": {
+          "note": "text"
+        },
+        "row": {
+          "note": "café"
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"note\":\"café\"}"
+      }
+    },
+    {
+      "id": "big-integer",
+      "description": "an 8-byte integer past 2^53 is a decimal string",
+      "input": {
+        "columns": {
+          "qty": "int8"
+        },
+        "row": {
+          "qty": 9007199254740993
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"qty\":\"9007199254740993\"}"
+      }
+    },
+    {
+      "id": "numeric-normalized",
+      "description": "trailing zeros and a negative zero",
+      "input": {
+        "columns": {
+          "a": "numeric",
+          "b": "numeric"
+        },
+        "row": {
+          "a": "1.50",
+          "b": "-0.000"
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"a\":\"1.5\",\"b\":\"0\"}"
+      }
+    },
+    {
+      "id": "instant-utc",
+      "description": "an instant with an offset becomes UTC microseconds",
+      "input": {
+        "columns": {
+          "t": "timestamptz"
+        },
+        "row": {
+          "t": "2026-03-01T08:00:00.5+01:00"
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"t\":\"2026-03-01T07:00:00.500000Z\"}"
+      }
+    },
+    {
+      "id": "uuid-lower",
+      "description": "a UUID is lower case",
+      "input": {
+        "columns": {
+          "id": "uuid"
+        },
+        "row": {
+          "id": "0190F3A1-0000-7000-8000-0000000000A2"
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"id\":\"0190f3a1-0000-7000-8000-0000000000a2\"}"
+      }
+    },
+    {
+      "id": "text-array",
+      "description": "a text array keeps its order, each element NFC",
+      "input": {
+        "columns": {
+          "serials": "text[]"
+        },
+        "row": {
+          "serials": [
+            "B-2",
+            "café",
+            "A-1"
+          ]
+        }
+      },
+      "expected": {
+        "canonical_row": "{\"serials\":[\"B-2\",\"café\",\"A-1\"]}"
+      }
+    },
+    {
+      "id": "text-array-null-element-refused",
+      "description": "an array with a null element",
+      "input": {
+        "columns": {
+          "serials": "text[]"
+        },
+        "row": {
+          "serials": [
+            "A-1",
+            null
+          ]
+        }
+      },
+      "expected": {
+        "refused": true
+      }
+    },
+    {
+      "id": "numeric-nan-refused",
+      "description": "NaN is not a decimal",
+      "input": {
+        "columns": {
+          "a": "numeric"
+        },
+        "row": {
+          "a": "NaN"
+        }
+      },
+      "expected": {
+        "refused": true
+      }
+    },
+    {
+      "id": "integer-fraction-refused",
+      "description": "an integer column with a fraction",
+      "input": {
+        "columns": {
+          "q": "int4"
+        },
+        "row": {
+          "q": "1.5"
+        }
+      },
+      "expected": {
+        "refused": true
+      }
+    },
+    {
+      "id": "composite-pk",
+      "description": "a primary key is the array of its columns' values, in key order",
+      "input": {
+        "columns": {
+          "order_id": "uuid",
+          "line": "int4"
+        },
+        "pk": [
+          "order_id",
+          "line"
+        ],
+        "row": {
+          "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+          "line": 12
+        }
+      },
+      "expected": {
+        "canonical_pk": "[\"0190f3a1-0000-7000-8000-0000000000a1\",\"12\"]"
+      }
+    },
+    {
+      "id": "table-hash",
+      "description": "rows sorted by their canonical primary key's bytes (line 10 sorts before line 2: \"10\" < \"2\"), each 8-byte big-endian length then the row; the input's order does not matter",
+      "input": {
+        "columns": {
+          "order_id": "uuid",
+          "line": "int4",
+          "qty": "int8",
+          "price": "numeric"
+        },
+        "pk": [
+          "order_id",
+          "line"
+        ],
+        "rows": [
+          {
+            "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+            "line": 2,
+            "qty": 5,
+            "price": "9.90"
+          },
+          {
+            "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+            "line": 10,
+            "qty": 1,
+            "price": "100"
+          },
+          {
+            "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+            "line": 1,
+            "qty": 2,
+            "price": "0.50"
+          }
+        ]
+      },
+      "expected": {
+        "sha256": "77a8f2d6735386d964698c15be15f40bdf69dc5e765ba39fafdebec13b84018e"
+      }
+    },
+    {
+      "id": "table-hash-by-key-not-row",
+      "description": "the order is the key's, not the row's: a column named before the key (\"a\") would put id 2 first",
+      "input": {
+        "columns": {
+          "a": "text",
+          "id": "int4"
+        },
+        "pk": [
+          "id"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "a": "z"
+          },
+          {
+            "id": 2,
+            "a": "a"
+          }
+        ]
+      },
+      "expected": {
+        "sha256": "e6a69dfa864f84865fbb02c03b4e7e94bd0baefc4945c3b67a0bf18451405cff"
+      }
+    },
+    {
+      "id": "unit-digest",
+      "description": "two tables, by name; the unit's digest",
+      "input": {
+        "class": "sales.orders",
+        "schema_version": "1",
+        "tables": [
+          {
+            "name": "orders",
+            "columns": {
+              "id": "uuid",
+              "legal_entity": "uuid",
+              "code": "text",
+              "note": "text",
+              "total": "numeric",
+              "lines": "int4",
+              "closed_at": "timestamptz",
+              "day": "date",
+              "paid": "bool",
+              "attrs": "jsonb",
+              "blob": "bytea"
+            },
+            "pk": [
+              "id"
+            ],
+            "rows": [
+              {
+                "id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "legal_entity": "0190f3a1-0000-7000-8000-00000000e001",
+                "code": "SO-1",
+                "note": null,
+                "total": "1250.5",
+                "lines": 3,
+                "closed_at": "2026-03-01T07:00:00Z",
+                "day": "2026-03-01",
+                "paid": true,
+                "attrs": null,
+                "blob": null
+              }
+            ]
+          },
+          {
+            "name": "order_lines",
+            "columns": {
+              "order_id": "uuid",
+              "line": "int4",
+              "qty": "int8",
+              "price": "numeric"
+            },
+            "pk": [
+              "order_id",
+              "line"
+            ],
+            "rows": [
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 2,
+                "qty": 5,
+                "price": "9.90"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 10,
+                "qty": 1,
+                "price": "100"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 1,
+                "qty": 2,
+                "price": "0.50"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "digest": "sha256:3e39ab9de4126131c93e8d223cec914f17396b97802f4d934da8fed57c767cc1"
+      }
+    },
+    {
+      "id": "unit-digest-column-order",
+      "description": "the same content with the columns and the tables listed in another order: the same digest (independent of the file's layout)",
+      "input": {
+        "class": "sales.orders",
+        "schema_version": "1",
+        "tables": [
+          {
+            "name": "order_lines",
+            "columns": {
+              "order_id": "uuid",
+              "line": "int4",
+              "qty": "int8",
+              "price": "numeric"
+            },
+            "pk": [
+              "order_id",
+              "line"
+            ],
+            "rows": [
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 2,
+                "qty": 5,
+                "price": "9.90"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 10,
+                "qty": 1,
+                "price": "100"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 1,
+                "qty": 2,
+                "price": "0.50"
+              }
+            ]
+          },
+          {
+            "name": "orders",
+            "columns": {
+              "blob": "bytea",
+              "attrs": "jsonb",
+              "paid": "bool",
+              "day": "date",
+              "closed_at": "timestamptz",
+              "lines": "int4",
+              "total": "numeric",
+              "note": "text",
+              "code": "text",
+              "legal_entity": "uuid",
+              "id": "uuid"
+            },
+            "pk": [
+              "id"
+            ],
+            "rows": [
+              {
+                "id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "legal_entity": "0190f3a1-0000-7000-8000-00000000e001",
+                "code": "SO-1",
+                "note": null,
+                "total": "1250.5",
+                "lines": 3,
+                "closed_at": "2026-03-01T07:00:00Z",
+                "day": "2026-03-01",
+                "paid": true,
+                "attrs": null,
+                "blob": null
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "digest": "sha256:3e39ab9de4126131c93e8d223cec914f17396b97802f4d934da8fed57c767cc1"
+      }
+    },
+    {
+      "id": "unit-digest-null-vs-empty",
+      "description": "a null became an empty string: another digest",
+      "input": {
+        "class": "sales.orders",
+        "schema_version": "1",
+        "tables": [
+          {
+            "name": "orders",
+            "columns": {
+              "id": "uuid",
+              "legal_entity": "uuid",
+              "code": "text",
+              "note": "text",
+              "total": "numeric",
+              "lines": "int4",
+              "closed_at": "timestamptz",
+              "day": "date",
+              "paid": "bool",
+              "attrs": "jsonb",
+              "blob": "bytea"
+            },
+            "pk": [
+              "id"
+            ],
+            "rows": [
+              {
+                "id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "legal_entity": "0190f3a1-0000-7000-8000-00000000e001",
+                "code": "SO-1",
+                "note": "",
+                "total": "1250.5",
+                "lines": 3,
+                "closed_at": "2026-03-01T07:00:00Z",
+                "day": "2026-03-01",
+                "paid": true,
+                "attrs": null,
+                "blob": null
+              }
+            ]
+          },
+          {
+            "name": "order_lines",
+            "columns": {
+              "order_id": "uuid",
+              "line": "int4",
+              "qty": "int8",
+              "price": "numeric"
+            },
+            "pk": [
+              "order_id",
+              "line"
+            ],
+            "rows": [
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 2,
+                "qty": 5,
+                "price": "9.90"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 10,
+                "qty": 1,
+                "price": "100"
+              },
+              {
+                "order_id": "0190f3a1-0000-7000-8000-0000000000a1",
+                "line": 1,
+                "qty": 2,
+                "price": "0.50"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "digest": "sha256:9c2d984b185877a79448979b02adee9f75b4bbaaff56bff4a641951e95f02ce5"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1276 @@
+{
+  "topic": "reserve-participant",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P16.1",
+    "P16.2",
+    "P16.3",
+    "P16.4",
+    "P16.5",
+    "P16.6",
+    "P16.7",
+    "P16.8"
+  ],
+  "description": "预占参与方的分支迁移：current 是保存的分支（null 为没有；past 表示暂存期限已到）；command 是到达的命令：query、confirm、cancel、expire（到期作业，在锁下重新判断）、hold-enough / hold-short（没有分支时，资源足够或不足）、hold-same / hold-other（已有分支时，内容摘要相同或不同）、consume-within / consume-exact / consume-beyond（新的消耗身份，消耗后还有剩余、正好消耗完、超出剩余）、consume-used-same / consume-used-other（用过的消耗身份，内容相同或不同）；expect 是之后的状态（absent：没有分支）、回答（ok、conflict、refused:<原因>，原因 absent、not_committed、beyond_remaining）、对资源做什么（take 占用、give_back 归还没消耗的部分、consume 消耗、none）与分支是否改变（版本加一并发分支事件）。",
+  "fields": {
+    "current": "保存的分支",
+    "command": "到达的命令",
+    "expect": "结果"
+  },
+  "cases": [
+    {
+      "id": "none-query",
+      "current": null,
+      "command": "query",
+      "expect": {
+        "state": "absent",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "none-confirm",
+      "current": null,
+      "command": "confirm",
+      "expect": {
+        "state": "absent",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "none-cancel",
+      "current": null,
+      "command": "cancel",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": true
+      }
+    },
+    {
+      "id": "none-expire",
+      "current": null,
+      "command": "expire",
+      "expect": {
+        "state": "absent",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "none-hold-enough",
+      "current": null,
+      "command": "hold-enough",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "take",
+        "changed": true
+      }
+    },
+    {
+      "id": "none-hold-short",
+      "current": null,
+      "command": "hold-short",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": true
+      }
+    },
+    {
+      "id": "none-consume-within",
+      "current": null,
+      "command": "consume-within",
+      "expect": {
+        "state": "absent",
+        "answer": "refused:absent",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "none-consume-exact",
+      "current": null,
+      "command": "consume-exact",
+      "expect": {
+        "state": "absent",
+        "answer": "refused:absent",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "none-consume-beyond",
+      "current": null,
+      "command": "consume-beyond",
+      "expect": {
+        "state": "absent",
+        "answer": "refused:absent",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-query",
+      "current": {
+        "state": "held"
+      },
+      "command": "query",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-confirm",
+      "current": {
+        "state": "held"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": true
+      }
+    },
+    {
+      "id": "held-cancel",
+      "current": {
+        "state": "held"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "give_back",
+        "changed": true
+      }
+    },
+    {
+      "id": "held-expire",
+      "current": {
+        "state": "held"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-hold-same",
+      "current": {
+        "state": "held"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-hold-other",
+      "current": {
+        "state": "held"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "held",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-consume-within",
+      "current": {
+        "state": "held"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-consume-exact",
+      "current": {
+        "state": "held"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-consume-beyond",
+      "current": {
+        "state": "held"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-consume-used-same",
+      "current": {
+        "state": "held"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-consume-used-other",
+      "current": {
+        "state": "held"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "held",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-query",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "query",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-confirm",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "give_back",
+        "changed": true
+      }
+    },
+    {
+      "id": "held-past-cancel",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "give_back",
+        "changed": true
+      }
+    },
+    {
+      "id": "held-past-expire",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "expire",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "give_back",
+        "changed": true
+      }
+    },
+    {
+      "id": "held-past-hold-same",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-hold-other",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "held",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-consume-within",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-consume-exact",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-consume-beyond",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "held",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-consume-used-same",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "held",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "held-past-consume-used-other",
+      "current": {
+        "state": "held",
+        "past": true
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "held",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-query",
+      "current": {
+        "state": "committed"
+      },
+      "command": "query",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-confirm",
+      "current": {
+        "state": "committed"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-cancel",
+      "current": {
+        "state": "committed"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "give_back",
+        "changed": true
+      }
+    },
+    {
+      "id": "committed-expire",
+      "current": {
+        "state": "committed"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-hold-same",
+      "current": {
+        "state": "committed"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-hold-other",
+      "current": {
+        "state": "committed"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "committed",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-consume-within",
+      "current": {
+        "state": "committed"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "consume",
+        "changed": true
+      }
+    },
+    {
+      "id": "committed-consume-exact",
+      "current": {
+        "state": "committed"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "consume",
+        "changed": true
+      }
+    },
+    {
+      "id": "committed-consume-beyond",
+      "current": {
+        "state": "committed"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "committed",
+        "answer": "refused:beyond_remaining",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-consume-used-same",
+      "current": {
+        "state": "committed"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "committed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "committed-consume-used-other",
+      "current": {
+        "state": "committed"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "committed",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-query",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "query",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-confirm",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-cancel",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-expire",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-hold-same",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-hold-other",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "consumed",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-consume-within",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "consumed",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-consume-exact",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "consumed",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-consume-beyond",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "consumed",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-consume-used-same",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "consumed",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "consumed-consume-used-other",
+      "current": {
+        "state": "consumed"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "consumed",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-query",
+      "current": {
+        "state": "released"
+      },
+      "command": "query",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-confirm",
+      "current": {
+        "state": "released"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-cancel",
+      "current": {
+        "state": "released"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-expire",
+      "current": {
+        "state": "released"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-hold-same",
+      "current": {
+        "state": "released"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-hold-other",
+      "current": {
+        "state": "released"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "released",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-consume-within",
+      "current": {
+        "state": "released"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "released",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-consume-exact",
+      "current": {
+        "state": "released"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "released",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-consume-beyond",
+      "current": {
+        "state": "released"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "released",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-consume-used-same",
+      "current": {
+        "state": "released"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "released",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "released-consume-used-other",
+      "current": {
+        "state": "released"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "released",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-query",
+      "current": {
+        "state": "expired"
+      },
+      "command": "query",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-confirm",
+      "current": {
+        "state": "expired"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-cancel",
+      "current": {
+        "state": "expired"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-expire",
+      "current": {
+        "state": "expired"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-hold-same",
+      "current": {
+        "state": "expired"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-hold-other",
+      "current": {
+        "state": "expired"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "expired",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-consume-within",
+      "current": {
+        "state": "expired"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "expired",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-consume-exact",
+      "current": {
+        "state": "expired"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "expired",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-consume-beyond",
+      "current": {
+        "state": "expired"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "expired",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-consume-used-same",
+      "current": {
+        "state": "expired"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "expired",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "expired-consume-used-other",
+      "current": {
+        "state": "expired"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "expired",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-query",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "query",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-confirm",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-cancel",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-expire",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-hold-same",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-hold-other",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "rejected",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-consume-within",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "rejected",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-consume-exact",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "rejected",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-consume-beyond",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "rejected",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-consume-used-same",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "rejected",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "rejected-consume-used-other",
+      "current": {
+        "state": "rejected"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "rejected",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-query",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "query",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-confirm",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "confirm",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-cancel",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "cancel",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-expire",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "expire",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-hold-same",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "hold-same",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-hold-other",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "hold-other",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-consume-within",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "consume-within",
+      "expect": {
+        "state": "cancelled",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-consume-exact",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "consume-exact",
+      "expect": {
+        "state": "cancelled",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-consume-beyond",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "consume-beyond",
+      "expect": {
+        "state": "cancelled",
+        "answer": "refused:not_committed",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-consume-used-same",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "consume-used-same",
+      "expect": {
+        "state": "cancelled",
+        "answer": "ok",
+        "resource": "none",
+        "changed": false
+      }
+    },
+    {
+      "id": "cancelled-consume-used-other",
+      "current": {
+        "state": "cancelled"
+      },
+      "command": "consume-used-other",
+      "expect": {
+        "state": "cancelled",
+        "answer": "conflict",
+        "resource": "none",
+        "changed": false
+      }
+    }
+  ]
+}

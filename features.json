@@ -1,7 +1,7 @@
 {
   "sdk": "python",
   "distribution": "be-sdk",
-  "protocol": "3.0.0-alpha.68",
+  "protocol": "3.0.0-alpha.116",
   "description": "Python SDK 的功能矩阵：be-protocol capabilities.json 中 owner 为 sdk 的每项能力的状态（含义见 be-protocol 的阅读说明）。evidence 写作“测试文件::测试名”（tests/ 下）。",
   "features": {
     "lifecycle": {
@@ -122,7 +122,7 @@
     },
     "idempotency": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "第 6 项 T4 补（A164）",
       "evidence": []
     },
     "database": {
@@ -158,17 +158,17 @@
     },
     "partitions": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "第 6 项 T4 补（A164）",
       "evidence": []
     },
     "money": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补",
       "evidence": []
     },
     "business-dates": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补",
       "evidence": []
     },
     "outbox": {
@@ -235,12 +235,12 @@
     },
     "work": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "第 6 项 T4 补（A164）",
       "evidence": []
     },
     "cron": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "第 6 项 T4 补（A164）",
       "evidence": []
     },
     "user-credentials": {
@@ -348,17 +348,17 @@
     },
     "search": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补",
       "evidence": []
     },
     "projections": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证",
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补",
       "evidence": []
     },
     "projection-records": {
       "status": "not_implemented",
-      "reason": "不在 Python 的 SDK 子集中（实验计划：Python 只做探针与打印用到的部分）；需要时按协议补齐，用同一套向量与检查验证"
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补"
     },
     "call-mode-service-proxy": {
       "status": "not_implemented",
@@ -374,7 +374,8 @@
     },
     "projection-watermarks": {
       "status": "not_implemented",
-      "evidence": []
+      "evidence": [],
+      "reason": "来源一侧第 6 项 T7 补，消费一侧不在首批（A164）"
     },
     "projection-shadow": {
       "status": "not_implemented",
@@ -399,6 +400,61 @@
         "test_token_staleness::test_a_downstream_401_for_the_user_is_unprovable",
         "test_identity::test_jwt_verify_vectors"
       ]
+    },
+    "evidence-writer": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T8 补（A164）",
+      "evidence": []
+    },
+    "evidence-replay": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T8 补（A164）",
+      "evidence": []
+    },
+    "run-profile": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T8 补（A164）",
+      "evidence": []
+    },
+    "external-commands": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T8 补（A164）",
+      "evidence": []
+    },
+    "recovery-mode": {
+      "status": "verified",
+      "evidence": [
+        "test_recovery_phases_integration::test_the_recovery_phases",
+        "test_recovery_phases_integration::test_every_phase_is_a_value_of_the_key",
+        "test_shell::test_a_shell_in_recovery",
+        "test_shell::test_a_member_without_a_phase_runs_in_the_shells_phase"
+      ],
+      "pending": [
+        {
+          "rule": "P1.23",
+          "reason": "后台工作（含 SDK 自带的作业）按阶段停或运行随第 6 项 T4（第 07 章），证据转运与对外命令只查询随 T8；用户面、转发、订阅、审计转运与就绪已验证"
+        }
+      ]
+    },
+    "recovery-checks": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T9 补（A164）",
+      "evidence": []
+    },
+    "redelivery": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T5 补（A164）",
+      "evidence": []
+    },
+    "tiering": {
+      "status": "not_implemented",
+      "reason": "第 6 项 T10 补（A164）",
+      "evidence": []
+    },
+    "reserve-participant": {
+      "status": "not_implemented",
+      "reason": "不在 Python 的首批（A164）：现在没有 Python 组件做预占的参与方；第一个要用的出现时按向量 reserve-participant 补",
+      "evidence": []
     }
   }
 }

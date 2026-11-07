@@ -1,0 +1,800 @@
+{
+  "topic": "inbox-progress",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P6.37"
+  ],
+  "description": "订阅对每个来源分区的进度：按运行段求截止时刻（最后一次处理减投递寿命 L，这一段从启动起不足 L 时看上一段），取处理时刻不晚于它的、带位置的收件表行的最大（代次，时间线，序号）。时刻以秒计；pos 为 null 的行是记位置之前写的",
+  "fields": {
+    "input.runs": "启动时刻",
+    "input.rows": "收件表行：key（来源分区）、pos、at（处理时刻）",
+    "input.lifetime": "L（秒）",
+    "expected.progress": "按 key 的进度；没有的 key 表示进度为空"
+  },
+  "cases": [
+    {
+      "id": "steady",
+      "description": "one run longer than L: everything handled up to L before the last handling",
+      "input": {
+        "runs": [
+          0
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              1
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              2
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              3
+            ],
+            "at": 300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              4
+            ],
+            "at": 400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              5
+            ],
+            "at": 500
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              6
+            ],
+            "at": 600
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              7
+            ],
+            "at": 700
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              8
+            ],
+            "at": 800
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              9
+            ],
+            "at": 900
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              10
+            ],
+            "at": 1000
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              11
+            ],
+            "at": 1100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              12
+            ],
+            "at": 1200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              13
+            ],
+            "at": 1300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              14
+            ],
+            "at": 1400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              15
+            ],
+            "at": 1500
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {
+          "p0": [
+            1,
+            1,
+            9
+          ]
+        }
+      }
+    },
+    {
+      "id": "one-in-backoff",
+      "description": "seq 4 is still being redelivered: the largest handled (10) would skip it",
+      "input": {
+        "runs": [
+          0
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              1
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              2
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              3
+            ],
+            "at": 300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              5
+            ],
+            "at": 1300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              6
+            ],
+            "at": 1400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              7
+            ],
+            "at": 1500
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              8
+            ],
+            "at": 1600
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              9
+            ],
+            "at": 1700
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              10
+            ],
+            "at": 1800
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {
+          "p0": [
+            1,
+            1,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "id": "short-last-run",
+      "description": "the last run is shorter than L: the previous run decides",
+      "input": {
+        "runs": [
+          0,
+          2500
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              1
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              2
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              3
+            ],
+            "at": 300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              4
+            ],
+            "at": 400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              5
+            ],
+            "at": 500
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              6
+            ],
+            "at": 600
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              7
+            ],
+            "at": 700
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              8
+            ],
+            "at": 800
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              9
+            ],
+            "at": 900
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              10
+            ],
+            "at": 1000
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              11
+            ],
+            "at": 1100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              12
+            ],
+            "at": 1200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              13
+            ],
+            "at": 1300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              14
+            ],
+            "at": 1400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              15
+            ],
+            "at": 1500
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              16
+            ],
+            "at": 1600
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              17
+            ],
+            "at": 1700
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              18
+            ],
+            "at": 1800
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              19
+            ],
+            "at": 1900
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              20
+            ],
+            "at": 2000
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              21
+            ],
+            "at": 2600
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              22
+            ],
+            "at": 2700
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {
+          "p0": [
+            1,
+            1,
+            14
+          ]
+        }
+      }
+    },
+    {
+      "id": "too-short",
+      "description": "no run lasted L: no progress, redeliver from the first row kept",
+      "input": {
+        "runs": [
+          0
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              1
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              2
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              3
+            ],
+            "at": 300
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {}
+      }
+    },
+    {
+      "id": "no-position",
+      "description": "rows written before positions were kept count for the time, never as a position",
+      "input": {
+        "runs": [
+          0
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              1
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              2
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              3
+            ],
+            "at": 300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              4
+            ],
+            "at": 400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              5
+            ],
+            "at": 500
+          },
+          {
+            "key": "p0",
+            "pos": null,
+            "at": 700
+          },
+          {
+            "key": "p0",
+            "pos": null,
+            "at": 1400
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {
+          "p0": [
+            1,
+            1,
+            5
+          ]
+        }
+      }
+    },
+    {
+      "id": "partitions-and-epochs",
+      "description": "partitions apart; a later epoch is after every position of an earlier one",
+      "input": {
+        "runs": [
+          0
+        ],
+        "rows": [
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              40
+            ],
+            "at": 100
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              41
+            ],
+            "at": 200
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              42
+            ],
+            "at": 300
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              43
+            ],
+            "at": 400
+          },
+          {
+            "key": "p0",
+            "pos": [
+              1,
+              1,
+              44
+            ],
+            "at": 500
+          },
+          {
+            "key": "p1",
+            "pos": [
+              1,
+              1,
+              50
+            ],
+            "at": 150
+          },
+          {
+            "key": "p1",
+            "pos": [
+              1,
+              1,
+              51
+            ],
+            "at": 250
+          },
+          {
+            "key": "p1",
+            "pos": [
+              1,
+              1,
+              52
+            ],
+            "at": 350
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              1
+            ],
+            "at": 450
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              2
+            ],
+            "at": 550
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              3
+            ],
+            "at": 650
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              4
+            ],
+            "at": 750
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              5
+            ],
+            "at": 850
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              6
+            ],
+            "at": 950
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              7
+            ],
+            "at": 1050
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              8
+            ],
+            "at": 1150
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              9
+            ],
+            "at": 1250
+          },
+          {
+            "key": "p1",
+            "pos": [
+              2,
+              1,
+              10
+            ],
+            "at": 1350
+          }
+        ],
+        "lifetime": 600
+      },
+      "expected": {
+        "progress": {
+          "p0": [
+            1,
+            1,
+            44
+          ],
+          "p1": [
+            2,
+            1,
+            4
+          ]
+        }
+      }
+    }
+  ]
+}

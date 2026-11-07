@@ -35,6 +35,10 @@ from besdk.runtime import Runtime
 # Exit codes (protocol chapter 01).
 EXIT_OK, EXIT_FAILURE, EXIT_USAGE, EXIT_STARTUP_CHECK, EXIT_CONFIGURATION = 0, 1, 64, 69, 78
 STARTING, READY, STOPPING = "starting", "ready", "stopping"
+RECOVERY_READY = "recovery_ready"  # ready in recovery mode (P1.22): serving what the phase allows
+# The recovery phases (P1.23): a deployment variable read at start; a phase change restarts.
+FROZEN, REDELIVERING, REPLAYING, VERIFYING, READ_ONLY = "frozen", "redelivering", "replaying", "verifying", "read_only"
+PHASES = (FROZEN, REDELIVERING, REPLAYING, VERIFYING, READ_ONLY)
 SECRET_REREAD_EVERY = 30.0
 
 
@@ -43,7 +47,8 @@ def sdk_keys() -> list[Key]:
     return [Key("LOG_LEVEL", Type.ENUM, values=("debug", "info", "warn", "error"), default="info"),
             Key("OTEL_URL", Type.STRING, process=True),
             Key("STOP_DRAIN_DELAY", Type.DURATION, default=timedelta(seconds=2)),
-            Key("STOP_TIMEOUT", Type.DURATION, default=timedelta(seconds=30))]
+            Key("STOP_TIMEOUT", Type.DURATION, default=timedelta(seconds=30)),
+            Key("RECOVERY_PHASE", Type.ENUM, values=PHASES, process=True)]
 
 
 def security_keys() -> list[Key]:
@@ -128,24 +133,36 @@ class Member:
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
+    @property
+    def phase(self) -> str:
+        """The recovery phase the member started in; empty: normal running (P1.22)."""
+        return self.values.string("RECOVERY_PHASE")
+
     def describe(self) -> dict:
-        """The self-description (P1.8)."""
-        return {"component_id": self.definition.id, "version": self.definition.version,
-                "protocol": protocol.capabilities()["protocol"], "sdk": "be-sdk-python/" + besdk.Version,
-                "capabilities": list(self.definition.capabilities)}
+        """The self-description (P1.8), with the recovery phase in recovery mode (P1.22)."""
+        out = {"component_id": self.definition.id, "version": self.definition.version,
+               "protocol": protocol.capabilities()["protocol"], "sdk": "be-sdk-python/" + besdk.Version,
+               "capabilities": list(self.definition.capabilities)}
+        if self.phase:
+            out["recovery_phase"] = self.phase
+        return out
 
     async def start(self, read: Callable[[str], bytes]) -> None:
-        """The module's background work (if any) and the secret re-reading."""
-        if isinstance(self.module, Starter):
+        """The module's background work (if any), forwarding and subscriptions, the audit transfer and the secret
+        re-reading. In recovery mode only what the phase allows runs (P1.23): frozen runs no module background,
+        forwarding, subscription or audit transfer; the other phases run them. The system surface, the authorization
+        view and the statistics run in every phase."""
+        moving = self.phase != FROZEN  # events, projections and the transfers run
+        if isinstance(self.module, Starter) and moving:
             await self.module.start()
-        if self.forwarder is not None:
+        if self.forwarder is not None and moving:
             await self.forwarder.start()  # type: ignore[attr-defined]
-        for c in self.consumers:
+        for c in self.consumers if moving else []:
             self._subs.append(await self.transport.subscribe(c.spec(), c.handle))  # type: ignore[attr-defined]
         self._tasks.append(asyncio.create_task(self._reread_secrets(read)))
         if self.tls is not None:
             self._tasks.append(asyncio.create_task(self._reread_certificate()))
-        if self.auditor is not None:
+        if self.auditor is not None and moving:  # the audit store never goes back: it runs outside the jobs (P1.23)
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.runtime.db is not None:  # the SDK's tables keep fresh statistics (P5.33)
             self._tasks.append(asyncio.create_task(keep_statistics(self.runtime.db, self.logger)))  # type: ignore[arg-type]
@@ -165,15 +182,16 @@ class Member:
 
     def mark_ready(self, started: float, then: Callable[[], None] | None = None) -> None:
         """Enters the ready state, writes the ready line (P1.12) and then calls then."""
-        self.state = READY
+        extra = {"phase": self.phase} if self.phase else {}
+        self.state = RECOVERY_READY if self.phase else READY
         self.logger.info("ready", event="ready", protocol=protocol.capabilities()["protocol"], sdk=besdk.Version,
-                         startup_ms=int((time.monotonic() - started) * 1000))
+                         startup_ms=int((time.monotonic() - started) * 1000), **extra)
         if then is not None:
             then()
 
     def is_ready(self) -> tuple[bool, str, list[str]]:
-        """The member's readiness."""
-        return self.state == READY, self.state, []
+        """The member's readiness: ready, or ready in recovery mode (P1.22)."""
+        return self.state in (READY, RECOVERY_READY), self.state, []
 
     async def _submit(self, timeout: float) -> bool:
         """Sends the declared definitions once (DefinitionService.Submit); reports whether they were accepted."""
@@ -310,7 +328,7 @@ def _surfaces(member: Member, shared: Shared, outbound: calls.Member, routes: Ro
     ops = [r.operation for r in routes.list() if not r.public]
     guard = _guard(member, shared, outbound, ops) if ops else None
     member.app = build_app(Deps(log, member.registry, member.runtime.tracer, Platform(
-        member.ready or member.is_ready, member.describe), guard), routes)
+        member.ready or member.is_ready, member.describe, phase=member.phase), guard), routes)
     if not services.empty:
         _declared(d, services.operations(), "system methods")
         member.system = system.build_server(system.Deps(log, member.registry, member.runtime.tracer, member.tls),

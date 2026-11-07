@@ -1,6 +1,6 @@
 {
   "topic": "security-records",
-  "protocol": "3.0.0-alpha.68",
+  "protocol": "3.0.0-alpha.116",
   "rules": [
     "P8.8",
     "P8.11",
@@ -312,6 +312,36 @@
       "read": "accepted",
       "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"security_version\":4,\"status\":\"disabled\"}",
       "digest": "sha256:5ec6e2a6ab15bd9c7674a4b8739257d1e30b3086887793de1546411da937bc19"
+    },
+    {
+      "id": "account-status-confirmed",
+      "record_type": "be.security.account_status",
+      "record": {
+        "record_type": "be.security.account_status",
+        "schema": "1.0",
+        "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+        "authority": "infra/iam-casdoor",
+        "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f",
+        "revision": {
+          "domain": "infra.iam.account_status",
+          "value": "3",
+          "epoch": "1.1",
+          "instance": "iam-inst-a"
+        },
+        "account": {
+          "deployment": "0190f3a2-7c1e-7b2a-9d4e-000000000001",
+          "kind": "user",
+          "id": "0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f"
+        },
+        "status": "disabled",
+        "security_mark": "compromised",
+        "security_version": 4,
+        "confirmation": "0190f3a2-7c1e-7b2a-9d4e-0000000000b1"
+      },
+      "valid": true,
+      "read": "accepted",
+      "canonical": "{\"account\":{\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"kind\":\"user\"},\"authority\":\"infra/iam-casdoor\",\"confirmation\":\"0190f3a2-7c1e-7b2a-9d4e-0000000000b1\",\"deployment\":\"0190f3a2-7c1e-7b2a-9d4e-000000000001\",\"id\":\"0190f3a2-7c1e-7b2a-9d4e-1a2b3c4d5e6f\",\"record_type\":\"be.security.account_status\",\"revision\":{\"domain\":\"infra.iam.account_status\",\"epoch\":\"1.1\",\"instance\":\"iam-inst-a\",\"value\":\"3\"},\"schema\":\"1.0\",\"security_mark\":\"compromised\",\"security_version\":4,\"status\":\"disabled\"}",
+      "digest": "sha256:d3cc01651eeb4f78fef68f3460551b7c41e7cc63033bbfe911da73b55858d249"
     },
     {
       "id": "definition-set",

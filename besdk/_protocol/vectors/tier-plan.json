@@ -1,0 +1,596 @@
+{
+  "topic": "tier-plan",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P15.3",
+    "P15.4",
+    "P15.11",
+    "P15.19",
+    "P15.29",
+    "P15.32",
+    "P15.37"
+  ],
+  "description": "规划：每个单元的动作（none、seal、transfer、release、destroy）与被阻塞的原因",
+  "fields": {
+    "input": "now, n_days, grace_days, class, unit",
+    "expected": "action, reasons, alert"
+  },
+  "cases": [
+    {
+      "id": "residence-not-reached",
+      "description": "closed five months ago, residence 12 months (TR28)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2026-06-06T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "residence"
+        ]
+      }
+    },
+    {
+      "id": "residence-shortened",
+      "description": "the same unit after the residence went to 6 months (TR29)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 180,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2026-05-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "seal",
+        "reasons": []
+      }
+    },
+    {
+      "id": "residence-below-n",
+      "description": "a residence of 30 days is below N (TR29)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 30,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2025-01-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "residence_below_n"
+        ]
+      }
+    },
+    {
+      "id": "never",
+      "description": "a class set to stay online",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": "never",
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2020-01-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "never"
+        ]
+      }
+    },
+    {
+      "id": "blocked",
+      "description": "past the residence, a reservation still open (TR30)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2025-10-20T00:00:00Z",
+          "blockers": [
+            "reservation_open"
+          ]
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "reservation_open"
+        ]
+      }
+    },
+    {
+      "id": "blocked-alert",
+      "description": "blocked 30 days past the residence: alert (TR30)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2025-09-01T00:00:00Z",
+          "blockers": [
+            "reservation_open",
+            "period_open"
+          ]
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "period_open",
+          "reservation_open"
+        ],
+        "alert": true
+      }
+    },
+    {
+      "id": "not-tierable",
+      "description": "an online mutable class is never tiered (TR22)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "online_mutable",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2020-01-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "not_tierable"
+        ]
+      }
+    },
+    {
+      "id": "audit",
+      "description": "audit evidence tiers like completed history",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "audit_evidence",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "open",
+          "anchor_max": "2025-01-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "action": "seal",
+        "reasons": []
+      }
+    },
+    {
+      "id": "sealed",
+      "description": "a sealed unit is transferred",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "sealed"
+        }
+      },
+      "expected": {
+        "action": "transfer",
+        "reasons": []
+      }
+    },
+    {
+      "id": "immutable-route",
+      "description": "an erasable class does not go to a locked route",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "sealed",
+          "route_immutable": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "immutable_route"
+        ]
+      }
+    },
+    {
+      "id": "release",
+      "description": "every release condition holds",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "published_at": "2026-10-01T00:00:00Z",
+          "newest_created": "2025-01-01T00:00:00Z",
+          "old_leases": 0,
+          "backup_after_publish": true
+        }
+      },
+      "expected": {
+        "action": "release",
+        "reasons": []
+      }
+    },
+    {
+      "id": "release-grace",
+      "description": "published two days ago",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "published_at": "2026-11-04T00:00:00Z",
+          "newest_created": "2025-01-01T00:00:00Z",
+          "old_leases": 0,
+          "backup_after_publish": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "grace"
+        ]
+      }
+    },
+    {
+      "id": "release-recent",
+      "description": "a record created 30 days ago (TR25)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "published_at": "2026-10-01T00:00:00Z",
+          "newest_created": "2026-10-07T00:00:00Z",
+          "old_leases": 0,
+          "backup_after_publish": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "recent_records"
+        ]
+      }
+    },
+    {
+      "id": "release-lease",
+      "description": "an export still reading the old route (TR06)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "published_at": "2026-10-01T00:00:00Z",
+          "newest_created": "2025-01-01T00:00:00Z",
+          "old_leases": 1,
+          "backup_after_publish": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "lease"
+        ]
+      }
+    },
+    {
+      "id": "release-no-backup",
+      "description": "no backup since the publish",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "published_at": "2026-10-01T00:00:00Z",
+          "newest_created": "2025-01-01T00:00:00Z",
+          "old_leases": 0,
+          "backup_after_publish": false
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "no_backup"
+        ]
+      }
+    },
+    {
+      "id": "released",
+      "description": "nothing more until its retention",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "released"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": []
+      }
+    },
+    {
+      "id": "destroy",
+      "description": "retention over, approved, no hold",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "released",
+          "retention_due": true,
+          "approved": true
+        }
+      },
+      "expected": {
+        "action": "destroy",
+        "reasons": []
+      }
+    },
+    {
+      "id": "destroy-held",
+      "description": "retention over but a legal hold (TR13)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "released",
+          "retention_due": true,
+          "approved": true,
+          "holds": 1
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "held"
+        ]
+      }
+    },
+    {
+      "id": "destroy-pending",
+      "description": "a retention without a basis is never destroyed (TR24)",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": "pending",
+          "erasable": true
+        },
+        "unit": {
+          "state": "released",
+          "retention_due": true,
+          "approved": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "retention_pending"
+        ]
+      }
+    },
+    {
+      "id": "destroy-unapproved",
+      "description": "the class's approval not done",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "published",
+          "retention_due": true
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": [
+          "approval"
+        ]
+      }
+    },
+    {
+      "id": "destroyed",
+      "description": "a destroyed unit",
+      "input": {
+        "now": "2026-11-06T00:00:00Z",
+        "n_days": 90,
+        "grace_days": 7,
+        "class": {
+          "category": "completed_history",
+          "residence_days": 365,
+          "retention": {
+            "min_days": 3650
+          },
+          "erasable": true
+        },
+        "unit": {
+          "state": "destroyed"
+        }
+      },
+      "expected": {
+        "action": "none",
+        "reasons": []
+      }
+    }
+  ]
+}

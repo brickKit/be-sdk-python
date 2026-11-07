@@ -1,0 +1,350 @@
+{
+  "topic": "trust-history",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P12.4",
+    "P12.24",
+    "P12.25",
+    "P12.26"
+  ],
+  "description": "信任材料历史：受信的 CA（从配置的信任根沿双签的轮换往前）、一条记录在接收时刻是否可信（链到受信的 CA，链上没有在 t > r − 偏差时已吊销的证书，写入者就是签名证书的服务身份）",
+  "fields": {
+    "input": "record (chain, received; writer and signer: the component the record names and the one its certificate carries), configured, rotations, revocations, skew",
+    "expected": "holds, reason"
+  },
+  "cases": [
+    {
+      "id": "one-ca",
+      "description": "the configured CA, nothing revoked",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 50
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": true
+      }
+    },
+    {
+      "id": "rotated-old-ca",
+      "description": "rotated A to B with both signatures: a record under A still holds",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 50
+        },
+        "configured": [
+          "ca-b"
+        ],
+        "rotations": [
+          {
+            "previous": "ca-a",
+            "next": "ca-b",
+            "signed_by_previous": true,
+            "accepted_by_next": true
+          }
+        ],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": true
+      }
+    },
+    {
+      "id": "rotation-without-acceptance",
+      "description": "the next CA did not accept: A is not trusted",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 50
+        },
+        "configured": [
+          "ca-b"
+        ],
+        "rotations": [
+          {
+            "previous": "ca-a",
+            "next": "ca-b",
+            "signed_by_previous": true,
+            "accepted_by_next": false
+          }
+        ],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "untrusted_ca"
+      }
+    },
+    {
+      "id": "forged-rotation",
+      "description": "a rotation from a fake CA to the trusted one, signed by the fake only",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-2",
+            "ca-fake"
+          ],
+          "received": 50
+        },
+        "configured": [
+          "ca-b"
+        ],
+        "rotations": [
+          {
+            "previous": "ca-fake",
+            "next": "ca-b",
+            "signed_by_previous": true,
+            "accepted_by_next": false
+          }
+        ],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "untrusted_ca"
+      }
+    },
+    {
+      "id": "not-on-the-chain",
+      "description": "a CA no rotation links to the configured root",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-2",
+            "ca-fake"
+          ],
+          "received": 50
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "untrusted_ca"
+      }
+    },
+    {
+      "id": "before-the-revocation",
+      "description": "received well before the revocation",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 97
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [
+          {
+            "fingerprint": "leaf-1",
+            "received": 100,
+            "signer_trusted": true
+          }
+        ],
+        "skew": 2
+      },
+      "expected": {
+        "holds": true
+      }
+    },
+    {
+      "id": "within-the-skew",
+      "description": "received less than the declared skew before the revocation: not trusted",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 99
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [
+          {
+            "fingerprint": "leaf-1",
+            "received": 100,
+            "signer_trusted": true
+          }
+        ],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "revoked"
+      }
+    },
+    {
+      "id": "after-the-revocation",
+      "description": "received after the revocation",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 150
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [
+          {
+            "fingerprint": "leaf-1",
+            "received": 100,
+            "signer_trusted": true
+          }
+        ],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "revoked"
+      }
+    },
+    {
+      "id": "ca-revoked",
+      "description": "the CA itself revoked: every chain under it after that",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 150
+        },
+        "configured": [
+          "ca-b"
+        ],
+        "rotations": [
+          {
+            "previous": "ca-a",
+            "next": "ca-b",
+            "signed_by_previous": true,
+            "accepted_by_next": true
+          }
+        ],
+        "revocations": [
+          {
+            "fingerprint": "ca-a",
+            "received": 120,
+            "signer_trusted": true
+          }
+        ],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "revoked"
+      }
+    },
+    {
+      "id": "revocation-by-an-untrusted-signer",
+      "description": "a revocation whose own signer is not trusted does not count",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 150
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [
+          {
+            "fingerprint": "leaf-1",
+            "received": 100,
+            "signer_trusted": false
+          }
+        ],
+        "skew": 2
+      },
+      "expected": {
+        "holds": true
+      }
+    },
+    {
+      "id": "writer-is-signer",
+      "description": "a service credential's record names its own component as the writer",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-1",
+            "ca-a"
+          ],
+          "received": 50,
+          "writer": "infra/authz",
+          "signer": "infra/authz"
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": true
+      }
+    },
+    {
+      "id": "writer-not-signer",
+      "description": "another component's credential (unrevoked) signs a record naming the authorization member",
+      "input": {
+        "record": {
+          "chain": [
+            "leaf-2",
+            "ca-a"
+          ],
+          "received": 50,
+          "writer": "infra/authz",
+          "signer": "infra/audit"
+        },
+        "configured": [
+          "ca-a"
+        ],
+        "rotations": [],
+        "revocations": [],
+        "skew": 2
+      },
+      "expected": {
+        "holds": false,
+        "reason": "writer_not_signer"
+      }
+    }
+  ]
+}

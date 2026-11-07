@@ -49,6 +49,9 @@ class Route:
     orchestration: bool = False  # the longer default deadline (P4.3)
     timeout: float = 0.0  # overrides the default deadline, seconds
     max_body: int = 0  # default 1 MiB
+    # A write served while the deployment is open read-only after a full recovery (P1.23): the identity member's
+    # one-time codes, password resets and second factors. Reads are served then anyway.
+    read_only_open: bool = False
 
     @property
     def deadline(self) -> float:
@@ -159,6 +162,7 @@ class Platform:
     ready: Callable[[], tuple[bool, str, list[str]]]  # ready, state, members still waited for (a shell)
     describe: Callable[[], dict]
     metrics: Callable[[], bytes] | None = None  # None: the member's own registry
+    phase: str = ""  # the recovery phase the member started in (P1.22); empty: normal running
 
 
 @dataclass
@@ -209,6 +213,8 @@ def _platform(app: FastAPI, d: Deps) -> None:
     async def ready(request: Request) -> Response:
         ok, state, waiting = d.platform.ready()
         if ok:
+            if d.platform.phase:  # ready in recovery mode: routable, the system surface serves (P1.22)
+                return JSONResponse({"state": "recovery_ready", "phase": d.platform.phase})
             return PlainTextResponse("ok")
         e = errs.new("NOT_READY", "not ready").with_("state", state)
         if waiting:
@@ -268,6 +274,9 @@ async def _serve(request: Request, d: Deps, r: Route, duration: Histogram) -> Re
 
 
 async def _run(request: Request, d: Deps, r: Route, rid: str, trace_id: str, log: Logger) -> Response:
+    if phase := d.platform.phase:  # a full recovery: nothing on the user surface, but reads once open read-only (P1.23)
+        if not (phase == "read_only" and (request.method in ("GET", "HEAD") or r.read_only_open)):
+            raise errs.new("MAINTENANCE", "the deployment is in a full recovery").with_("phase", phase)
     limit = r.deadline
     if h := request.headers.get(HEADER_TIMEOUT_MS, ""):
         if not h.isdigit() or int(h) <= 0:

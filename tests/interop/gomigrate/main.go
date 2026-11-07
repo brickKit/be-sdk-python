@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	launcher.Main(component.Definition{ID: os.Getenv("MEMBER_ID"), Version: "3.0.0",
+	launcher.Main(component.Definition{ID: os.Getenv("MEMBER_ID"), Version: "3.0.0", Recovery: "demo.migrate.recover",
 		Migrations: os.DirFS(os.Getenv("MIGRATIONS_DIR")),
 		New:        func(*runtime.Runtime) (component.Module, error) { return nil, nil }})
 }

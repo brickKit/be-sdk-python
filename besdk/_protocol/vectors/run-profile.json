@@ -1,0 +1,238 @@
+{
+  "topic": "run-profile",
+  "protocol": "3.0.0-alpha.116",
+  "rules": [
+    "P12.1",
+    "P12.2",
+    "P12.3",
+    "P12.4",
+    "P12.5"
+  ],
+  "description": "运行档案：签名前的规范字节（去掉 signature 成员）、键名、各类别的最短保留期、恢复代次的当前值（签名成立的最大值）与推进（各处最大值加一）",
+  "fields": {
+    "input": "record | kind | records | seen",
+    "expected": "signed_bytes, key | min_retention_days | current | next"
+  },
+  "cases": [
+    {
+      "id": "signed-bytes",
+      "input": {
+        "record": {
+          "record_type": "be.ops.run_profile_record",
+          "schema": "1.0",
+          "deployment": "0190f3a1-0000-7000-8000-00000000d001",
+          "kind": "generation.authz",
+          "id": "0190f3a1-0000-7000-8000-0000000000e1",
+          "written_at": "2026-11-05T10:15:30.123456Z",
+          "writer": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "body": {
+            "value": 3
+          }
+        }
+      },
+      "expected": {
+        "signed_bytes": "{\"body\":{\"value\":3},\"deployment\":\"0190f3a1-0000-7000-8000-00000000d001\",\"id\":\"0190f3a1-0000-7000-8000-0000000000e1\",\"kind\":\"generation.authz\",\"record_type\":\"be.ops.run_profile_record\",\"schema\":\"1.0\",\"writer\":{\"component\":\"infra/authz\",\"instance\":\"authz-1\"},\"written_at\":\"2026-11-05T10:15:30.123456Z\"}",
+        "key": "0190f3a1-0000-7000-8000-00000000d001/generation.authz/2026/11/05/2026-11-05T10:15:30.123456Z-0190f3a1-0000-7000-8000-0000000000e1.json"
+      }
+    },
+    {
+      "id": "signature-excluded",
+      "description": "the signature member is not part of the signed bytes: the same bytes with it present",
+      "input": {
+        "record": {
+          "record_type": "be.ops.run_profile_record",
+          "schema": "1.0",
+          "deployment": "0190f3a1-0000-7000-8000-00000000d001",
+          "kind": "generation.authz",
+          "id": "0190f3a1-0000-7000-8000-0000000000e1",
+          "written_at": "2026-11-05T10:15:30.123456Z",
+          "writer": {
+            "component": "infra/authz",
+            "instance": "authz-1"
+          },
+          "body": {
+            "value": 3
+          },
+          "signature": {
+            "alg": "ES256",
+            "value": "AAAA",
+            "cert_chain": "-----BEGIN"
+          }
+        }
+      },
+      "expected": {
+        "signed_bytes": "{\"body\":{\"value\":3},\"deployment\":\"0190f3a1-0000-7000-8000-00000000d001\",\"id\":\"0190f3a1-0000-7000-8000-0000000000e1\",\"kind\":\"generation.authz\",\"record_type\":\"be.ops.run_profile_record\",\"schema\":\"1.0\",\"writer\":{\"component\":\"infra/authz\",\"instance\":\"authz-1\"},\"written_at\":\"2026-11-05T10:15:30.123456Z\"}"
+      }
+    },
+    {
+      "id": "retention-alert",
+      "input": {
+        "kind": "alert"
+      },
+      "expected": {
+        "min_retention_days": 30
+      }
+    },
+    {
+      "id": "retention-backup",
+      "input": {
+        "kind": "backup"
+      },
+      "expected": {
+        "min_retention_days": 30
+      }
+    },
+    {
+      "id": "retention-generation.authz",
+      "input": {
+        "kind": "generation.authz"
+      },
+      "expected": {
+        "min_retention_days": 3650
+      }
+    },
+    {
+      "id": "retention-generation.deployment",
+      "input": {
+        "kind": "generation.deployment"
+      },
+      "expected": {
+        "min_retention_days": 3650
+      }
+    },
+    {
+      "id": "retention-recovery.step",
+      "input": {
+        "kind": "recovery.step"
+      },
+      "expected": {
+        "min_retention_days": 30
+      }
+    },
+    {
+      "id": "retention-trust.ca",
+      "input": {
+        "kind": "trust.ca"
+      },
+      "expected": {
+        "min_retention_days": 3650
+      }
+    },
+    {
+      "id": "retention-trust.credential",
+      "input": {
+        "kind": "trust.credential"
+      },
+      "expected": {
+        "min_retention_days": 3650
+      }
+    },
+    {
+      "id": "generation-none",
+      "input": {
+        "records": []
+      },
+      "expected": {
+        "current": 0
+      }
+    },
+    {
+      "id": "generation-max-of-valid",
+      "input": {
+        "records": [
+          {
+            "body": {
+              "value": 2
+            },
+            "signature_holds": true
+          },
+          {
+            "body": {
+              "value": 5
+            },
+            "signature_holds": true
+          },
+          {
+            "body": {
+              "value": 4
+            },
+            "signature_holds": true
+          }
+        ]
+      },
+      "expected": {
+        "current": 5
+      }
+    },
+    {
+      "id": "generation-invalid-ignored",
+      "input": {
+        "records": [
+          {
+            "body": {
+              "value": 2
+            },
+            "signature_holds": true
+          },
+          {
+            "body": {
+              "value": 9
+            },
+            "signature_holds": false
+          }
+        ]
+      },
+      "expected": {
+        "current": 2
+      }
+    },
+    {
+      "id": "advance-everywhere-equal",
+      "description": "P12.5: the largest value seen anywhere, plus one",
+      "input": {
+        "run_profile": 4,
+        "evidence": 4,
+        "databases": [
+          4,
+          4
+        ]
+      },
+      "expected": {
+        "next": 5
+      }
+    },
+    {
+      "id": "advance-evidence-restored-from-backup",
+      "description": "P12.5: the largest value seen anywhere, plus one",
+      "input": {
+        "run_profile": 6,
+        "evidence": 3,
+        "databases": [
+          3,
+          5
+        ]
+      },
+      "expected": {
+        "next": 7
+      }
+    },
+    {
+      "id": "advance-a-database-ahead",
+      "description": "P12.5: the largest value seen anywhere, plus one",
+      "input": {
+        "run_profile": 2,
+        "evidence": 2,
+        "databases": [
+          2,
+          8
+        ]
+      },
+      "expected": {
+        "next": 9
+      }
+    }
+  ]
+}

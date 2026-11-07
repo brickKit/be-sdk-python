@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 	"testing/fstest"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/brickKit/be-sdk-go/v3/ids"
 	"github.com/brickKit/be-sdk-go/v3/launcher"
 	"github.com/brickKit/be-sdk-go/v3/runtime"
+	"github.com/brickKit/be-sdk-go/v3/sectest"
 )
 
 var things = events.Stream{Name: "demo.things", Partitions: 2}
@@ -72,12 +74,17 @@ func (c *consumer) Subscriptions(s *events.Subscriptions) error {
 
 func main() {
 	id := os.Getenv("MEMBER_ID")
+	// a member with a database answers a full recovery's checks on its system surface (be-sdk-go alpha.117, P14.1)
+	port, _ := strconv.Atoi(os.Getenv("GRPC_PORT"))
 	if os.Getenv("ROLE") == "producer" {
-		launcher.Main(component.Definition{ID: id, Version: "3.0.0", Streams: []events.Stream{things},
+		launcher.Main(component.Definition{ID: id, Version: "3.0.0", Streams: []events.Stream{things}, GRPCPort: port,
+			Recovery: "demo.things.recover", Resend: "demo.things.resend",
+			Authz:      sectest.Defs(id, "demo.things", "demo.things.read", "demo.things.resend", "demo.things.recover"),
 			Migrations: fstest.MapFS{"0001_none.up.sql": {Data: []byte("CREATE TABLE marker (id int);")}},
 			New:        func(rt *runtime.Runtime) (component.Module, error) { return &producer{rt: rt}, nil }})
 	}
-	launcher.Main(component.Definition{ID: id, Version: "3.0.0", Subscribes: true,
+	launcher.Main(component.Definition{ID: id, Version: "3.0.0", Subscribes: true, GRPCPort: port,
+		Recovery: "demo.seen.recover", Authz: sectest.Defs(id, "demo.seen", "demo.seen.read", "demo.seen.recover"),
 		Migrations: fstest.MapFS{"0001_seen.up.sql": {Data: []byte("CREATE TABLE seen (event_id uuid PRIMARY KEY, size int NOT NULL);")}},
 		New:        func(rt *runtime.Runtime) (component.Module, error) { return &consumer{rt: rt}, nil }})
 }
