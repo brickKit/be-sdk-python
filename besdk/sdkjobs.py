@@ -21,6 +21,9 @@ IN_RECOVERY = {
                                            "once open"),
     "be.partitions.maintain": RecoveryRule(False, "not run: the partitions ahead were made before T; hourly once "
                                                   "open"),
+    "be.evidence.transfer": RecoveryRule(True, "runs as the host's loop in the phases but frozen: the evidence "
+                                               "store never goes back, and a conclusion written during the recovery "
+                                               "reaches it before the replay (P12.14, P12.15)"),
     "be.idempotency.cleanup": RecoveryRule(False, "not run: housekeeping of the member's own database, which goes "
                                                   "back; once open"),
 }

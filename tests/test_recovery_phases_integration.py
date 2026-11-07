@@ -1,9 +1,10 @@
 """The recovery phases (P1.22-P1.24; be-sdk-go's TestRecoveryPhases is the same walk): a member started with
 RECOVERY_PHASE is recovery_ready (its readiness answers 200 with the phase, its self-description and ready line say the
-phase); frozen runs no forwarding and no subscription and answers MAINTENANCE on the user surface; redelivering,
-replaying and verifying run forwarding and subscriptions and still answer MAINTENANCE; read_only serves reads and the
-writes a route declares open; no phase runs a job (the SDK's own included); without the phase everything runs again.
-A phase it does not know is a configuration error."""
+phase); frozen runs no forwarding, no subscription and no evidence transfer and answers MAINTENANCE on the user
+surface; redelivering, replaying and verifying run forwarding, subscriptions and the evidence transfer (the host's loop:
+the evidence store never goes back) and still answer MAINTENANCE; read_only serves reads and the writes a route
+declares open; no phase runs a job (the SDK's own included); without the phase everything runs again. A phase it does
+not know is a configuration error."""
 import asyncio
 import io
 import uuid
@@ -17,6 +18,8 @@ from besdk.component import Definition
 from besdk.config import EnvSource
 from besdk.events.consumer import Sub
 from besdk.events.core import Event, Projection, Stream
+from besdk.evidence import Object, Writer, seal
+from besdk.evidence.writer import Position
 from besdk.http import Route
 from besdk.testing import defs
 from besdk.work import EVERY, Job
@@ -141,6 +144,20 @@ async def test_the_recovery_phases(world):
                 type, occurred_at, gen_random_uuid()::text, version, projection, hops, payload, digest
                 FROM py_rc_prod.be_outbox LIMIT 1""")
 
+        async def evidence_row() -> str:
+            """A general record in the producer's evidence outbox (as a business transaction would leave it): the
+            evidence transfer must take it to the evidence store in every phase but frozen (P12.14, P12.15)."""
+            w = Writer(None, pid, pid, None)  # only builds the record
+            rec = w.record(str(uuid.uuid7()), "security_widening", "general", "", Object("demo.rc", "x"), {"n": 1},
+                           Position("1.1", 1))
+            sealed = seal(rec)
+            await a.execute("INSERT INTO py_rc_prod.be_evidence_outbox (id, phase, record, digest) VALUES ($1, $2, $3, $4)",
+                            sealed.id, sealed.phase, sealed.record, sealed.digest)
+            return sealed.id + "/general"
+
+        async def delivered(key):
+            return key in world.evidence
+
         try:
             await a.execute("TRUNCATE py_rc_cons.rseen") if await count(
                 "SELECT to_regclass('py_rc_cons.rseen') IS NOT NULL") else None
@@ -165,6 +182,7 @@ async def test_the_recovery_phases(world):
 
             # frozen: recovery_ready with the phase; MAINTENANCE on the user surface; nothing forwarded or received
             await copy_outbox_row()
+            frozen_evidence = await evidence_row()
             before = await ticks()
             purl, pstop, ptask, pout = await start(prod, prod_env, "frozen")
             curl, cstop, ctask, cout = await start(cons, cons_env, "frozen")
@@ -182,6 +200,7 @@ async def test_the_recovery_phases(world):
             assert await unforwarded() == 1, "not forwarded while frozen"
             assert await seen() == 2, "not received while frozen"
             assert await ticks() == before, "no job while frozen"
+            assert not await delivered(frozen_evidence), "no evidence transfer while frozen"
             await finish(cstop, ctask, cout)
             await finish(pstop, ptask, pout)
 
@@ -190,6 +209,7 @@ async def test_the_recovery_phases(world):
             for phase in ("redelivering", "replaying", "verifying"):
                 if phase != "redelivering":
                     await copy_outbox_row()
+                key = await evidence_row()
                 purl, pstop, ptask, pout = await start(prod, prod_env, phase)
                 curl, cstop, ctask, cout = await start(cons, cons_env, phase)
                 async with httpx.AsyncClient() as c:
@@ -201,6 +221,9 @@ async def test_the_recovery_phases(world):
                     assert (await c.get(purl + "/api/ticks")).status_code == 503, f"no reads while {phase}"
                     assert (await c.post(purl + "/api/code")).status_code == 503
                     assert await ticks() == before, f"no job while {phase}"
+                    # the evidence store never goes back: the transfer runs as the host's loop (sdkjobs.py)
+                    await eventually(lambda: delivered(key), True, 10, f"evidence transferred while {phase}")
+                    assert await delivered(frozen_evidence), "the row left while frozen goes too"
                 want += 1
                 await finish(cstop, ctask, cout)
                 await finish(pstop, ptask, pout)

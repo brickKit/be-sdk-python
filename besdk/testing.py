@@ -54,6 +54,10 @@ class World:
         self.types: set[str] = set()
         self.gen, self.recovery = 1, "1"
         self.audited: dict[str, dict] = {}
+        # the evidence store (the audit component's EvidenceService): "<id>/<phase>" -> digest; down answers
+        # UNAVAILABLE
+        self.evidence: dict[str, str] = {}
+        self.evidence_down = False
         self.audit_digests: dict[str, str] = {}
         self.submitted: dict[str, str] = {}  # "<component>@<version>" -> the accepted set's digest
         self.refuse_definitions = ""  # a reason makes Submit refuse every submission
@@ -236,7 +240,8 @@ class World:
             "infra/authz", lambda srv: (authz_pb2_grpc.add_ViewServiceServicer_to_server(_View(self), srv),
                                         authz_pb2_grpc.add_DefinitionServiceServicer_to_server(_Definitions(self), srv)))
         self._audit, self.audit_addr = await self._serve(
-            "infra/audit", lambda srv: audit_pb2_grpc.add_IntakeServiceServicer_to_server(_Intake(self), srv))
+            "infra/audit", lambda srv: (audit_pb2_grpc.add_IntakeServiceServicer_to_server(_Intake(self), srv),
+                                        audit_pb2_grpc.add_EvidenceServiceServicer_to_server(_Evidence(self), srv)))
         return self
 
     async def stop(self) -> None:
@@ -338,6 +343,34 @@ class _Intake(audit_pb2_grpc.IntakeServiceServicer):
 
     async def Watermark(self, request, context):  # noqa: N802
         return audit_pb2.WatermarkResponse(epoch="1.1")  # nothing is backed up, so nothing is deleted
+
+
+class _Evidence(audit_pb2_grpc.EvidenceServiceServicer):
+    """Keeps each (id, phase) once (P12.10): the same digest again is a duplicate, another one a conflict."""
+
+    def __init__(self, w: World):
+        self.w = w
+
+    async def Append(self, request, context):  # noqa: N802
+        if self.w.evidence_down:
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "the evidence store is down")
+        out = audit_pb2.AppendResponse()
+        for it in request.records:
+            try:
+                rec = json.loads(it.record)
+                key = f"{rec['id']}/{rec['phase']}"
+            except (ValueError, KeyError, TypeError):
+                out.receipts.append(audit_pb2.EvidenceReceipt(status=audit_pb2.EVIDENCE_STATUS_INVALID))
+                continue
+            had = self.w.evidence.get(key)
+            if had is None:
+                self.w.evidence[key] = it.digest
+                status = audit_pb2.EVIDENCE_STATUS_ACCEPTED
+            else:
+                status = audit_pb2.EVIDENCE_STATUS_DUPLICATE if had == it.digest else audit_pb2.EVIDENCE_STATUS_CONFLICT
+            out.receipts.append(audit_pb2.EvidenceReceipt(id=rec["id"], phase=rec["phase"], status=status, epoch="1.1",
+                                                          seq=len(self.w.evidence)))
+        return out
 
 
 def defs(component: str, resource: str, *ops: str, risk: str = "low") -> Definitions:

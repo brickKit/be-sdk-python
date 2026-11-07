@@ -37,6 +37,9 @@ from besdk.events.redelivery import Redelivery
 from besdk.events.resend import RESEND_CALL_TIMEOUT, Resender
 from besdk._gen.be.source.v1 import records_pb2_grpc, resend_pb2_grpc, watermark_pb2_grpc
 from besdk.events import records as stream_records, watermark
+from besdk import evidence
+from besdk.evidence import transfer
+from besdk._gen.be.evidence.v1 import replay_pb2_grpc
 from besdk.runtime import Runtime
 from besdk.work import Jobs, Runner, operator
 
@@ -139,6 +142,7 @@ class Member:
     # AUTHORIZATION_VIEW_EXPIRED
     defs_accepted: bool = False
     runner: object = None  # the member's background work (besdk.work.Runner), with a database
+    evidence: object = None  # the member's evidence writer (besdk.evidence.Writer), with a database
     redelivery: object = None  # with subscriptions: the redelivery after the database went back (P6.39)
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
@@ -177,6 +181,10 @@ class Member:
             self._tasks.append(asyncio.create_task(self._reread_certificate()))
         if self.runner is not None and not self.phase:  # jobs, the SDK's included, run only in normal running (P1.23)
             await self.runner.start()  # type: ignore[attr-defined]
+        if self.evidence is not None and self.evidence.store is not None and self.phase and moving:  # type: ignore[attr-defined]
+            # the evidence store never goes back: in the recovery phases the transfer runs as a loop (sdkjobs.py)
+            self._tasks.append(asyncio.create_task(transfer.loop(
+                self.runtime.db, self.evidence.store, self.logger)))  # type: ignore[attr-defined,arg-type]
         if self.auditor is not None and moving:  # the audit store never goes back: it runs outside the jobs (P1.23)
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.runtime.db is not None:  # the SDK's tables keep fresh statistics (P5.33)
@@ -306,15 +314,17 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         forwarder = Forwarder(shared.db, producer, shared.transport, d.id, values.string("IMPLEMENTATION_INSTANCE"),
                               log)  # type: ignore[arg-type]
     auditor = Auditor(shared.db) if shared.db is not None else None  # type: ignore[arg-type]
-    runner = None
+    runner = writer = None
     if shared.db is not None:  # the SDK's own jobs, each saying what it does in a recovery (besdk/sdkjobs.py)
         runner = Runner(shared.db, d.id, log)  # type: ignore[arg-type]
         for job in (partitions.maintain_job(log), idem.cleanup_job(shared.db), outbox.purge_job(shared.db),
                     operator.cleanup_job(shared.db)):  # type: ignore[arg-type]
             sdkjobs.add(runner, job)
+        writer = _evidence_writer(d, values, shared, outbound, log)
+        sdkjobs.add(runner, transfer.transfer_job(shared.db, writer.store, log))  # type: ignore[arg-type]
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
                  addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor,
-                 work=runner)
+                 work=runner, evidence=writer)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
@@ -341,6 +351,17 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
                 services.register(records_pb2_grpc.add_RecordServiceServicer_to_server,
                                   stream_records.RecordSource(shared.db, producer, impl, deployment, log),  # type: ignore[arg-type]
                                   {"Read": read, "Snapshot": read})
+        if hasattr(module, "replays"):  # the owner's replay of its evidence (P12.19)
+            if writer is None:
+                raise ValueError("a module that replays its evidence has a database (migrations)")
+            if not d.replay:
+                raise ValueError("a module that replays its evidence declares the operation of the replay "
+                                 "(Definition.replay, P12.19)")
+            replays = evidence.Replays()
+            module.replays(replays)
+            services.register(replay_pb2_grpc.add_ReplayServiceServicer_to_server,
+                              evidence.ReplayServer(shared.db, d.id, replays, log),  # type: ignore[arg-type]
+                              {"Replay": system.Method(d.replay, [evidence.replay.RECOVERY_TOOL])})
         if hasattr(module, "jobs"):  # the module's background work (chapter 07)
             if runner is None:
                 raise ValueError("a module with jobs has a database (migrations)")
@@ -352,7 +373,7 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         raise BuildError(str(e)) from e
     member = Member(d, values, log, registry, tracers, rt, module, FastAPI(), ready=ready)
     member.forwarder, member.transport, member.tls, member.auditor = forwarder, shared.transport, tls, auditor
-    member.runner = runner
+    member.runner, member.evidence = runner, writer
     if d.subscribes:
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]
@@ -430,6 +451,17 @@ def _guard(member: Member, shared: Shared, outbound: calls.Member, ops: list[str
     verifier = Verifier(values.string("IAM_ISSUER"), "be:deployment:" + values.string("DEPLOYMENT_ID"),
                         shared.keys)  # type: ignore[arg-type]
     return UserGuard(verifier, d.authz, member.holder, member.logger)  # type: ignore[arg-type]
+
+
+def _evidence_writer(d: Definition, values: Values, shared: Shared, outbound: calls.Member,
+                     log: obs.Logger) -> evidence.Writer:
+    """The member's evidence writer (P12.15): the evidence store is the audit component's EvidenceService at
+    AUDIT_GRPC_URL; without it the records stay in the local evidence outbox until it is set."""
+    instance = values.string("IMPLEMENTATION_INSTANCE") if d.streams else d.id
+    w = evidence.Writer(shared.db, d.id, instance, log)  # type: ignore[arg-type]
+    if addr := values.string("AUDIT_GRPC_URL"):
+        w.store = transfer.GRPCStore(outbound.grpc("infra/audit", host_port(addr)))
+    return w
 
 
 def _audit_sender(values: Values, outbound: calls.Member, log: obs.Logger) -> GRPCSender | None:

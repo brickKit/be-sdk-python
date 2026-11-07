@@ -42,6 +42,9 @@ class Runtime:
     # the member's background work (besdk.work.Runner), with a database: enqueue(tx, job, args, at) puts a queue job's
     # item into the business transaction (chapter 07)
     work: Any = None
+    # the member's evidence (besdk.evidence.Writer), with a database: intents before, conclusions and general
+    # records in the business transaction (chapter 12)
+    evidence: Any = None
 
     def http(self, component_id: str) -> Any:
         """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter

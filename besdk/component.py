@@ -52,6 +52,13 @@ class Definition:
     # The operation of the streams' redelivery, be.source.v1.ResendService (P6.38): required with streams, declared in
     # authz; any component of the deployment may call it.
     resend: str = ""
+    # The component writes tightening intents or irreversible commands' records (P12.16): the alert channel (the
+    # run profile, RUN_PROFILE_*) takes an intent the evidence store does not; every member with migrations writes
+    # evidence through rt.evidence, without this flag a failed intent is only recorded as a double failure.
+    evidence: bool = False
+    # The operation of the evidence replay, be.evidence.v1.ReplayService (P12.19): required when the module
+    # implements replays(r: besdk.evidence.Replays), declared in the component's resource definition.
+    replay: str = ""
     # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
     subscribes: bool = False
     # The resources and operations the component declares (besdk.authz.Definitions); required with protected routes or

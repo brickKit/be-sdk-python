@@ -1,6 +1,6 @@
 [project]
 name = "be-sdk"
-version = "3.0.0a56"
+version = "3.0.0a57"
 description = "The official Python SDK of the component protocol (be-protocol)"
 requires-python = ">=3.15,<3.16"
 dependencies = [
@@ -24,7 +24,7 @@ dependencies = [
     "jsonschema-rs",  # security records against be-protocol's schemas, draft 2020-12; 3-4% of opening a record (besdk.records)
     # the callee-published contracts (generated code), at exact tags
     "contract-infra-authz @ git+https://github.com/brickKit/contract-infra-authz@v3.0.0-alpha.2#subdirectory=python",
-    "contract-infra-audit @ git+https://github.com/brickKit/infra-audit@contract/v3.0.0-alpha.1#subdirectory=contract/python",
+    "contract-infra-audit @ git+https://github.com/brickKit/infra-audit@contract/v3.0.0-alpha.3#subdirectory=contract/python",
 ]
 
 [dependency-groups]
