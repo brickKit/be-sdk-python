@@ -38,6 +38,9 @@ from besdk.events.resend import RESEND_CALL_TIMEOUT, Resender
 from besdk._gen.be.source.v1 import records_pb2_grpc, resend_pb2_grpc, watermark_pb2_grpc
 from besdk.events import records as stream_records, watermark
 from besdk import evidence, runprofile
+from besdk.extcmd import commands as extcmd_commands
+from besdk.extcmd.server import ReconcileServer
+from besdk._gen.be.external.v1 import reconcile_pb2_grpc
 from besdk.evidence import transfer
 from besdk._gen.be.evidence.v1 import replay_pb2_grpc
 from besdk.runtime import Runtime
@@ -83,6 +86,8 @@ def keys(d: Definition) -> list[Key]:
         out += consumer_keys()
     if d.evidence:  # the alert channel takes the intents the evidence store does not (P12.7, P12.16)
         out += runprofile.keys()
+    if d.external_commands:
+        out += extcmd_commands.keys()
     return out
 
 
@@ -145,6 +150,7 @@ class Member:
     defs_accepted: bool = False
     runner: object = None  # the member's background work (besdk.work.Runner), with a database
     evidence: object = None  # the member's evidence writer (besdk.evidence.Writer), with a database
+    external: object = None  # the member's external commands (besdk.extcmd.Commands)
     redelivery: object = None  # with subscriptions: the redelivery after the database went back (P6.39)
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
@@ -187,6 +193,9 @@ class Member:
             # the evidence store never goes back: in the recovery phases the transfer runs as a loop (sdkjobs.py)
             self._tasks.append(asyncio.create_task(transfer.loop(
                 self.runtime.db, self.evidence.store, self.logger)))  # type: ignore[attr-defined,arg-type]
+        if self.external is not None and self.phase in (VERIFYING, READ_ONLY):
+            self.external.query_only = True  # what is unknown is asked, nothing is sent (P13.10)  # type: ignore[attr-defined]
+            self._tasks.append(asyncio.create_task(self.external.loop()))  # type: ignore[attr-defined]
         if self.auditor is not None and moving:  # the audit store never goes back: it runs outside the jobs (P1.23)
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.runtime.db is not None:  # the SDK's tables keep fresh statistics (P5.33)
@@ -324,9 +333,16 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
             sdkjobs.add(runner, job)
         writer = _evidence_writer(d, values, shared, outbound, tls, log)
         sdkjobs.add(runner, transfer.transfer_job(shared.db, writer.store, log))  # type: ignore[arg-type]
+    external = None
+    if d.external_commands:  # the adapter's commands (be-protocol chapter 13); the module gives the adapter below
+        if shared.db is None:
+            log.error("the member could not be built", error="external_commands needs a database (migrations)")
+            raise BuildError("the definition says external_commands but the component has no database (migrations)")
+        external = extcmd_commands.Commands(shared.db, d.id, log, evidence=writer,  # type: ignore[arg-type]
+                                            query_only=values.bool(extcmd_commands.QUERY_ONLY_KEY))
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
                  addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor,
-                 work=runner, evidence=writer)
+                 work=runner, evidence=writer, external=external)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
@@ -364,6 +380,18 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
             services.register(replay_pb2_grpc.add_ReplayServiceServicer_to_server,
                               evidence.ReplayServer(shared.db, d.id, replays, log),  # type: ignore[arg-type]
                               {"Replay": system.Method(d.replay, [evidence.replay.RECOVERY_TOOL])})
+        provides = hasattr(module, "external_commands")
+        if provides != (external is not None):
+            raise ValueError("the module implements external_commands() but the definition does not say "
+                             "external_commands, or the other way round")
+        if external is not None:  # the SDK's job sends and queries; step 7's reconciliation (P13.11)
+            external.adapter, external.ops = module.external_commands()
+            sdkjobs.add(runner, external.process_job())
+            if not d.recovery:
+                raise ValueError("a component with external commands declares the operation of its reconciliation "
+                                 "(Definition.recovery, P13.11)")
+            services.register(reconcile_pb2_grpc.add_ReconcileServiceServicer_to_server, ReconcileServer(external),
+                              {"Reconcile": system.Method(d.recovery, [evidence.replay.RECOVERY_TOOL], timeout=600.0)})
         if hasattr(module, "jobs"):  # the module's background work (chapter 07)
             if runner is None:
                 raise ValueError("a module with jobs has a database (migrations)")
@@ -375,7 +403,7 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         raise BuildError(str(e)) from e
     member = Member(d, values, log, registry, tracers, rt, module, FastAPI(), ready=ready)
     member.forwarder, member.transport, member.tls, member.auditor = forwarder, shared.transport, tls, auditor
-    member.runner, member.evidence = runner, writer
+    member.runner, member.evidence, member.external = runner, writer, external
     if d.subscribes:
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]

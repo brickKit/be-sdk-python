@@ -552,9 +552,27 @@
       ]
     },
     "external-commands": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T8 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_extcmd_vectors::test_the_external_command_vectors",
+        "test_extcmd_vectors::test_the_external_reconcile_vectors",
+        "test_extcmd_integration::test_a_request_is_idempotent_by_its_reference",
+        "test_extcmd_integration::test_a_successful_send",
+        "test_extcmd_integration::test_an_unknown_result_is_queried_first",
+        "test_extcmd_integration::test_not_found_without_dedupe_goes_to_manual",
+        "test_extcmd_integration::test_retries_and_takeovers",
+        "test_extcmd_integration::test_past_the_deadline_nothing_is_sent",
+        "test_extcmd_integration::test_query_only_sends_nothing",
+        "test_extcmd_integration::test_an_irrevocable_command_needs_its_issue_record",
+        "test_extcmd_integration::test_reconcile_by_queries",
+        "test_extcmd_integration::test_reconcile_by_listing"
+      ],
+      "pending": [
+        {
+          "rule": "P13.9",
+          "reason": "能力声明的一致性由套件的对外命令剖面对 Python 探针验证（第 6 项 T8 的探针付款）"
+        }
+      ]
     },
     "recovery-mode": {
       "status": "verified",

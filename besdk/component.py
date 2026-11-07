@@ -59,6 +59,13 @@ class Definition:
     # The operation of the evidence replay, be.evidence.v1.ReplayService (P12.19): required when the module
     # implements replays(r: besdk.evidence.Replays), declared in the component's resource definition.
     replay: str = ""
+    # The module implements external_commands() -> (adapter, {operation: besdk.extcmd.Capabilities}) (be-protocol
+    # chapter 13): it sends external commands through rt.external; needs migrations.
+    external_commands: bool = False
+    # The operation of a full recovery's checks (be.recovery.v1.CheckService, chapter 14) and, with
+    # external_commands, of the external reconciliation (be.external.v1.ReconcileService, P13.11), declared in the
+    # component's resource definition.
+    recovery: str = ""
     # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
     subscribes: bool = False
     # The resources and operations the component declares (besdk.authz.Definitions); required with protected routes or

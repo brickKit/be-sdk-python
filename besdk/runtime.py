@@ -45,6 +45,9 @@ class Runtime:
     # the member's evidence (besdk.evidence.Writer), with a database: intents before, conclusions and general
     # records in the business transaction (chapter 12)
     evidence: Any = None
+    # the member's external commands (besdk.extcmd.Commands), with Definition.external_commands: request(tx, ...)
+    # writes a command in the business transaction (chapter 13)
+    external: Any = None
 
     def http(self, component_id: str) -> Any:
         """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter
