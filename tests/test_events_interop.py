@@ -23,6 +23,7 @@ from besdk.events import jetstream, pgqueue
 from besdk.events.consumer import Sub
 from besdk.events.core import MAX_PAYLOAD, Event, Projection, Stream
 from besdk.http import Route
+from besdk.testing import defs
 from tests import pgtest
 from tests.test_transports import LOG_BUS
 
@@ -197,9 +198,11 @@ async def test_python_to_go(kind, go_binary, world):
                                                   **s3_env("py-iop-pp/")})
         cons_env = await member_env("py_iop_gc", {"BUS_URL": url})
         gurl, gproc = await start_go(go_binary, "demo/gocons" + sfx, "consumer", cons_env, world)
+        pid = "demo/pyprod" + sfx  # a producer answers redeliveries on its system surface (P6.38)
         purl, pstop, ptask = await start_python(Definition(
-            "demo/pyprod" + sfx, "3.0.0", PyProducer, migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
-            streams=[THINGS]), prod_env)
+            pid, "3.0.0", PyProducer, migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
+            streams=[THINGS], resend="demo.things.resend", grpc_port=free_port(),
+            authz=defs(pid, "demo.things", "demo.things.read", "demo.things.resend")), {**prod_env, **world.env(pid)})
         try:
             async with httpx.AsyncClient() as c:
                 for i in range(5):

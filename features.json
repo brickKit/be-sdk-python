@@ -479,9 +479,21 @@
       "evidence": []
     },
     "redelivery": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T5 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_progress::test_progress",
+        "test_redelivery_integration::test_the_progress_read_from_the_inbox",
+        "test_resend_integration::test_a_redelivery_sends_after_the_start_in_order",
+        "test_resend_integration::test_ahead_and_beyond_the_retention",
+        "test_redelivery_integration::test_after_the_database_went_back_every_producer_is_asked",
+        "test_redelivery_integration::test_a_producer_that_does_not_answer_is_asked_again_before_settling"
+      ],
+      "pending": [
+        {
+          "rule": "P6.40",
+          "reason": "读模型按快照修复属于投影的消费一侧，不在 Python 首批（A164）；别的订阅记缺口已验证"
+        }
+      ]
     },
     "tiering": {
       "status": "not_implemented",

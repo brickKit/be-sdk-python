@@ -75,8 +75,8 @@ class Transport:
     async def publish(self, m: Message) -> None:
         """Returns after the stream's acknowledgement."""
         headers = dict(m.headers)
-        if m.id:
-            headers["Nats-Msg-Id"] = m.id
+        if m.dedup_id:
+            headers["Nats-Msg-Id"] = m.dedup_id
         size = len(m.data) + len(m.subject) + sum(len(k) + len(v) + 4 for k, v in headers.items())
         if size > self.max_message:
             raise TooLarge()

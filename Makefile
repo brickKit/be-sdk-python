@@ -1,4 +1,4 @@
-.PHONY: test test-integration protocol-check lint
+.PHONY: test test-integration protocol-check gen gen-check lint
 
 test:  ## unit and vector tests
 	uv run pytest -q
@@ -11,3 +11,9 @@ test-integration:
 
 protocol-check:  ## the copy of be-protocol equals its recorded tag
 	python3 -I scripts/protocol.py check
+
+gen:  ## besdk/_gen from the protocol copy's proto/ (committed; after every protocol fetch)
+	uv run python scripts/gen.py
+
+gen-check:  ## the committed generated code is exactly what the pinned proto/ generates
+	uv run python scripts/gen.py --check

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Iterator, Protocol
 
 from besdk import errs
-from besdk.db.batch import delete_in_batches
+from besdk.db.batch import BATCH as PURGE_BATCH
 from besdk.db.pool import DB, Tx, TxOptions
 from besdk.events.core import (MAX_HOPS, MAX_PAYLOAD, MAX_SUBJECTS, REDELIVERY_RETENTION, Event, Message, Projection,
                                Row, Stream, Transport, digest, subject)
@@ -300,36 +300,70 @@ class Forwarder:
         return len(done)
 
     async def _message(self, r: Row) -> tuple[Message, bool]:
-        payload, claim = r.payload, False
-        if len(payload) > MAX_PAYLOAD:
-            if self.producer.claims is None:
-                raise RuntimeError(f"event {r.event_id}: {len(payload)} bytes and no object storage for a claim check")
-            uri = await self.producer.claims.put(r.event_id, payload)
-            payload = json.dumps({"claim": {"uri": uri, "size": len(r.payload), "sha256": sha256_hex(r.payload)}},
-                                 separators=(",", ":")).encode()
-            claim = True
-        r.claim = claim
-        return Message(subject(r.stream, r.partition, r.type), r.headers(self.source, self.impl), payload), claim
+        return await message_of(r, self.producer.claims, self.source, self.impl)
 
     async def _unpublished(self, tx: Tx, stream: str, p: int) -> list[Row]:
-        rows = await tx.fetch(
-            """SELECT ord, event_id::text AS event_id, type, occurred_at, record_id, version, projection,
-            coalesce(legal_entity, '') AS legal_entity, subjects, coalesce(causation::text, '') AS causation, hops,
-            trace, payload, digest, seq, epoch_generation, epoch_timeline
-            FROM be_outbox WHERE stream = $1 AND partition = $2 AND seq IS NOT NULL AND published_at IS NULL
-            ORDER BY epoch_generation, epoch_timeline, seq LIMIT $3""", stream, p, self.batch)
-        return [Row(r["ord"], r["event_id"], stream, p, r["type"], r["occurred_at"], r["record_id"], r["version"],
-                    r["projection"], bytes(r["payload"]), r["digest"], r["seq"],
-                    (r["epoch_generation"], r["epoch_timeline"]), r["legal_entity"],
-                    json.loads(r["subjects"]) if r["subjects"] else None, r["causation"], r["hops"],
-                    json.loads(r["trace"]) if r["trace"] else {}) for r in rows]
+        return rows_of(await tx.fetch(ROW_COLUMNS + """ AND seq IS NOT NULL AND published_at IS NULL
+            ORDER BY epoch_generation, epoch_timeline, seq LIMIT $3""", stream, p, self.batch), stream, p)
+
+
+# The columns a message is made from; the rows of one stream partition ($1, $2).
+ROW_COLUMNS = """SELECT ord, event_id::text AS event_id, type, occurred_at, record_id, version, projection,
+    coalesce(legal_entity, '') AS legal_entity, subjects, coalesce(causation::text, '') AS causation, hops,
+    trace, payload, digest, seq, epoch_generation, epoch_timeline
+    FROM be_outbox WHERE stream = $1 AND partition = $2"""
+
+
+def rows_of(records: list, stream: str, p: int) -> list[Row]:
+    return [Row(r["ord"], r["event_id"], stream, p, r["type"], r["occurred_at"], r["record_id"], r["version"],
+                r["projection"], bytes(r["payload"]), r["digest"], r["seq"],
+                (r["epoch_generation"], r["epoch_timeline"]), r["legal_entity"],
+                json.loads(r["subjects"]) if r["subjects"] else None, r["causation"], r["hops"],
+                json.loads(r["trace"]) if r["trace"] else {}) for r in records]
+
+
+async def message_of(r: Row, claims: ClaimStore | None, source: str, impl: str) -> tuple[Message, bool]:
+    """The transport message of a numbered outbox row: a payload over the limit travels by claim check (P6.14)."""
+    payload, claim = r.payload, False
+    if len(payload) > MAX_PAYLOAD:
+        if claims is None:
+            raise RuntimeError(f"event {r.event_id}: {len(payload)} bytes and no object storage for a claim check")
+        uri = await claims.put(r.event_id, payload)
+        payload = json.dumps({"claim": {"uri": uri, "size": len(r.payload), "sha256": sha256_hex(r.payload)}},
+                             separators=(",", ":")).encode()
+        claim = True
+    r.claim = claim
+    return Message(subject(r.stream, r.partition, r.type), r.headers(source, impl), payload), claim
 
 
 async def purge(db: DB, retention: float = REDELIVERY_RETENTION) -> int:
-    """Published rows past the redelivery retention, in batches (P6.12); unpublished rows are never deleted."""
-    return await delete_in_batches(db, """DELETE FROM be_outbox WHERE ord IN (SELECT ord FROM be_outbox
-        WHERE published_at IS NOT NULL AND published_at < now() - make_interval(secs => $1)
-        LIMIT $2 FOR UPDATE SKIP LOCKED)""", retention)
+    """Published rows past the redelivery retention, in batches (P6.12); unpublished rows are never deleted. Each
+    partition notes the largest position it purged: a redelivery from before it is beyond the retention (P6.38)."""
+    total = 0
+    while True:
+        async def batch(tx: Tx) -> int:
+            gone = await tx.fetch("""DELETE FROM be_outbox WHERE ord IN (SELECT ord FROM be_outbox
+                WHERE published_at IS NOT NULL AND published_at < now() - make_interval(secs => $1)
+                LIMIT $2 FOR UPDATE SKIP LOCKED)
+                RETURNING stream, partition, epoch_generation, epoch_timeline, seq""", retention, PURGE_BATCH)
+            top: dict[tuple[str, int], tuple[int, int, int]] = {}
+            for g in gone:
+                if g["seq"] is None or g["epoch_generation"] is None:
+                    continue  # never numbered (a row a test wrote by hand): no position to note
+                pos = (g["epoch_generation"], g["epoch_timeline"], g["seq"])
+                key = (g["stream"], g["partition"])
+                if key not in top or top[key] < pos:
+                    top[key] = pos
+            for (stream, part), (gen, tl, seq) in top.items():
+                await tx.execute("""UPDATE be_outbox_partition SET purged_generation = $3, purged_timeline = $4,
+                    purged_seq = $5 WHERE stream = $1 AND partition = $2 AND (purged_generation IS NULL
+                    OR (purged_generation, purged_timeline, purged_seq) < ($3, $4, $5))""", stream, part, gen, tl, seq)
+            return len(gone)
+
+        n = await db.background_tx(batch)
+        total += n
+        if n < PURGE_BATCH:
+            return total
 
 
 def purge_job(db: DB):

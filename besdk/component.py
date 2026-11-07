@@ -49,6 +49,9 @@ class Definition:
     grpc_port: int = 0  # the "grpc" extra port of component.yaml
     # The event streams the component produces (chapter 06); they need migrations (the outbox). rt.events emits.
     streams: list = field(default_factory=list)
+    # The operation of the streams' redelivery, be.source.v1.ResendService (P6.38): required with streams, declared in
+    # authz; any component of the deployment may call it.
+    resend: str = ""
     # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
     subscribes: bool = False
     # The resources and operations the component declares (besdk.authz.Definitions); required with protected routes or

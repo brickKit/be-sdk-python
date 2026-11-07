@@ -1,0 +1,53 @@
+// The identity member's sessions for the edge (chapter 08, P8.28; chapter 11): the exchange of a browser session for
+// a short access token, and the sessions that ended, read by position. Only the edge's service identity infra/edge
+// may call it. Every SDK and be-edge generate or frame their own code from this file. No go_package here: each SDK
+// sets it when it generates (buf's managed mode).
+syntax = "proto3";
+
+package be.session.v1;
+
+service SessionService {
+  // A live session's access token; SESSION_ENDED when the session does not exist, ended or timed out.
+  rpc Exchange(ExchangeRequest) returns (ExchangeResponse);
+  // The sessions that ended after a cursor, in position order.
+  rpc Ended(EndedRequest) returns (EndedResponse);
+}
+
+message ExchangeRequest {
+  // Lowercase hexadecimal SHA-256 of the session cookie's value.
+  string session_digest = 1;
+  // False when a polling request caused the exchange: the idle timeout is not renewed.
+  bool renew_idle = 2;
+}
+
+message ExchangeResponse {
+  string access_token = 1;
+  // UNIX milliseconds; never later than session_until.
+  int64 expires_at_ms = 2;
+  // The platform principal (lowercase UUIDv7).
+  string principal = 3;
+  // UNIX milliseconds: the latest instant the session ends (its absolute timeout, or the idle one from now).
+  int64 session_until_ms = 4;
+}
+
+// A position on the stream be.session.ended: the identity member's implementation instance, the epoch
+// ("<generation>.<timeline>") and the sequence of chapter 06.
+message Cursor {
+  string impl = 1;
+  string epoch = 2;
+  uint64 seq = 3;
+}
+
+message EndedRequest {
+  Cursor after = 1;  // absent on the first call
+  uint32 limit = 2;  // 0: 500; at most 2 000
+}
+
+message EndedResponse {
+  // Digests of the sessions that ended after the cursor, in position order.
+  repeated string session_digests = 1;
+  Cursor next = 2;
+  // True when the cursor was absent, of another instance or epoch, or before the oldest kept row: next is the
+  // current end and the edge drops every cached token.
+  bool reset = 3;
+}

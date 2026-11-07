@@ -153,10 +153,18 @@ class Message:
     subject: str
     headers: dict[str, str]
     data: bytes
+    # the identity the transport deduplicates by; empty: the event ID. A redelivery sets its own (P6.38):
+    # <event ID>/resend/<request ID>, so a message still in the broker's window is sent again
+    msg_id: str = field(default="", kw_only=True)
 
     @property
     def id(self) -> str:
         return self.headers.get(H_ID, "")
+
+    @property
+    def dedup_id(self) -> str:
+        """The identity the transport deduplicates by (P6.10, P6.38)."""
+        return self.msg_id or self.id
 
 
 @dataclass

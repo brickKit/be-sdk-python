@@ -1,0 +1,87 @@
+// The checks of a full recovery's steps 8-10 (chapter 14, P14.1-P14.5; the assembly project's protocol 15): every
+// component with a database answers its consistency checks, which objects a lost change touched, and its document
+// number series. Standard, so the recovery tool calls every component the same way. Every SDK generates its own code
+// from this file.
+syntax = "proto3";
+
+package be.recovery.v1;
+
+service CheckService {
+  // All four: only the recovery tool (service identity ops/recover) may call them.
+  rpc Check(CheckRequest) returns (CheckResponse);
+  rpc Present(PresentRequest) returns (PresentResponse);
+  rpc Numbers(NumbersRequest) returns (NumbersResponse);
+  rpc AdvanceNumbers(AdvanceNumbersRequest) returns (AdvanceNumbersResponse);
+}
+
+message CheckRequest {
+  string recovery = 1;
+}
+
+message Difference {
+  string object_type = 1;
+  string object_id = 2;
+  string detail = 3;
+}
+
+message CheckResult {
+  // The check's identity and what it rests on (the assembly project's protocol and item).
+  string check = 1;
+  string basis = 2;
+  // pass, diff or unprovable.
+  string outcome = 3;
+  repeated Difference differences = 4;
+  string disposal = 5;
+}
+
+message CheckResponse {
+  repeated CheckResult results = 1;
+}
+
+message ObjectRef {
+  string type = 1;
+  string id = 2;
+  // The version the audit record names; empty when it names none.
+  string version = 3;
+}
+
+message PresentRequest {
+  string recovery = 1;
+  repeated ObjectRef objects = 2;
+}
+
+message PresentAnswer {
+  ObjectRef object = 1;
+  // present, older or absent.
+  string answer = 2;
+  string version = 3;
+}
+
+message PresentResponse {
+  repeated PresentAnswer answers = 1;
+}
+
+message Series {
+  string legal_entity = 1;
+  string code = 2;
+  string period = 3;
+  int64 max_used = 4;
+}
+
+message NumbersRequest {
+  string recovery = 1;
+}
+
+message NumbersResponse {
+  repeated Series series = 1;
+}
+
+message AdvanceNumbersRequest {
+  string recovery = 1;
+  // The used maximum each series is raised to (never lowered).
+  repeated Series series = 2;
+}
+
+message AdvanceNumbersResponse {
+  repeated Series series = 1;
+}

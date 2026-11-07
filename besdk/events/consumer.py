@@ -128,8 +128,14 @@ class Consumer:
         try:
             with caused_by(r.id, r.hops):
                 async def apply(tx: Tx) -> None:
-                    status = await tx.execute("INSERT INTO be_inbox (subscription, event_id) VALUES ($1, $2) "
-                                              "ON CONFLICT DO NOTHING", self.sub.name, uuid.UUID(r.id))
+                    # with the event's position at its source, for the progress of a redelivery (P6.36)
+                    gen, tl = _epoch(r.epoch)
+                    status = await tx.execute(
+                        """INSERT INTO be_inbox (subscription, event_id, source_component, source_impl, source_stream,
+                        source_partition, epoch_generation, epoch_timeline, seq)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING""",
+                        self.sub.name, uuid.UUID(r.id), r.source.removeprefix("urn:be:") or None, r.impl or None,
+                        r.stream or None, r.partition if r.stream else None, gen, tl, r.seq if gen is not None else None)
                     if status.endswith(" 0"):
                         return  # already applied: a redelivery takes effect once
                     await self.sub.handle(tx, r)
@@ -143,6 +149,12 @@ class Consumer:
             """INSERT INTO be_dead_letter (subscription, event_id, type, headers, payload, error, attempts)
             VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7) ON CONFLICT DO NOTHING""", self.sub.name, d.id,
             d.headers.get(H_TYPE, ""), json.dumps(d.headers), d.data, repr(cause), d.attempt))
+
+
+def _epoch(s: str) -> tuple[int | None, int | None]:
+    """An envelope's beepoch, <generation>.<timeline>; (None, None) when it has none."""
+    g, _, t = s.partition(".")
+    return (int(g), int(t)) if g.isdigit() and t.isdigit() else (None, None)
 
 
 def received(d: Delivery) -> Received:

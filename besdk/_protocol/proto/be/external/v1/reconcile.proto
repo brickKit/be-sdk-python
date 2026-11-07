@@ -1,0 +1,41 @@
+// The external reconciliation of a full recovery's step 7 (chapter 13, P13.11-P13.13; the assembly project's protocol
+// 15): an adapter matches the external system's records with its commands. Standard, so the recovery tool calls every
+// adapter the same way. Every SDK generates its own code from this file.
+syntax = "proto3";
+
+package be.external.v1;
+
+service ReconcileService {
+  // Only the recovery tool (service identity ops/recover) may call it; it may be called again (P13.13).
+  rpc Reconcile(ReconcileRequest) returns (ReconcileResponse);
+}
+
+message ReconcileRequest {
+  // The recovery this belongs to and its point in time T (RFC 3339, UTC).
+  string recovery = 1;
+  string t = 2;
+  // How far before T the external records are listed: the declared clock skew plus the external posting delay.
+  int64 window_before_seconds = 3;
+  // The business references of this adapter's issue records the evidence store and the alert channel hold.
+  repeated string issued = 4;
+  // The failure moment (RFC 3339, UTC): sends after T may have gone on until it without a record. Empty: the call's
+  // time.
+  string failed_at = 5;
+}
+
+message Conclusion {
+  // The business reference (the requester's), and the command when there is one.
+  string reference = 1;
+  string command = 2;
+  // matched (final by the external record), deadline (a resend deadline written), unknown, manual, external_only
+  // (the external system has it, this member does not), possibly_executed (an issue record, no command, no external
+  // record).
+  string conclusion = 3;
+  string state = 4;
+  string resend_deadline = 5;
+  string detail = 6;
+}
+
+message ReconcileResponse {
+  repeated Conclusion conclusions = 1;
+}

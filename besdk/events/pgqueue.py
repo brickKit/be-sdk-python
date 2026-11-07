@@ -129,7 +129,7 @@ class Transport:
             raise TooLarge()
         status = await self.pool.execute(f"""INSERT INTO {self.t('be_bus_message')} (msg_id, subject, headers, data)
             VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (msg_id) WHERE msg_id IS NOT NULL DO NOTHING""",
-                                         m.id or None, m.subject, json.dumps(m.headers), m.data)
+                                         m.dedup_id or None, m.subject, json.dumps(m.headers), m.data)
         if status.endswith(" 0"):
             return
         with contextlib.suppress(asyncio.QueueFull):  # dropped: the poll reads the message

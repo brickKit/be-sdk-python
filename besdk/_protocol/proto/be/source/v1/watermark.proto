@@ -1,0 +1,80 @@
+// The watermark source's pull (chapter 09, P9.13-P9.18; protocol 02 of the assembly project, steps 1-3): one request
+// is the probe and the catch-up at once. Every SDK generates its own code from this file; a process holds one SDK,
+// so the file is registered once. No go_package here: each SDK sets it when it generates (buf's managed mode).
+syntax = "proto3";
+
+package be.source.v1;
+
+service WatermarkService {
+  // Only the components the stream's declaration lists may call it (P9.13).
+  rpc Pull(PullRequest) returns (PullResponse);
+}
+
+// A position on a stream: implementation instance, epoch ("<generation>.<timeline>"), sequence (beimpl, beepoch, beseq).
+message Position {
+  string impl = 1;
+  string epoch = 2;
+  uint64 seq = 3;
+}
+
+// The row at a consumer's contiguous position, as the consumer kept it: an echo's nonce, or an event's record ID,
+// version and row digest (bedigest). The consumer stores and returns it unchanged.
+message RowIdentity {
+  message Record {
+    string record_id = 1;
+    int64 version = 2;
+    string digest = 3;
+  }
+  oneof row {
+    string echo_nonce = 1;
+    Record record = 2;
+  }
+}
+
+message PartitionPosition {
+  uint32 partition = 1;
+  Position position = 2;  // absent: echo only
+  RowIdentity row = 3;
+}
+
+message PullRequest {
+  string stream = 1;
+  string nonce = 2;  // at least 128 random bits, hexadecimal
+  // Partitions not listed are echo only; none listed: every partition echo only (P9.14).
+  repeated PartitionPosition partitions = 3;
+  string page_token = 4;  // a later page: only this, from the previous response; bound to the source's instance and epoch
+}
+
+// An event exactly as on the stream (chapter 06, P6.13): the ce- headers and the payload (a claim check for a big one).
+message Event {
+  map<string, string> headers = 1;
+  bytes payload = 2;
+}
+
+enum NeedSnapshot {
+  NEED_SNAPSHOT_UNSPECIFIED = 0;  // the check passed, or echo only
+  NEED_SNAPSHOT_BEYOND_RETENTION = 1;
+  NEED_SNAPSHOT_ROLLBACK_DETECTED = 2;
+}
+
+message PartitionResult {
+  uint32 partition = 1;
+  NeedSnapshot need_snapshot = 2;  // set: no events and no echo for this partition
+  repeated Event events = 3;       // after the position, in position order, up to and including the echo
+  Position echo = 4;               // on the partition's last page only
+}
+
+// Who answered (P9.18; protocol 02 step 3).
+message Declaration {
+  string deployment = 1;
+  string impl = 2;
+  string system_id = 3;
+  string epoch = 4;  // a replica: the recovery generation it read and the timeline it replayed to
+  bool primary = 5;
+}
+
+message PullResponse {
+  Declaration source = 1;
+  repeated PartitionResult partitions = 2;
+  string next_page_token = 3;  // empty: this was the last page; every page declares the same source (P9.21)
+}

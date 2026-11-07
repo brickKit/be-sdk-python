@@ -9,14 +9,17 @@
 | `component.py` | 组件交给启动器或外壳的定义：身份、版本、配置键、迁移、事件流、授权定义、模块的入口 | 第 01 章 |
 | `launcher.py` | 单独运行一个组件：`serve` 与 `migrate` 入口、配置、就绪 | 第 01、02 章 |
 | `shell.py` | 外壳启动器：一个进程承载装进来的成员；SDK 版本不低于成员声明的最低版本（P1.21）；进程级的键各成员一致（P2.11） | 协议 17 的外壳义务 |
-| `host.py` | 启动器与外壳共用的组装：建一个成员（运行时、用户面、系统面、转发与订阅、审计、授权视图）、启动与停止、就绪与自述 | 第 01 章 |
+| `host.py` | 启动器与外壳共用的组装：建一个成员（运行时、用户面、系统面、转发与订阅、补发、作业、审计、授权视图）、启动与停止、就绪与自述、恢复阶段（P1.22–P1.24） | 第 01 章 |
+| `sdkjobs.py` | SDK 自带的作业与它们在恢复阶段怎样（没写规则的作业宿主拒绝登记；`tests/test_sdkjobs.py` 核对宿主登记了每个造作业的函数） | P1.23 |
 | `runtime.py` | 模块对外的唯一入口：配置、依赖地址、数据库、调用、事件、审计、日志与指标 | 第 01 章 |
 | `config.py` | 读取声明的配置键：严格类型，空即未设 | 第 02 章 |
 | `errs.py`、`errwire.py` | 唯一的错误对象与原因目录；系统面上的编码 | 第 03 章 |
 | `calls/` | 出站调用：并发上限、熔断、重试预算、逐跳缩短的时限、幂等键与转发用户凭据 | 第 04 章 |
 | `reqctx.py` | 出站调用要转发的请求级值 | 第 04 章 |
-| `db/` | 进入数据库的唯一方式：连接池与事务入口（`pool.py`：角色、`search_path`、超时都是事务级；数据库错误到原因的映射 `map_error`）、拒绝把状态留在连接上的语句（`session.py`）、迁移与迁移检查（`migrate.py`、`lint.py`）、单号（`docno.py`）、统计（`statistics.py`） | 第 05 章 |
-| `events/` | 发件表与转发（`outbox.py`）、订阅与收件表（`consumer.py`）、信封与流（`core.py`）、运输的选择（`bus.py`）与两个适配器（`jetstream.py`、`pgqueue.py`）、大载荷的凭证检查（`objectstore.py`，SigV4 在 `sigv4.py`） | 第 06 章 |
+| `db/` | 进入数据库的唯一方式：连接池与事务入口（`pool.py`：角色、`search_path`、超时都是事务级；数据库错误到原因的映射 `map_error`）、拒绝把状态留在连接上的语句（`session.py`）、迁移与迁移检查（`migrate.py`、`lint.py`）、单号（`docno.py`）、统计（`statistics.py`）、按月分区的维护（`partitions.py`） | 第 05 章 |
+| `events/` | 发件表、转发与清理（`outbox.py`）、订阅与收件表（`consumer.py`，收件表记来源位置）、信封与流（`core.py`）、运输的选择（`bus.py`）与两个适配器（`jetstream.py`、`pgqueue.py`）、大载荷的凭证检查（`objectstore.py`，SigV4 在 `sigv4.py`）、订阅的进度（`progress.py`）、生产者的补发 `ResendService`（`resend.py`）、消费者库回退后的补发（`redelivery.py`） | 第 06 章 |
+| `work/` | 后台工作项：作业的声明与失败的分类（`job.py`）、一次认领与带核对的提交（`run.py`）、成员的轮询、工作者、调度与定时（`runner.py`）、cron 的时间槽（`cron.py`）、运维操作与清理（`operator.py`） | 第 07 章 |
+| `idem.py` | 命令的幂等键：认领、命令与结果同一事务，清理作业 | P4.21–P4.25 |
 | `identity/`、`guard.py`、`authz/`、`audit.py`、`records.py`、`canon.py` | 身份核验与服务身份、用户面准入（含令牌陈旧）、授权（定义、视图、求值、列表的计划）、审计、安全记录的封装与规范编码 | 第 08 章 |
 | `lists.py` | 列表的游标与筛选 | 第 09 章 |
 | `obs.py` | 每个成员自己的日志、指标与追踪 | 第 10 章 |
@@ -25,13 +28,15 @@
 | `mergesafety.py` | 找出合进外壳会坏的代码（进程级的全局状态、事件循环上的阻塞） | 协议 17 |
 | `manifest.py` | 组件自己的测试拿来核对文档的：`configSchema` 等 | 协议 19 |
 | `testing.py` | 测试用的安全部署：令牌、信任根、授权与审计的替身（只给测试） | — |
-| `protocol.py`、`_protocol/` | 协议副本（迁移、向量、schema、能力表），由 `scripts/protocol.py` 从 `be-protocol` 的标签整份复制，不手改 | 协议 18 |
+| `protocol.py`、`_protocol/` | 协议副本（迁移、向量、schema、proto、能力表），由 `scripts/protocol.py` 从 `be-protocol` 的标签整份复制，不手改 | 协议 18 |
+| `_gen/` | 协议的 gRPC 生成代码（`be.source.v1`、`be.evidence.v1`、`be.external.v1`、`be.recovery.v1`、`be.session.v1`），`scripts/gen.py` 从副本的 `proto/` 生成并提交，导入改写到 `besdk._gen.be.…`；不手改 | 协议 18 |
 | `features.json` | 每项能力的实现状态、证据与“未实现”的理由 | 协议 18 |
 
 | 想查或想改 | 从这里开始 | 然后 |
 | --- | --- | --- |
 | 一个机制怎样实现 | 上表找到模块，读模块开头的说明 | `tests/` 里同名的测试；`*_integration.py` 是可运行的用法 |
-| 换协议版本 | `python3 -I scripts/protocol.py fetch <标签>` | `make test` 找出要跟着改的；`features.json` 的 `protocol`；`tests/interop/` 的 Go 小程序钉同一个协议的 be-sdk-go |
+| 换协议版本 | `python3 -I scripts/protocol.py fetch <标签>`，再 `make gen` | `make test` 找出要跟着改的；`features.json` 的 `protocol`；`tests/interop/` 的 Go 小程序钉同一个协议的 be-sdk-go |
+| 加 SDK 自带的作业 | `sdkjobs.py` 写它在恢复阶段怎样 | 在 `host.py` 登记；`tests/test_sdkjobs.py` |
 | 新加一条配置键或改启动行为 | `host.py` 的 `sdk_keys`、`keys` | `launcher.py`、`shell.py` |
 | 新加一个错误原因 | `errs.py` 的目录 | 协议的 `errors` 向量 |
 | 一个能力的实现状态 | `features.json` | `tests/test_features.py` |
@@ -53,7 +58,8 @@
 
 | 不许 | 症状 | 原因 |
 | --- | --- | --- |
-| 手改 `_protocol/` 里的文件 | `make protocol-check` 失败；与 Go 的行为对不上 | 副本必须与标签逐字节相同 |
+| 手改 `_protocol/` 或 `_gen/` 里的文件 | `make protocol-check` 或 `make gen-check`（单元测试里也查）失败；与 Go 的行为对不上 | 副本必须与标签逐字节相同，生成代码必须是副本生成的 |
+| 有流的组件不声明 `Definition.resend` | 成员拒绝构建 | 有流就要在系统面答补发（P6.38），与 be-sdk-go 相同 |
 | 在 SDK 里用进程级的全局状态（默认指标注册表、全局追踪、日志的全局配置） | 合进外壳后成员互相覆盖 | 一个进程承载多个成员；`mergesafety` 会找出来 |
 | 改了行为不改 `features.json` | 能力的状态与实际不符 | 状态是两种 SDK 对齐的依据 |
 | 协议副本换了版本，互通测试的 Go 小程序没跟着换 | `test_the_go_interop_helpers_pin_the_same_protocol` 失败 | 互通测的是同一份协议的两个实现 |

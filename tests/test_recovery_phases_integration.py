@@ -18,6 +18,7 @@ from besdk.config import EnvSource
 from besdk.events.consumer import Sub
 from besdk.events.core import Event, Projection, Stream
 from besdk.http import Route
+from besdk.testing import defs
 from besdk.work import EVERY, Job
 from tests import pgtest
 from tests.test_events_interop import bus, free_port, member_env
@@ -106,12 +107,15 @@ async def eventually(f, want, seconds, what):
     assert await f() == want, what
 
 
-async def test_the_recovery_phases():
+async def test_the_recovery_phases(world):
     sfx = uuid.uuid4().hex[:6]
     async with bus("pgqueue") as url:
         prod_env = await member_env("py_rc_prod", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4())})
         cons_env = await member_env("py_rc_cons", {"BUS_URL": url})
-        prod = Definition("demo/rcprod" + sfx, "3.0.0", Producer, streams=[RC],
+        pid = "demo/rcprod" + sfx  # a producer answers redeliveries on its system surface (P6.38)
+        prod_env = {**prod_env, **world.env(pid)}
+        prod = Definition(pid, "3.0.0", Producer, streams=[RC], resend="demo.rc.resend", grpc_port=free_port(),
+                          authz=defs(pid, "demo.rc", "demo.rc.read", "demo.rc.resend"),
                           migrations={"0001_m.up.sql": "CREATE TABLE IF NOT EXISTS marker (id int);",
                                       "0002_ticks.up.sql": "CREATE TABLE IF NOT EXISTS ticks "
                                                            "(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY);"})

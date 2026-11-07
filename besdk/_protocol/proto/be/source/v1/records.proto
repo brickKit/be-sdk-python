@@ -1,0 +1,65 @@
+// The source's batch read and snapshot (chapter 09, P9.30-P9.33; protocol 02 of the assembly project, S3 and the
+// re-fetch): standard like the pull, so no source writes its own. Every SDK generates its own code from this file.
+syntax = "proto3";
+
+package be.source.v1;
+
+import "be/source/v1/watermark.proto";
+
+service RecordService {
+  // Only the components the stream's declaration lists may call either (P9.30).
+  rpc Read(ReadRequest) returns (ReadResponse);
+  rpc Snapshot(SnapshotRequest) returns (SnapshotResponse);
+}
+
+// A partition's read position high point: the largest sequence numbered on it, read in the same snapshot as the records.
+message PartitionHigh {
+  uint32 partition = 1;
+  uint64 seq = 2;
+}
+
+// A record as its current full-state event carries it: the same payload bytes (a claim check for a big one, P6.14).
+message Record {
+  string record_id = 1;
+  int64 version = 2;
+  bytes payload = 3;
+  bool claim = 4;  // payload is a claim check {"claim": {uri, size, sha256}}, as an event's with beclaim (P6.14)
+}
+
+message ReadRequest {
+  string stream = 1;
+  repeated string record_ids = 2;  // at most 500
+}
+
+enum ReadState {
+  READ_STATE_UNSPECIFIED = 0;
+  READ_STATE_EXISTS = 1;
+  READ_STATE_TOMBSTONE = 2;  // deleted: version is the deleting version
+  READ_STATE_PURGED = 3;     // the tombstone is gone too, or the record never existed
+}
+
+message ReadResult {
+  string record_id = 1;
+  ReadState state = 2;
+  int64 version = 3;   // EXISTS and TOMBSTONE
+  bytes payload = 4;   // EXISTS
+  bool claim = 5;      // as Record.claim
+}
+
+message ReadResponse {
+  Declaration source = 1;
+  repeated ReadResult results = 2;  // one per requested ID, in the request's order (P9.31)
+  repeated PartitionHigh highs = 3;
+}
+
+message SnapshotRequest {
+  string stream = 1;
+  string page_token = 2;  // a later page: from the previous response; bound to the source's instance and epoch
+}
+
+message SnapshotResponse {
+  Declaration source = 1;
+  repeated Record records = 2;  // by record ID ascending (bytes), at most 500, only records that exist
+  repeated PartitionHigh highs = 3;
+  string next_page_token = 4;   // empty: this was the last page
+}

@@ -1,4 +1,5 @@
 import hashlib
+import pathlib
 
 from besdk import protocol
 
@@ -36,3 +37,13 @@ def test_the_go_interop_helpers_pin_the_same_protocol():
     for mod in sorted((root / "interop").glob("*/go.mod")):
         pinned = re.search(r"github.com/brickKit/be-protocol/v3 (\S+)", mod.read_text())
         assert pinned and pinned.group(1) == tag, f"{mod.parent.name} pins {pinned and pinned.group(1)}, the copy is {tag}"
+
+
+def test_the_generated_code_is_what_the_pinned_proto_generates():
+    """besdk/_gen comes from the protocol copy's proto/ (scripts/gen.py): a protocol fetch without make gen fails."""
+    import subprocess
+    import sys
+    root = pathlib.Path(__file__).resolve().parents[1]
+    r = subprocess.run([sys.executable, str(root / "scripts" / "gen.py"), "--check"], capture_output=True, text=True,
+                       env={"PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin"})
+    assert r.returncode == 0, r.stdout + r.stderr

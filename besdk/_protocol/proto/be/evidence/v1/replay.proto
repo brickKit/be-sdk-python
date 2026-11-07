@@ -1,0 +1,29 @@
+// The owner's replay of an evidence record during a full recovery (chapter 12, P12.19-P12.22; the assembly
+// project's protocol 15, 6.3): standard, so no owner writes its own. Every SDK generates its own code from this file.
+syntax = "proto3";
+
+package be.evidence.v1;
+
+service ReplayService {
+  // Only the recovery tool (service identity ops/recover) may call it.
+  rpc Replay(ReplayRequest) returns (ReplayResponse);
+}
+
+message ReplayRequest {
+  // The be.evidence.record as the evidence store or the alert channel keeps it (canonical bytes): its phase is
+  // effective, general or intent (an intent only: its conclusion is not in the store).
+  bytes record = 1;
+  // The recovery this replay belongs to (the recovery tool's announcement), for the owner's logs.
+  string recovery = 2;
+}
+
+message ReplayResponse {
+  // reflected: the change history has the record's identity (nothing done); applied: re-executed now; dangling: an
+  // object the change refers to no longer exists (nothing done, for review); unsupported: this owner has no replay
+  // for the record's category (nothing done, for review). For a category whose effect lies outside the recovery group
+  // (P12.20: checked, not re-executed): consistent: the effect still holds there; inconsistent: it does not, or could
+  // not be asked (for review; detail says why). deferred: what the re-execution depends on has not arrived yet
+  // (nothing done); the recovery tool asks again once the authorization member applied its sources (P12.22).
+  string outcome = 1;
+  string detail = 2;
+}

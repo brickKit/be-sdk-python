@@ -1,0 +1,35 @@
+// A producer's redelivery from its outbox (chapter 06, P6.38; the assembly project's protocol 15, step 5): standard,
+// so no producer writes its own. Every SDK generates its own code from this file.
+syntax = "proto3";
+
+package be.source.v1;
+
+import "be/source/v1/watermark.proto";
+
+service ResendService {
+  // Any service identity of the deployment may call it (a consumer whose database went back, the recovery tool).
+  rpc Resend(ResendRequest) returns (ResendResponse);
+}
+
+// Where one partition's redelivery starts: after this position (watermark.proto's Position: the implementation
+// instance, the epoch as <generation>.<timeline>, the sequence). A partition the request does not list starts at the
+// first row kept.
+message PartitionFrom {
+  uint32 partition = 1;
+  Position after = 2;
+}
+
+message ResendRequest {
+  string stream = 1;
+  repeated PartitionFrom from = 2;
+  // The request's identity: the redelivered messages' message identity is <event id>/resend/<request_id> (P6.38).
+  string request_id = 3;
+}
+
+message ResendResponse {
+  uint64 resent = 1;
+  // Partitions whose rows after the start were purged (or, with no start, any row ever was): repair by snapshot.
+  repeated uint32 beyond_retention = 2;
+  // Partitions where the start is past what the producer has (it went back past the consumer).
+  repeated uint32 ahead = 3;
+}

@@ -32,6 +32,10 @@ from besdk.events.consumer import CONCURRENCY_KEY, Consumer, Subscriptions, cons
 from besdk.events.objectstore import HTTPClaims, S3Store
 from besdk.events import outbox
 from besdk.events.outbox import Forwarder, Producer
+from besdk.events.progress import start_run
+from besdk.events.redelivery import Redelivery
+from besdk.events.resend import RESEND_CALL_TIMEOUT, Resender
+from besdk._gen.be.source.v1 import resend_pb2_grpc
 from besdk.runtime import Runtime
 from besdk.work import Jobs, Runner, operator
 
@@ -134,6 +138,7 @@ class Member:
     # AUTHORIZATION_VIEW_EXPIRED
     defs_accepted: bool = False
     runner: object = None  # the member's background work (besdk.work.Runner), with a database
+    redelivery: object = None  # with subscriptions: the redelivery after the database went back (P6.39)
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -162,7 +167,10 @@ class Member:
         if self.forwarder is not None and moving:
             await self.forwarder.start()  # type: ignore[attr-defined]
         for c in self.consumers if moving else []:
+            await start_run(self.runtime.db, c.sub.name)  # a run of this subscription (P6.36)
             self._subs.append(await self.transport.subscribe(c.spec(), c.handle))  # type: ignore[attr-defined]
+        if self.redelivery is not None and moving:
+            self._tasks.append(asyncio.create_task(self.redelivery.run()))  # type: ignore[attr-defined]
         self._tasks.append(asyncio.create_task(self._reread_secrets(read)))
         if self.tls is not None:
             self._tasks.append(asyncio.create_task(self._reread_certificate()))
@@ -315,6 +323,14 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         services = system.Services()
         if hasattr(module, "services"):
             module.services(services)
+        if forwarder is not None:  # the redelivery of the member's streams (P6.38)
+            if not d.resend:
+                raise ValueError("a component with streams declares the operation of its redelivery "
+                                 "(Definition.resend, P6.38)")
+            resender = Resender(shared.db, producer, shared.transport, d.id,  # type: ignore[arg-type]
+                                values.string("IMPLEMENTATION_INSTANCE"), log)
+            services.register(resend_pb2_grpc.add_ResendServiceServicer_to_server, resender, {
+                "Resend": system.Method(d.resend, [system.ANY_COMPONENT], timeout=RESEND_CALL_TIMEOUT)})
         if hasattr(module, "jobs"):  # the module's background work (chapter 07)
             if runner is None:
                 raise ValueError("a module with jobs has a database (migrations)")
@@ -334,6 +350,8 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         configured = values.int(CONCURRENCY_KEY) or 0
         member.consumers = [Consumer(d.id, s, shared.db, log, member.claims, configured)  # type: ignore[arg-type]
                             for s in subs.list]
+        # asks the producers for a redelivery when the database went back (P6.39)
+        member.redelivery = Redelivery(shared.db, rt.grpc, log)  # type: ignore[arg-type]
     try:
         _surfaces(member, shared, outbound, routes, services)
     except ValueError as e:
