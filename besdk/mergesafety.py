@@ -74,6 +74,7 @@ SDK_ALLOW: dict[str, set[str]] = {
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
     "besdk/events/objectstore.py": {"aiohttp.ClientSession"},
     "besdk/runprofile/store.py": {"aiohttp.ClientSession"},
+    "besdk/tiering/store.py": {"aiohttp.ClientSession"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},

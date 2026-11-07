@@ -27,8 +27,13 @@ dependencies = [
     "contract-infra-audit @ git+https://github.com/brickKit/infra-audit@contract/v3.0.0-alpha.3#subdirectory=contract/python",
 ]
 
+[project.optional-dependencies]
+# the cold tier's Parquet files (besdk.tiering.parquet; T2b): a member with a class on the object route installs it
+tiering = ["pyarrow==26.0.1"]
+
 [dependency-groups]
 dev = [
+    "pyarrow==26.0.1",  # the tiering's tests
     "pytest",
     "pytest-asyncio",
     "hypothesis",

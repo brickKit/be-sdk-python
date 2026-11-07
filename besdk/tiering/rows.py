@@ -120,3 +120,35 @@ def unit_digest(cls: str, schema_version: str, tables: list[tuple[str, int, str]
     body = {"class": cls, "schema_version": schema_version,
             "tables": [{"name": n, "rows": str(k), "sha256": h} for n, k, h in sorted(tables)]}
     return canon.digest(UNIT_RECORD, DIGEST_VERSION, body)
+
+
+_RANGES = {INT2: 2**15, INT4: 2**31, INT8: 2**63}
+
+
+def from_canonical(columns: dict[str, str], canonical: dict[str, Any]) -> dict[str, Any]:
+    """A canonical row read back from a route as the values a copy writes again (the driver's: numeric and jsonb as
+    text), so writing it gives the same canonical bytes (P15.8, P15.31, P15.35). Raises canon.Refused for a column the
+    table lacks or a value out of the column's range."""
+    out: dict[str, Any] = {}
+    for c, v in canonical.items():
+        typ = columns.get(c)
+        if typ is None:
+            raise canon.Refused(f"column {c!r} is not the table's")
+        if typ in _RANGES:
+            n = int(v)
+            if not -_RANGES[typ] <= n < _RANGES[typ]:
+                raise canon.Refused(f"{c} {v} is out of the range of {typ}")
+            out[c] = n
+        elif typ == UUID:
+            out[c] = uuid.UUID(v)
+        elif typ == TIMESTAMPTZ:
+            out[c] = dt.datetime.fromisoformat(v.replace("Z", "+00:00"))
+        elif typ == DATE:
+            out[c] = dt.date.fromisoformat(v)
+        elif typ == BYTEA:
+            out[c] = base64.b64decode(v)
+        elif typ == TEXT_ARRAY:
+            out[c] = list(v)
+        else:  # text, numeric, jsonb as their text; bool as it is
+            out[c] = v
+    return out

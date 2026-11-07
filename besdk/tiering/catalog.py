@@ -6,6 +6,7 @@ in a shell the members share one loop (T2c)."""
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import json
 import uuid
 from collections.abc import Awaitable, Callable
@@ -89,6 +90,22 @@ class Catalog:
     residence: dict[str, int] = field(default_factory=dict)  # TIERING_RESIDENCE_<class>, NEVER for never
     max_members: int = DEFAULT_MAX_MEMBERS
     compute: Compute = in_thread
+    n: dt.timedelta = dt.timedelta(days=90)  # the lists' default range (TIERING_LIST_DAYS)
+    grace: dt.timedelta = dt.timedelta(days=7)  # the wait after a publish (TIERING_GRACE)
+    store: Any = None  # the cold route's bucket (store.Store); None without TIERING_STORE_URL
+    store_locked: bool = False  # the store has object lock: no erasable class, no exports
+    backups: Any = None  # when the deployment's latest backup finished (release.Backups); None: never released
+    batch: int = 0  # the rows a release deletes per table and transaction (0: release.BATCH)
+    orphan_age: dt.timedelta = dt.timedelta(0)  # how old an unnamed object must be before the cleanup (0: the window)
+    parts: int = 0  # the rows of one Parquet object of a table (0: transfer.PART_ROWS)
+    cold_sync_limit: float = 10.0  # a synchronous history read's limit, seconds
+    cold_concurrency: int = 4  # the member's cold reads at once
+    enqueue: Any = None  # queues a job's work item in a transaction (the runner's enqueue); None: no exports
+    evidence: Any = None  # the destructions' and erasures' evidence (besdk.evidence.Writer); None: neither is done
+    subject: Any = None  # a principal's authorization now, for the exports; None: none
+    log: Any = None  # the catalog's alerts
+    readers: dict = field(default_factory=dict)  # class -> history.Reader
+    converters: dict = field(default_factory=dict)  # "<class>@<structure version>" -> reroute.Converter
 
     def tierable(self, name: str) -> tuple[Class, int]:
         cl = self.classes.get(name)
