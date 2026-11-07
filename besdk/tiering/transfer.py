@@ -28,11 +28,16 @@ ORPHAN_WINDOW = dt.timedelta(days=7)  # an unpublished object or row is kept thi
 SNAPSHOT = TxOptions(snapshot=True)
 
 
-class Verification(Exception):
+class Passthrough(Exception):
+    """Raised inside a catalog transaction and raised by it as itself (the transaction entry maps what its body
+    raises)."""
+
+
+class Verification(Passthrough):
     """A copy that does not read back as what was sealed (P15.17)."""
 
 
-class StaleClaim(Exception):
+class StaleClaim(Passthrough):
     """A publish refused because the unit changed since the claim (P15.18)."""
 
 
@@ -78,11 +83,11 @@ async def claim(cat: Catalog, unit: str, *states: str) -> Claim:
 
 
 async def _tx(cat: Catalog, point: str, fn, options=None):
-    """The catalog's transaction, with the stale claim raised as itself (the transaction entry maps what fn raised)."""
+    """The catalog's transaction, a Passthrough raised as itself."""
     try:
         return await cat.tx(point, fn, options)
     except Exception as e:
-        if isinstance(e.__cause__, (StaleClaim, Verification)):
+        if isinstance(e.__cause__, Passthrough):
             raise e.__cause__ from None
         raise
 

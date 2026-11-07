@@ -6,7 +6,7 @@ import contextlib
 import contextvars
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterator
+from typing import Callable, Iterator
 
 from besdk import errs, reqctx
 from besdk.authz.defs import SECRET, Definitions, Operation, Resource
@@ -44,6 +44,12 @@ class Subject:
         if (e := d.error()) is not None:
             raise e
         return d
+
+    def decider(self, op: str) -> Callable[[dict[str, Fact]], Decision]:
+        """Takes the subject's grant for an operation once and answers a function deciding each record of many by its
+        facts (P8.15): for records read outside SQL, as the cold rows of an archive (be-protocol P15.26)."""
+        o, r, g = self._grant(op)
+        return lambda facts: evaluate(r, g.segments, o.key, facts, self.principal, self.at)
 
     def list(self, op: str, alias: str = "", arg_base: int = 0) -> Plan:
         """The list plan of an operation for this subject (P8.17): its predicate goes into the list's one SQL

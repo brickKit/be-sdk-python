@@ -106,6 +106,7 @@ class Catalog:
     log: Any = None  # the catalog's alerts
     readers: dict = field(default_factory=dict)  # class -> history.Reader
     converters: dict = field(default_factory=dict)  # "<class>@<structure version>" -> reroute.Converter
+    slots: Any = None  # the member's cold-read slots (asyncio.Semaphore of cold_concurrency), made on first use
 
     def tierable(self, name: str) -> tuple[Class, int]:
         cl = self.classes.get(name)
