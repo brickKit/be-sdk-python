@@ -123,6 +123,46 @@ class Dependency:
         self._m.breaker.labels(self.id, self.surface).set(0 if self.breaker.state == policy.CLOSED else 1)
 
 
+class StatusError(RuntimeError):
+    """A dependency answered a status outside the protocol (no problem+json body: a proxy's page, an external system
+    an adapter talks to); the caller's error carries it as its cause (status_of)."""
+
+    def __init__(self, dependency: str, status: int):
+        super().__init__(f"{dependency} answered {status}")
+        self.status = status
+
+
+def _chain(e: BaseException | None):
+    seen = set()
+    while e is not None and id(e) not in seen:
+        seen.add(id(e))
+        yield e
+        e = getattr(e, "cause", None) or e.__cause__
+
+
+def status_of(e: BaseException) -> int:
+    """The HTTP status a call's error came back with: a protocol error's own, or the status outside the protocol; 0
+    when no answer came back (a connection failure, a timeout)."""
+    for x in _chain(e):
+        if isinstance(x, StatusError):
+            return x.status
+    for x in _chain(e):
+        if isinstance(x, errs.Error) and x.domain != errs.PLATFORM_DOMAIN:
+            return x.http  # another component's own reason, as it answered
+    return 0
+
+
+def not_sent(e: BaseException) -> bool:
+    """Whether a failed call certainly did not reach the dependency (an adapter's not_reached, be-protocol P13.5): the
+    connection could not be made, or the SDK held the call back (the breaker open, the outbound limit, no time left)."""
+    for x in _chain(e):
+        if isinstance(x, aiohttp.ClientConnectorError):
+            return True
+        if isinstance(x, errs.Error) and x.reason in ("CIRCUIT_OPEN", "OUTBOUND_LIMIT", "DEADLINE_BUDGET_EXHAUSTED"):
+            return True
+    return False
+
+
 class HTTP:
     """Calls one dependency's user surface; build it with Member.http."""
 
@@ -167,7 +207,7 @@ class HTTP:
             remote, code = errwire.from_http(status, ctype, retry, raw)
             if remote is not None:
                 return Result(err=remote, code=code, remote=remote)
-            return Result(err=RuntimeError(f"{self.dep.id} answered {status}"), code=code)
+            return Result(err=StatusError(self.dep.id, status), code=code)
 
         try:
             await self.dep.do(idempotent or method in ("GET", "HEAD"), attempt)
