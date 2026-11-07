@@ -13,6 +13,7 @@ from besdk import launcher
 from besdk.component import Definition
 from besdk.config import EnvSource
 from besdk.http import Route
+from besdk.testing import recovering
 from besdk.work import LOCAL, QUEUE, Job
 from tests import pgtest
 from tests.test_events_interop import free_port, member_env
@@ -50,9 +51,10 @@ ORDERS = {"0001_orders.up.sql": "CREATE TABLE IF NOT EXISTS orders (id text PRIM
                                 "DEFAULT false);"}
 
 
-async def test_a_member_runs_its_jobs_and_the_sdks():
-    env = await member_env("py_wkm", {})
-    d = Definition("demo/wkm" + uuid.uuid4().hex[:6], "3.0.0", Worker, migrations=ORDERS)
+async def test_a_member_runs_its_jobs_and_the_sdks(world):
+    cid = "demo/wkm" + uuid.uuid4().hex[:6]
+    env = {**await member_env("py_wkm", {}), **world.env(cid)}
+    d = Definition(cid, "3.0.0", Worker, migrations=ORDERS, grpc_port=free_port(), **recovering(cid))
     a = await pgtest.admin()
     try:
         url, stop, task, out = await start(d, env)

@@ -139,14 +139,23 @@ async def _serve_built(d: Definition, o: Options, stop: asyncio.Event, values: c
                                                                                error=str(e))
         return EXIT_FAILURE
     log = m.logger
+
+    async def discard(code: int) -> int:
+        """An exit before the ports open: what the build opened (the system surface, the outbound channels) is closed,
+        not left to the interpreter's exit."""
+        if m.system is not None:
+            await m.system.stop(None)  # type: ignore[attr-defined]
+        await m.runtime.outbound.close()  # type: ignore[union-attr]
+        return code
+
     try:
         clock.check()
     except clock.ClockError as e:
         log.error("start check failed: no clock that counts suspension (CLOCK_BOOTTIME)", error=str(e))
-        return EXIT_STARTUP_CHECK
+        return await discard(EXIT_STARTUP_CHECK)
     if pool is not None:
         if (code := await ready_exit(pool, log, stop)) is not None:
-            return code
+            return await discard(code)
     try:
         server = host.HTTPServer(m.app, host.listen(plat.int("PORT"), o.host))
         await server.start()

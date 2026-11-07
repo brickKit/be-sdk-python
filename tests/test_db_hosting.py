@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from besdk import launcher, shell
 from besdk.component import Definition
+from besdk.testing import defs
 from besdk.config import EnvSource
 from besdk.http import Route
 from tests import pgtest
@@ -32,7 +33,11 @@ class Notes:
 
 
 def definition(cid="demo/notes", version="3.0.0"):
-    return Definition(cid, version, Notes, migrations=FILES)
+    """A member with a database: it answers a full recovery's checks on its system surface (P14.1), so it has a
+    service identity (world.env) and a grpc port."""
+    r = cid.replace("/", ".")
+    return Definition(cid, version, Notes, migrations=FILES, grpc_port=free_port(), recovery=r + ".recover",
+                      authz=defs(cid, r, r + ".read", r + ".recover"))
 
 
 def free_port():
@@ -57,7 +62,7 @@ async def wait_ready(url):
     raise AssertionError("never ready")
 
 
-async def test_a_component_with_a_database_migrates_and_serves():  # P1.1, P1.2, P5.10, CK-DB-04
+async def test_a_component_with_a_database_migrates_and_serves(world):  # P1.1, P1.2, P5.10, CK-DB-04
     await pgtest.member("py_host1")
     e = pgtest.member_env("py_host1")
     for _ in range(2):
@@ -65,7 +70,8 @@ async def test_a_component_with_a_database_migrates_and_serves():  # P1.1, P1.2,
         assert await launcher.run(definition(), launcher.Options(args=["migrate"], env=env(e), stdout=out,
                                                                  stderr=io.StringIO()), asyncio.Event()) == 0, out.getvalue()
     port, stop = free_port(), asyncio.Event()
-    serve = {**e, "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "50ms"}
+    serve = {**e, **world.env("demo/notes"), "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0",
+             "PORT": str(port), "STOP_DRAIN_DELAY": "50ms"}
     run = asyncio.create_task(launcher.run(definition(), launcher.Options(env=env(serve), stdout=io.StringIO(),
                                                                          stderr=io.StringIO(), host="127.0.0.1"), stop))
     await wait_ready(f"http://127.0.0.1:{port}")
@@ -81,7 +87,7 @@ async def test_a_component_with_a_database_migrates_and_serves():  # P1.1, P1.2,
         assert got == code, (bad, out.getvalue())
 
 
-async def test_members_share_one_pool_and_never_each_others_schema():  # P5.1, CK-DB-01
+async def test_members_share_one_pool_and_never_each_others_schema(world):  # P5.1, CK-DB-01
     a = await pgtest.admin()
     try:
         await pgtest.role(a, "sdk_py_shell2", "shell2-pw")
@@ -93,10 +99,17 @@ async def test_members_share_one_pool_and_never_each_others_schema():  # P5.1, C
         e = pgtest.member_env(name)
         assert await launcher.run(definition("demo/" + name), launcher.Options(
             args=["migrate"], env=env(e), stdout=io.StringIO(), stderr=io.StringIO()), asyncio.Event()) == 0
-        configs[name] = {k: v for k, v in e.items() if not k.startswith("PG_OWNER")}
+        configs[name] = {**{k: v for k, v in e.items() if not k.startswith("PG_OWNER")}, **world.env("demo/" + name)}
     pa, pb, ps = free_port(), free_port(), free_port()
-    members = json.dumps([{"componentId": "demo/py_sh_a", "version": "3.0.0", "httpPort": pa, "config": configs["py_sh_a"]},
-                          {"componentId": "demo/py_sh_b", "version": "3.0.0", "httpPort": pb, "config": configs["py_sh_b"]}])
+    ga, gb = free_port(), free_port()
+
+    def served():
+        return json.dumps([{"componentId": "demo/py_sh_a", "version": "3.0.0", "httpPort": pa,
+                            "extraPorts": [{"name": "grpc", "port": ga}], "config": configs["py_sh_a"]},
+                           {"componentId": "demo/py_sh_b", "version": "3.0.0", "httpPort": pb,
+                            "extraPorts": [{"name": "grpc", "port": gb}], "config": configs["py_sh_b"]}])
+
+    members = served()
     base = {"COMPONENT_ID": "be/py-render", "COMPONENT_VERSION": "3.0.0", "PORT": str(ps), "STOP_DRAIN_DELAY": "50ms",
             "BRICKKIT_SERVED_MEMBERS_CONFIG": members}
     defs = [definition("demo/py_sh_a"), definition("demo/py_sh_b")]
@@ -132,15 +145,14 @@ async def test_members_share_one_pool_and_never_each_others_schema():  # P5.1, C
     assert await run == 0
 
     configs["py_sh_b"]["PG_POOLER_PREPARED"] = "false"
-    members = json.dumps([{"componentId": "demo/py_sh_a", "version": "3.0.0", "httpPort": pa, "config": configs["py_sh_a"]},
-                          {"componentId": "demo/py_sh_b", "version": "3.0.0", "httpPort": pb, "config": configs["py_sh_b"]}])
+    members = served()
     err = io.StringIO()
     assert await shell.run(self, defs, shell.Options(env=env({**full, "BRICKKIT_SERVED_MEMBERS_CONFIG": members}),
                                                      stdout=io.StringIO(), stderr=err, installed_of=lookup), asyncio.Event()) == 78
     assert "demo/py_sh_b:PG_POOLER_PREPARED" in err.getvalue()
 
 
-async def test_a_late_database_is_waited_for():  # P5.10, CK-DB-04
+async def test_a_late_database_is_waited_for(world):  # P5.10, CK-DB-04
     # the database starts after the component (the machine boots both): the component waits, staying "starting", and
     # turns ready once it answers. Migrated straight away: the migrate entry does not wait, P5.10 is the serve entry's
     from tests.test_bus_ready_integration import late_proxy
@@ -153,8 +165,8 @@ async def test_a_late_database_is_waited_for():  # P5.10, CK-DB-04
     host, port = pgtest.host_port()
     proxy_port, proxy = await late_proxy(host, port, 1.5)
     http_port, stop, out = free_port(), asyncio.Event(), io.StringIO()
-    serve = {**e, "PG_HOST": "127.0.0.1", "PG_PORT": str(proxy_port), "COMPONENT_ID": "demo/notes",
-             "COMPONENT_VERSION": "3.0.0", "PORT": str(http_port), "STOP_DRAIN_DELAY": "50ms"}
+    serve = {**e, **world.env("demo/notes"), "PG_HOST": "127.0.0.1", "PG_PORT": str(proxy_port),
+             "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0", "PORT": str(http_port), "STOP_DRAIN_DELAY": "50ms"}
     loop = asyncio.get_running_loop()
     start = loop.time()
     run = asyncio.create_task(launcher.run(definition(), launcher.Options(env=env(serve), stdout=out, stderr=out,
@@ -181,7 +193,7 @@ async def test_a_late_database_is_waited_for():  # P5.10, CK-DB-04
         (await proxy).close()
 
 
-async def test_a_running_component_keeps_its_tables_statistics_fresh():  # P5.33
+async def test_a_running_component_keeps_its_tables_statistics_fresh(world):  # P5.33
     from besdk.db.statistics import STALE_CHECK_EVERY
 
     await pgtest.member("py_stats1")
@@ -189,7 +201,8 @@ async def test_a_running_component_keeps_its_tables_statistics_fresh():  # P5.33
     assert await launcher.run(definition(), launcher.Options(args=["migrate"], env=env(e), stdout=io.StringIO(),
                                                              stderr=io.StringIO()), asyncio.Event()) == 0
     port, stop = free_port(), asyncio.Event()
-    serve = {**e, "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0", "PORT": str(port), "STOP_DRAIN_DELAY": "50ms"}
+    serve = {**e, **world.env("demo/notes"), "COMPONENT_ID": "demo/notes", "COMPONENT_VERSION": "3.0.0",
+             "PORT": str(port), "STOP_DRAIN_DELAY": "50ms"}
     run = asyncio.create_task(launcher.run(definition(), launcher.Options(env=env(serve), stdout=io.StringIO(),
                                                                          stderr=io.StringIO(), host="127.0.0.1"), stop))
     await wait_ready(f"http://127.0.0.1:{port}")
@@ -210,3 +223,15 @@ async def test_a_running_component_keeps_its_tables_statistics_fresh():  # P5.33
         await a.close()
         stop.set()
         assert await run == 0
+
+
+async def test_a_member_with_a_database_declares_its_recovery_operation(world):  # P14.1
+    await pgtest.member("py_host_norec")
+    e = pgtest.member_env("py_host_norec")
+    d = Definition("demo/norec", "3.0.0", Notes, migrations=FILES, grpc_port=free_port())
+    out = io.StringIO()
+    serve = {**e, **world.env("demo/norec"), "COMPONENT_ID": "demo/norec", "COMPONENT_VERSION": "3.0.0",
+             "PORT": str(free_port()), "STOP_DRAIN_DELAY": "50ms"}
+    got = await launcher.run(d, launcher.Options(env=env(serve), stdout=out, stderr=out, host="127.0.0.1"),
+                             asyncio.Event())
+    assert got != 0 and "Definition.recovery" in out.getvalue(), (got, out.getvalue()[-500:])

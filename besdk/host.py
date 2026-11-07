@@ -40,6 +40,8 @@ from besdk.events import records as stream_records, watermark
 from besdk import evidence, runprofile
 from besdk.extcmd import commands as extcmd_commands
 from besdk.extcmd.server import ReconcileServer
+from besdk.recovery import CheckServer, Checks
+from besdk._gen.be.recovery.v1 import check_pb2_grpc
 from besdk._gen.be.external.v1 import reconcile_pb2_grpc
 from besdk.evidence import transfer
 from besdk._gen.be.evidence.v1 import replay_pb2_grpc
@@ -392,6 +394,19 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
                                  "(Definition.recovery, P13.11)")
             services.register(reconcile_pb2_grpc.add_ReconcileServiceServicer_to_server, ReconcileServer(external),
                               {"Reconcile": system.Method(d.recovery, [evidence.replay.RECOVERY_TOOL], timeout=600.0)})
+        if shared.db is None and hasattr(module, "recovery_checks"):
+            raise ValueError("a module that registers recovery checks has a database (migrations)")
+        if shared.db is not None:  # a full recovery's checks: the SDK's own and the module's (chapter 14)
+            if not d.recovery:
+                raise ValueError("a component with a database declares the operation of a full recovery's checks "
+                                 "(Definition.recovery, P14.1)")
+            reg = Checks()
+            if hasattr(module, "recovery_checks"):
+                module.recovery_checks(reg)
+            method = system.Method(d.recovery, [evidence.replay.RECOVERY_TOOL], timeout=600.0)
+            services.register(check_pb2_grpc.add_CheckServiceServicer_to_server,
+                              CheckServer(shared.db, d.subscribes, reg),  # type: ignore[arg-type]
+                              {m: method for m in ("Check", "Present", "Numbers", "AdvanceNumbers")})
         if hasattr(module, "jobs"):  # the module's background work (chapter 07)
             if runner is None:
                 raise ValueError("a module with jobs has a database (migrations)")

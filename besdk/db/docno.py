@@ -49,3 +49,33 @@ async def _next(tx: Tx, s: Series, gapless: bool) -> int:
 def _same_kind(s: Series, want: bool, stored: bool) -> None:
     if want != stored:
         raise errs.new("INTERNAL").wrap(ValueError(f"series {s.key} is declared gapless={stored} but used as gapless={want}"))
+
+
+@dataclass(frozen=True)
+class UsedMax:
+    series: Series
+    max: int
+
+
+async def continuous_maxima(tx: Tx) -> list[UsedMax]:
+    """Every continuous series with its used maximum, ordered by key (P14.5). The key is split on its first two
+    slashes: a legal entity or a series code with a slash is not told apart."""
+    out = []
+    for r in await tx.fetch("SELECT series, last_number FROM be_doc_series WHERE gapless ORDER BY series"):
+        parts = (r["series"].split("/", 2) + ["", ""])[:3]
+        out.append(UsedMax(Series(*parts), r["last_number"]))
+    return out
+
+
+async def raise_continuous(tx: Tx, s: Series, to: int) -> int:
+    """Raises a continuous series' used maximum to `to` (P14.5, P5.20: never lowered; a series not there is created)
+    and answers the maximum before, so the owner voids the numbers between. A series that allows gaps answers
+    REQUEST_INVALID."""
+    r = await tx.fetchrow("SELECT last_number, gapless FROM be_doc_series WHERE series = $1 FOR UPDATE", s.key)
+    before, gapless = (0, True) if r is None else (r["last_number"], r["gapless"])
+    if not gapless:
+        raise errs.new("REQUEST_INVALID", f"series {s.key} allows gaps: it is not raised")
+    if to > before:
+        await tx.execute("""INSERT INTO be_doc_series (series, last_number, gapless) VALUES ($1, $2, true)
+            ON CONFLICT (series) DO UPDATE SET last_number = excluded.last_number""", s.key, to)
+    return before

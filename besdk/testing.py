@@ -250,6 +250,7 @@ class World:
 
     async def stop(self) -> None:
         self._http.shutdown()
+        self._http.server_close()  # the listening socket too
         await self._authz.stop(0)
         await self._audit.stop(0)
 
@@ -375,6 +376,14 @@ class _Evidence(audit_pb2_grpc.EvidenceServiceServicer):
             out.receipts.append(audit_pb2.EvidenceReceipt(id=rec["id"], phase=rec["phase"], status=status, epoch="1.1",
                                                           seq=len(self.w.evidence)))
         return out
+
+
+def recovering(component: str, *ops: str) -> dict:
+    """The definition fields a test member with a database needs: the operation of a full recovery's checks (P14.1)
+    and its resource definition (the view operation, the recovery operation and ops). The member also needs a service
+    identity (World.env) and a grpc port."""
+    r = component.replace("/", ".").replace("-", "_")
+    return {"recovery": r + ".recover", "authz": defs(component, r, r + ".read", r + ".recover", *ops)}
 
 
 def defs(component: str, resource: str, *ops: str, risk: str = "low") -> Definitions:

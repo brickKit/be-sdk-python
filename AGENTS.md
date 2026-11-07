@@ -22,6 +22,7 @@
 | `evidence/` | 证据：记录者一侧（`writer.py`：意图、结论、一般记录、变更历史与提交序号、双通道失效）、转运到证据存储（`transfer.py`，SDK 自带作业 `be.evidence.transfer`，恢复阶段里是宿主的循环）、属主的重放（`replay.py`，`be.evidence.v1.ReplayService`） | P12.9–P12.23 |
 | `runprofile/` | 运行档案与告警渠道（`store.py`：开了对象锁的桶里签名的记录、恢复代次、告警）；信任材料历史（`trust.py`：沿双签的轮换受信的 CA、按接收时刻判吊销） | P12.1–P12.8、P12.24–P12.27 |
 | `extcmd/` | 对外命令：状态表（`state.py`，纯函数，对向量）、命令的写入与作业 `be.extcmd.process`（`commands.py`）、整套恢复第 7 步的匹配（`reconcile.py`，纯函数）与 `be.external.v1.ReconcileService`（`server.py`） | 第 13 章 |
+| `recovery/` | 整套恢复的核对 `be.recovery.v1.CheckService`：组件登记的检查、对象是否还在、单号的处理（`checks.py`）与 SDK 自带的三项检查；服务（`server.py`）。每个有数据库的成员都要声明 `Definition.recovery` | 第 14 章 |
 | `idem.py` | 命令的幂等键：认领、命令与结果同一事务，清理作业 | P4.21–P4.25 |
 | `identity/`、`guard.py`、`authz/`、`audit.py`、`records.py`、`canon.py` | 身份核验与服务身份、用户面准入（含令牌陈旧）、授权（定义、视图、求值、列表的计划）、审计、安全记录的封装与规范编码 | 第 08 章 |
 | `lists.py` | 列表的游标与筛选 | 第 09 章 |

@@ -21,7 +21,7 @@ from besdk.events.core import Event, Projection, Stream
 from besdk.evidence import Object, Writer, seal
 from besdk.evidence.writer import Position
 from besdk.http import Route
-from besdk.testing import defs
+from besdk.testing import defs, recovering
 from besdk.work import EVERY, Job
 from tests import pgtest
 from tests.test_events_interop import bus, free_port, member_env
@@ -118,11 +118,14 @@ async def test_the_recovery_phases(world):
         pid = "demo/rcprod" + sfx  # a producer answers redeliveries on its system surface (P6.38)
         prod_env = {**prod_env, **world.env(pid)}
         prod = Definition(pid, "3.0.0", Producer, streams=[RC], resend="demo.rc.resend", grpc_port=free_port(),
-                          authz=defs(pid, "demo.rc", "demo.rc.read", "demo.rc.resend"),
+                          recovery="demo.rc.recover",
+                          authz=defs(pid, "demo.rc", "demo.rc.read", "demo.rc.resend", "demo.rc.recover"),
                           migrations={"0001_m.up.sql": "CREATE TABLE IF NOT EXISTS marker (id int);",
                                       "0002_ticks.up.sql": "CREATE TABLE IF NOT EXISTS ticks "
                                                            "(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY);"})
-        cons = Definition("demo/rccons" + sfx, "3.0.0", Consumer, subscribes=True,
+        cons_id = "demo/rccons" + sfx
+        cons_env = {**cons_env, **world.env(cons_id)}
+        cons = Definition(cons_id, "3.0.0", Consumer, subscribes=True, grpc_port=free_port(), **recovering(cons_id),
                           migrations={"0001_rseen.up.sql": "CREATE TABLE IF NOT EXISTS rseen (event_id uuid PRIMARY KEY);"})
         a = await pgtest.admin()
 

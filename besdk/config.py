@@ -7,6 +7,7 @@ JSON (shell) and hands the parsed Values to the module through the runtime.
 from __future__ import annotations
 
 import os
+import pathlib
 import re
 import threading
 from dataclasses import dataclass, field
@@ -63,7 +64,7 @@ class EnvSource:
     """The single-run source: the process environment and the files it points at. Only the launcher builds it."""
 
     lookup_env: Callable[[str], str | None] = os.environ.get
-    read: Callable[[str], bytes] = lambda path: open(path, "rb").read()
+    read: Callable[[str], bytes] = lambda path: pathlib.Path(path).read_bytes()  # opened and closed every time
 
     def lookup(self, name: str) -> str | None:
         return self.lookup_env(name)

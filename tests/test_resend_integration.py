@@ -42,6 +42,14 @@ async def published(name, d, p, n=6):
                     f"DELETE FROM {name}.be_epoch_history")
     await a.close()
     await emit(d, p, n)
+    # the partition is the record ID's hash and the IDs are random: emit until both partitions hold at least two rows
+    # (a test below purges partition 0's first two; with six events it had one about one run in nine)
+    a = await pgtest.admin()
+    try:
+        while min([await a.fetchval(f"SELECT count(*) FROM {name}.be_outbox WHERE partition = $1", k) for k in (0, 1)]) < 2:
+            await emit(d, p, 1)
+    finally:
+        await a.close()
     first = Recording()
     await Forwarder(d, p, first, "demo/" + name, IMPL, LOG).once()
     return first.sent

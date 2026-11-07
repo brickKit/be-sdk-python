@@ -591,9 +591,13 @@
       ]
     },
     "recovery-checks": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T9 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_recovery_checks_integration::test_checks",
+        "test_recovery_checks_integration::test_present",
+        "test_recovery_checks_integration::test_numbers",
+        "test_db_hosting::test_a_member_with_a_database_declares_its_recovery_operation"
+      ]
     },
     "redelivery": {
       "status": "verified",

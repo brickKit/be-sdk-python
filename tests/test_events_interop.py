@@ -23,7 +23,7 @@ from besdk.events import jetstream, pgqueue
 from besdk.events.consumer import Sub
 from besdk.events.core import MAX_PAYLOAD, Event, Projection, Stream
 from besdk.http import Route
-from besdk.testing import defs
+from besdk.testing import defs, recovering
 from tests import pgtest
 from tests.test_transports import LOG_BUS
 
@@ -201,8 +201,9 @@ async def test_python_to_go(kind, go_binary, world):
         pid = "demo/pyprod" + sfx  # a producer answers redeliveries on its system surface (P6.38)
         purl, pstop, ptask = await start_python(Definition(
             pid, "3.0.0", PyProducer, migrations={"0001_m.up.sql": "CREATE TABLE marker (id int);"},
-            streams=[THINGS], resend="demo.things.resend", grpc_port=free_port(),
-            authz=defs(pid, "demo.things", "demo.things.read", "demo.things.resend")), {**prod_env, **world.env(pid)})
+            streams=[THINGS], resend="demo.things.resend", grpc_port=free_port(), recovery="demo.things.recover",
+            authz=defs(pid, "demo.things", "demo.things.read", "demo.things.resend", "demo.things.recover")),
+            {**prod_env, **world.env(pid)})
         try:
             async with httpx.AsyncClient() as c:
                 for i in range(5):
@@ -222,10 +223,11 @@ async def test_go_to_python(kind, go_binary, world):
         prod_env = await member_env("py_iop_gp", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4()),
                                                   **s3_env("py-iop-gp/")})
         cons_env = await member_env("py_iop_pc", {"BUS_URL": url})
+        cid = "demo/pycons" + sfx
         curl, cstop, ctask = await start_python(Definition(
-            "demo/pycons" + sfx, "3.0.0", PyConsumer, subscribes=True,
+            cid, "3.0.0", PyConsumer, subscribes=True, grpc_port=free_port(), **recovering(cid),
             migrations={"0001_seen.up.sql": "CREATE TABLE seen (event_id uuid PRIMARY KEY, size int NOT NULL);"}),
-            cons_env)
+            {**cons_env, **world.env(cid)})
         gurl, gproc = await start_go(go_binary, "demo/goprod" + sfx, "producer", prod_env, world)
         try:
             async with httpx.AsyncClient() as c:

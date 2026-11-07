@@ -12,6 +12,7 @@ import pytest
 from besdk import launcher
 from besdk.component import Definition
 from besdk.config import EnvSource
+from besdk.testing import recovering
 from tests import pgtest
 from tests.test_events_interop import PyConsumer, free_port, member_env
 
@@ -55,11 +56,13 @@ async def serve(d, env, stop, out):
                                                                      stderr=out, host="127.0.0.1"), stop))
 
 
-async def test_a_late_bus_is_waited_for_and_refused_credentials_exit_78():
+async def test_a_late_bus_is_waited_for_and_refused_credentials_exit_78(world):
     nats = urlsplit(os.environ["BE_SDK_TEST_NATS_URL"])
-    d = Definition("demo/pylate" + uuid.uuid4().hex[:6], "3.0.0", PyConsumer, subscribes=True, migrations=SEEN)
+    cid = "demo/pylate" + uuid.uuid4().hex[:6]
+    d = Definition(cid, "3.0.0", PyConsumer, subscribes=True, migrations=SEEN, grpc_port=free_port(),
+                   **recovering(cid))
     port, proxy = await late_proxy(nats.hostname, nats.port or 4222, 1.5)
-    env = await member_env("py_bus_late", {"BUS_URL": f"nats://127.0.0.1:{port}"})
+    env = {**await member_env("py_bus_late", {"BUS_URL": f"nats://127.0.0.1:{port}"}), **world.env(cid)}
     out, stop = io.StringIO(), asyncio.Event()
     start = time.monotonic()
     env, task = await serve(d, env, stop, out)

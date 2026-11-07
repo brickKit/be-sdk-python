@@ -21,7 +21,7 @@ from besdk.config import EnvSource
 from besdk.http import Route
 from besdk.system import Method
 from tests import pgtest
-from besdk.testing import ALICE, defs
+from besdk.testing import recovering, ALICE, defs
 from tests.test_events_interop import free_port, ready, start_python
 
 pytestmark = pytest.mark.integration
@@ -60,7 +60,8 @@ async def test_audit_records_reach_the_audit_member_with_receipts(world):  # P8.
     await pgtest.member(name)
     env = {**pgtest.member_env(name), **world.env("demo/audited"), "COMPONENT_VERSION": "3.0.0", "STOP_DRAIN_DELAY": "50ms"}
     base, stop, task = await start_python(Definition("demo/audited", "3.0.0", Audited, migrations={
-        "0001_orders.up.sql": "CREATE TABLE orders (id text PRIMARY KEY);"}), env)
+        "0001_orders.up.sql": "CREATE TABLE orders (id text PRIMARY KEY);"}, grpc_port=free_port(),
+        **recovering("demo/audited")), env)
     try:
         async with httpx.AsyncClient(base_url=base) as c:
             assert (await c.post("/api/orders/o1")).status_code == 201
