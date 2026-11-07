@@ -188,6 +188,9 @@ def rows_affected(status: str) -> int:
 @dataclass
 class TxOptions:
     serializable: bool = False
+    # REPEATABLE READ: every statement reads the transaction's one snapshot (a record read whose high points
+    # describe exactly what it read, P9.31); serializable wins when both are set
+    snapshot: bool = False
     statement_timeout: float | None = None
     lock_timeout: float | None = None
     # bounds the whole transaction: transaction_timeout on PostgreSQL 17 and later; earlier versions get the statement
@@ -260,7 +263,8 @@ class DB:
     async def _in_tx(self, conn, fn: Callable[[Tx], Awaitable[T]], o: TxOptions, statement: float, lock: float,
                      idle: float, native: bool) -> T:
         tx = Tx(conn, self._prefix)
-        async with conn.transaction(isolation="serializable" if o.serializable else "read_committed"):
+        async with conn.transaction(isolation="serializable" if o.serializable else
+                                    "repeatable_read" if o.snapshot else "read_committed"):
             # everything LOCAL: it ends with the transaction and never stays on the pooled connection (0-12)
             await conn.execute(self._prefix + "SELECT set_config('role', $1, true), set_config('search_path', $2, true), "
                                "set_config('statement_timeout', $3, true), set_config('lock_timeout', $4, true), "

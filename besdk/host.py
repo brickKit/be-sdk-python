@@ -35,7 +35,8 @@ from besdk.events.outbox import Forwarder, Producer
 from besdk.events.progress import start_run
 from besdk.events.redelivery import Redelivery
 from besdk.events.resend import RESEND_CALL_TIMEOUT, Resender
-from besdk._gen.be.source.v1 import resend_pb2_grpc
+from besdk._gen.be.source.v1 import records_pb2_grpc, resend_pb2_grpc, watermark_pb2_grpc
+from besdk.events import records as stream_records, watermark
 from besdk.runtime import Runtime
 from besdk.work import Jobs, Runner, operator
 
@@ -331,6 +332,15 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
                                 values.string("IMPLEMENTATION_INSTANCE"), log)
             services.register(resend_pb2_grpc.add_ResendServiceServicer_to_server, resender, {
                 "Resend": system.Method(d.resend, [system.ANY_COMPONENT], timeout=RESEND_CALL_TIMEOUT)})
+            impl, deployment = values.string("IMPLEMENTATION_INSTANCE"), values.string("DEPLOYMENT_ID")
+            if (pull := watermark.method(producer)) is not None:  # the pull of the watermark streams (P9.13)
+                services.register(watermark_pb2_grpc.add_WatermarkServiceServicer_to_server,
+                                  watermark.WatermarkSource(shared.db, producer, d.id, impl, deployment, log),  # type: ignore[arg-type]
+                                  {"Pull": pull})
+            if (read := stream_records.method(producer)) is not None:  # the streams' batch read and snapshot (P9.30)
+                services.register(records_pb2_grpc.add_RecordServiceServicer_to_server,
+                                  stream_records.RecordSource(shared.db, producer, impl, deployment, log),  # type: ignore[arg-type]
+                                  {"Read": read, "Snapshot": read})
         if hasattr(module, "jobs"):  # the module's background work (chapter 07)
             if runner is None:
                 raise ValueError("a module with jobs has a database (migrations)")

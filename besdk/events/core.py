@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from enum import IntEnum, StrEnum
 from typing import Any, Awaitable, Callable, Protocol
 
+from besdk.events.sources import Records, Watermark
+
 MAX_PAYLOAD = 64 << 10  # over it, the payload travels by claim check (P6.14)
 MAX_HOPS = 10  # P6.15
 MAX_SUBJECTS = 1000
@@ -25,12 +27,28 @@ class Stream:
 
     name: str  # e.g. erp.inventory.stock
     partitions: int  # 1-256, never changed after release
+    # a watermark source (P9.13): every event lists its subjects, and the member answers pulls of it; None: ordinary
+    watermark: Watermark | None = field(default=None, compare=False)
+    # the stream's batch read and snapshot (P9.30); a watermark stream must declare them. None: no reads
+    records: Records | None = field(default=None, compare=False)
 
     def validate(self) -> None:
         if not _STREAM.fullmatch(self.name):
             raise ValueError(f"stream {self.name!r}: lower-case letters, digits, underscores and dots")
         if not 1 <= self.partitions <= 256:
             raise ValueError(f"stream {self.name}: partitions must be 1-256, not {self.partitions}")
+        w, r = self.watermark, self.records
+        if w is not None and (not w.operation or not w.pullers):
+            raise ValueError(f"stream {self.name}: a watermark source declares the pull's operation and who may pull it")
+        if r is not None and (not r.operation or not r.readers or r.read is None or r.page is None):
+            raise ValueError(f"stream {self.name}: record reads declare the operation, who may read, and both read "
+                             "functions")
+        if w is not None:
+            if r is None:
+                raise ValueError(f"stream {self.name}: a watermark source declares its record reads (P9.30)")
+            for c in w.pullers:
+                if c not in r.readers:
+                    raise ValueError(f"stream {self.name}: puller {c} is not among the record readers (P9.30)")
 
     def partition_of(self, record_id: str) -> int:
         """FNV-1a 64 of the record ID's lower-case form, modulo the partition count."""

@@ -394,8 +394,23 @@
       "evidence": []
     },
     "projection-records": {
-      "status": "not_implemented",
-      "reason": "不在 Python 的首批（A164）：现在没有 Python 业务组件用到；第一个要用的出现时按已有的向量补"
+      "status": "implemented",
+      "evidence": [
+        "test_watermark_integration::test_a_watermark_stream_declares_its_record_reads",
+        "test_watermark_integration::test_only_the_declared_readers_may_read",
+        "test_watermark_integration::test_a_read_answers_every_id_in_order",
+        "test_watermark_integration::test_a_read_sees_one_snapshot",
+        "test_watermark_integration::test_a_snapshot_pages_by_record_id",
+        "test_watermark_integration::test_a_snapshot_page_token_is_bound_to_the_epoch",
+        "test_watermark_integration::test_a_big_record_is_a_claim_check"
+      ],
+      "note": "来源一侧（P9.30–P9.33 的作答，第 6 项 T7）",
+      "pending": [
+        {
+          "rule": "P9.33",
+          "reason": "消费者逐页核对来源的声明（RecordClient）：消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        }
+      ]
     },
     "call-mode-service-proxy": {
       "status": "not_implemented",
@@ -410,9 +425,71 @@
       "evidence": []
     },
     "projection-watermarks": {
-      "status": "not_implemented",
-      "evidence": [],
-      "reason": "来源一侧第 6 项 T7 补，消费一侧不在首批（A164）"
+      "status": "implemented",
+      "evidence": [
+        "test_watermark_vectors::test_pull_check",
+        "test_watermark_integration::test_a_watermark_stream_declares_its_record_reads",
+        "test_watermark_integration::test_only_the_declared_pullers_may_pull",
+        "test_watermark_integration::test_a_pull_echoes_after_the_changes_before_it",
+        "test_watermark_integration::test_a_pull_pages_with_the_echo_on_the_last_page",
+        "test_watermark_integration::test_the_pull_checks_the_row_at_the_position",
+        "test_watermark_integration::test_the_step_before_the_echo_runs_first"
+      ],
+      "note": "来源一侧（P9.13–P9.18，第 6 项 T7）",
+      "pending": [
+        {
+          "rule": "P9.19",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.20",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.21",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.22",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.23",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.24",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.25",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.26",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.27",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.28",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.29",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.34",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        },
+        {
+          "rule": "P9.35",
+          "reason": "消费一侧不在 Python 的首批（A164）：现在没有 Python 组件用水位或读模型；第一个要用的出现时按已有的向量补"
+        }
+      ]
     },
     "projection-shadow": {
       "status": "not_implemented",

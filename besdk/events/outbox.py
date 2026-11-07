@@ -66,6 +66,12 @@ class Producer:
             raise _internal(f"events: projection {ev.projection!r}")
         if ev.subjects is not None and len(ev.subjects) > MAX_SUBJECTS:
             raise _internal(f"events: {len(ev.subjects)} subjects, at most {MAX_SUBJECTS}")
+        if s.watermark is not None and not ev.subjects:
+            raise _internal(f"events: stream {stream} is a watermark source: every event lists its subjects")
+        return await self.insert(tx, s.name, s.partition_of(ev.record_id), ev)
+
+    async def insert(self, tx: Tx, stream: str, partition: int, ev: Event) -> str:
+        """One validated event into the outbox at the given partition (an echo names its partition, P9.16)."""
         payload = b"{}" if ev.data is None else json.dumps(ev.data, ensure_ascii=False, separators=(",", ":")).encode()
         if len(payload) > MAX_PAYLOAD and self.claims is None:
             raise _internal(f"events: a {len(payload)}-byte payload needs object storage for a claim check")
@@ -77,7 +83,7 @@ class Producer:
         trace: dict[str, str] = {}
         PROPAGATOR.inject(trace)
         eid = str(uuid.uuid7())
-        part = (s.name, s.partition_of(ev.record_id))
+        part = (stream, partition)
         await tx.execute("""INSERT INTO be_outbox (event_id, stream, partition, type, occurred_at, record_id, version,
             projection, legal_entity, subjects, causation, hops, trace, payload, digest)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13::jsonb, $14, $15)""",
