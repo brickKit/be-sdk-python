@@ -5,14 +5,15 @@ SIM_MINUTES (default 30) is how long the crashes go on.
 Two members, sim/a and sim/b (tests/sim/member.py), each taking orders that write a business row, a work item of one
 of three effect classes and an event in one transaction, each consuming the other's events, running a singleton in
 steps and a cron job. Three replicas on a real PostgreSQL and the PostgreSQL queue: a shell hosting both members, and
-each member alone. Each replica runs with a crash point taken in turn from besdk.crash's points and ends itself there;
-the parent starts it again with the next one, and kills one at random now and then. Meanwhile the parent places orders
-and gives the singletons tasks. Then the crashes stop, everything runs until nothing is left to do, and the final
-state is checked: every order's job took effect exactly once (a non-idempotent call at most once, and an item whose
-call may have been sent paused, never sent again); every event was handled exactly once by the other member, or
-(its last delivery met a crash) dead-lettered with the cause "no outcome" and not handled (P6.20); the outbox's
-positions have no gap and no duplicate; no step of a singleton segment and no cron slot ran twice; no item is dead or
-stuck; every crash point was reached."""
+each member alone. Each replica runs with a crash point taken in turn from besdk.crash's points and ends itself
+there; the parent starts it again with the next one, and kills one at random now and then. Meanwhile the parent
+places orders and gives the singletons tasks. Then the crashes stop, everything runs until nothing is left to do, and
+the final state is checked: every order's job took effect exactly once (a non-idempotent call at most once, and an
+item whose call may have been sent paused, never sent again); every event was handled exactly once by the other
+member, or (its last delivery met a crash) dead-lettered with the cause "no outcome" and not handled (P6.20); every
+payment was taken by the external system once and succeeded, or (a crash between its claim and its send) never and is
+manual; the outbox's positions have no gap and no duplicate; no step of a singleton segment and no cron slot ran
+twice; no item is dead or stuck; every crash point was reached."""
 import asyncio
 import io
 import json
@@ -43,6 +44,8 @@ SCHEMA = {"sim/a": "sim_a", "sim/b": "sim_b"}
 POINTS = [f"{p}/{w}" for p in ("work.claim", "work.complete", "work.before_call", "work.checkpoint", "work.retry",
                                "events.number", "events.published", "events.inbox") for w in ("commit", "done")]
 POINTS.append("events.publish/done")
+POINTS += [f"extcmd.{p}" for p in ("claim/commit", "claim/done", "send/done", "result/commit", "result/done",
+                                   "query/done")]
 KILL_EVERY, ORDER_EVERY, DRAIN_LIMIT = 20.0, 0.15, 300.0
 
 
@@ -126,8 +129,11 @@ async def pending(c) -> str:
         peer = SCHEMA[IDS[1] if cid == IDS[0] else IDS[0]]
         unseen = await c.fetchval(UNSEEN.format(peer=peer, s=s))
         steps = await c.fetchval(f"SELECT count(*) FROM {s}.steps_task")
-        if busy or unpublished or unseen or steps:
-            left.append(f"{cid}: {busy} queue items, {unpublished} unpublished, {unseen} unseen, {steps} step tasks")
+        paying = await c.fetchval(f"""SELECT count(*) FROM {s}.be_external_command
+            WHERE state IN ('prepared', 'retry_wait', 'sending', 'unknown', 'accepted')""")
+        if busy or unpublished or unseen or steps or paying:
+            left.append(f"{cid}: {busy} queue items, {unpublished} unpublished, {unseen} unseen, {steps} step tasks, "
+                        f"{paying} payments")
     return "; ".join(left)
 
 
@@ -188,6 +194,21 @@ async def check(c) -> list[str]:
         slots = await c.fetchval(f"SELECT count(*) FROM (SELECT slot FROM {s}.cron_runs GROUP BY 1 HAVING count(*) > 1) x")
         if slots:
             problems.append(f"{cid}: {slots} cron slots ran twice")
+        # the payments (chapter 13): never taken twice; succeeded when taken once; manual only when never taken (a
+        # crash between the claim and the send: it may still land as far as the SDK knows, P13.6)
+        pays = await c.fetch(f"""SELECT o.id, x.state, (SELECT count(*) FROM {s}.pay_taken t
+                WHERE t.reference = o.id::text) AS taken
+            FROM {s}.orders o LEFT JOIN {s}.be_external_command x ON x.reference = o.id::text""")
+        manual = 0
+        for r in pays:
+            where = f"{cid} payment of order {r['id']} ({r['state']}, taken {r['taken']} times)"
+            if r["state"] == "manual":
+                manual += 1
+            if r["taken"] > 1 or (r["state"] == "succeeded") != (r["taken"] == 1) or r["state"] not in (
+                    "succeeded", "manual") or (r["state"] == "manual" and r["taken"]):
+                problems.append(where)
+        if manual:
+            say(f"{cid}: {manual} payments manual (a crash between their claim and their send)")
         bad = await c.fetch(f"""SELECT job, state, count(*) AS n FROM {s}.be_work_item
             WHERE state IN ('dead', 'running') OR (state = 'paused' AND job <> 'sim.nonidem') GROUP BY 1, 2""")
         problems += [f"{cid}: {r['n']} items of {r['job']} {r['state']}" for r in bad]

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Protocol
 
-from besdk import canon, errs, reqctx
+from besdk import canon, crash, errs, reqctx
 from besdk.config import Key, Type
 from besdk.db.pool import DB, Tx
 from besdk.evidence import Object, Writer
@@ -215,7 +215,9 @@ class Commands:
                 if nxt == UNKNOWN:
                     return await self._set(tx, r, UNKNOWN, why, r.now)
                 todo["send"] = True
-                return await self._set(tx, r, SENDING, why, r.now + SEND_LEASE)  # committed before the send (P13.4)
+                await self._set(tx, r, SENDING, why, r.now + SEND_LEASE)  # committed before the send (P13.4)
+                crash.point("extcmd.claim/commit")
+                return None
             if s == SENDING:  # due while sending: its claimant is gone (P13.5)
                 nxt, why = step(r.facts, Event(LEASE_LOST), r.caps, r.now)
                 return await self._set(tx, r, nxt, why, r.now)
@@ -240,6 +242,7 @@ class Commands:
                 return
             raise
         if todo.get("send"):
+            crash.point("extcmd.claim/done")
             await self._send(todo["row"])
         elif todo.get("query"):
             await self._query(todo["row"])
@@ -288,6 +291,7 @@ class Commands:
                 res = await asyncio.wait_for(self.adapter.send(r.cmd), SEND_TIMEOUT)  # type: ignore[union-attr]
         except Exception as e:  # noqa: BLE001 - a result the adapter could not classify may have reached
             res = Result(MAYBE_REACHED, response=repr(e))
+        crash.point("extcmd.send/done")
 
         async def after(tx: Tx) -> None:
             await self._now(tx, r)
@@ -305,8 +309,10 @@ class Commands:
                              r.facts.last_reached, r.facts.resend_deadline, res.external_id, _outcome(res.outcome))
             nxt, why = step(r.facts, Event(SEND_RESULT, result=res.cls), r.caps, r.now)
             await self._set(tx, r, nxt, why, self._next_at(r, nxt, n))
+            crash.point("extcmd.result/commit")
 
         await self.db.background_tx(after)
+        crash.point("extcmd.result/done")
 
     def _next_at(self, r: _Row, state: str, attempts: int) -> datetime:
         """When a command in state is next due."""
@@ -347,6 +353,7 @@ class Commands:
                              else (Event(QUERY_NOT_FOUND), "not_found"))
             except Exception:  # noqa: BLE001 - the query is unavailable: backoff
                 ans = Answer(False)
+        crash.point("extcmd.query/done")
         resend = {}
 
         async def apply(tx: Tx) -> None:

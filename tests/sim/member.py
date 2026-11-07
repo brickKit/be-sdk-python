@@ -1,6 +1,8 @@
 """The simulation's members sim/a and sim/b: each takes orders (a business row, a work item of one of three effect
-classes and an event, in one transaction), consumes the other's events, runs a singleton in steps and a cron job.
-Every effect leaves a row whose count the simulation checks: an effect twice, or never, is a failure."""
+classes, an event and a payment, an external command, in one transaction), consumes the other's events, runs a
+singleton in steps and a cron job. Every effect leaves a row whose count the simulation checks: an effect twice, or
+never, is a failure. The payments' external system is the table pay_taken, written outside the SDK's transactions; it
+answers queries and does not deduplicate."""
 from __future__ import annotations
 
 import os
@@ -12,6 +14,8 @@ from besdk import errs
 from besdk.component import Definition
 from besdk.events.consumer import Sub
 from besdk.events.core import Event, Projection, Stream
+from besdk.extcmd.commands import Answer, Result
+from besdk.extcmd.state import SUCCEEDED, Capabilities
 from besdk.http import Route
 from besdk.testing import defs
 from besdk.work import CRON, IDEMPOTENT_EXTERNAL, LOCAL, NON_IDEMPOTENT_EXTERNAL, QUEUE, SINGLETON, Job
@@ -30,6 +34,8 @@ CREATE TABLE IF NOT EXISTS seen (event_id uuid NOT NULL, order_id uuid NOT NULL)
 CREATE TABLE IF NOT EXISTS steps_task (id int PRIMARY KEY CHECK (id = 1), n int NOT NULL);
 CREATE TABLE IF NOT EXISTS step_effects (operation_id text NOT NULL, step int NOT NULL);
 CREATE TABLE IF NOT EXISTS cron_runs (slot text NOT NULL);
+-- the external system the payments go to (outside the SDK's transactions): one row per payment it took
+CREATE TABLE IF NOT EXISTS pay_taken (reference text NOT NULL, at timestamptz NOT NULL DEFAULT now());
 """}
 
 
@@ -58,6 +64,7 @@ class Sim:
                 await self.rt.work.enqueue(tx, KINDS[kind][0], {"order": str(oid)})
                 await self.rt.events.emit(tx, STREAMS[self.cid].name,
                                           Event(ORDER_TYPE, str(oid), 1, Projection.FULL, {"id": str(oid)}))
+                await self.rt.external.request(tx, self.cid, str(oid), "pay", {"order": str(oid)})
 
             await self.rt.db.tx(fn)
             return JSONResponse({"id": str(oid)}, status_code=201)
@@ -70,6 +77,9 @@ class Sim:
 
         r.add(Route("POST", "/api/order", order, public=True))
         r.add(Route("POST", "/api/steps", steps, public=True))
+
+    def external_commands(self):
+        return Ledger(self.rt), {"pay": Capabilities(query=True)}
 
     def subscriptions(self, s) -> None:
         async def handle(tx, e) -> None:
@@ -129,8 +139,26 @@ class Sim:
         j.add(Job("sim.minutely", CRON, minutely, LOCAL, cron="* * * * *", time_zone="UTC"))
 
 
+class Ledger:
+    """The payments' external system: takes every payment it is sent (no deduplication), answers by reference."""
+
+    def __init__(self, rt):
+        self.rt = rt
+
+    async def send(self, c):
+        await self.rt.db.background_tx(lambda tx: tx.execute("INSERT INTO pay_taken (reference) VALUES ($1)",
+                                                             c.reference))
+        return Result(SUCCEEDED, response="taken")
+
+    async def query(self, c):
+        n = await self.rt.db.background_tx(lambda tx: tx.fetchval(
+            "SELECT count(*) FROM pay_taken WHERE reference = $1", c.reference))
+        return Answer(n > 0, SUCCEEDED if n else "")
+
+
 def definition(cid: str) -> Definition:
     p = prefix(cid)
     return Definition(cid, "3.0.0", lambda rt: Sim(rt, cid), migrations=MIGRATIONS, streams=[STREAMS[cid]],
                       subscribes=True, resend=p + ".resend", grpc_port=int(os.environ.get("SIM_GRPC_" + cid.replace("/", "_").upper(), "0")),
-                      authz=defs(cid, p, p + ".read", p + ".resend"))
+                      authz=defs(cid, p, p + ".read", p + ".resend", p + ".recover"), external_commands=True,
+                      recovery=p + ".recover")
