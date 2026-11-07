@@ -108,6 +108,10 @@ class World:
                                                serialization.NoEncryption()))
         return str(cert_file), str(key_file), str(self.ca_file)
 
+    def ca(self) -> tuple:
+        """The deployment's root certificate and its key: the trust material's issuer signs with it (P12.24)."""
+        return self._ca, self._ca_key
+
     def other_root(self) -> tuple:
         k = ec.generate_private_key(ec.SECP256R1())
         now = dt.datetime.now(dt.timezone.utc)

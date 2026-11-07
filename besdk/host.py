@@ -37,7 +37,7 @@ from besdk.events.redelivery import Redelivery
 from besdk.events.resend import RESEND_CALL_TIMEOUT, Resender
 from besdk._gen.be.source.v1 import records_pb2_grpc, resend_pb2_grpc, watermark_pb2_grpc
 from besdk.events import records as stream_records, watermark
-from besdk import evidence
+from besdk import evidence, runprofile
 from besdk.evidence import transfer
 from besdk._gen.be.evidence.v1 import replay_pb2_grpc
 from besdk.runtime import Runtime
@@ -81,6 +81,8 @@ def keys(d: Definition) -> list[Key]:
         out += [*bus.keys(bool(d.streams)), *objectstore.store_keys()]
     if d.subscribes:
         out += consumer_keys()
+    if d.evidence:  # the alert channel takes the intents the evidence store does not (P12.7, P12.16)
+        out += runprofile.keys()
     return out
 
 
@@ -320,7 +322,7 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         for job in (partitions.maintain_job(log), idem.cleanup_job(shared.db), outbox.purge_job(shared.db),
                     operator.cleanup_job(shared.db)):  # type: ignore[arg-type]
             sdkjobs.add(runner, job)
-        writer = _evidence_writer(d, values, shared, outbound, log)
+        writer = _evidence_writer(d, values, shared, outbound, tls, log)
         sdkjobs.add(runner, transfer.transfer_job(shared.db, writer.store, log))  # type: ignore[arg-type]
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
                  addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor,
@@ -453,14 +455,17 @@ def _guard(member: Member, shared: Shared, outbound: calls.Member, ops: list[str
     return UserGuard(verifier, d.authz, member.holder, member.logger)  # type: ignore[arg-type]
 
 
-def _evidence_writer(d: Definition, values: Values, shared: Shared, outbound: calls.Member,
+def _evidence_writer(d: Definition, values: Values, shared: Shared, outbound: calls.Member, tls: ServiceTLS | None,
                      log: obs.Logger) -> evidence.Writer:
     """The member's evidence writer (P12.15): the evidence store is the audit component's EvidenceService at
-    AUDIT_GRPC_URL; without it the records stay in the local evidence outbox until it is set."""
+    AUDIT_GRPC_URL (without it the records stay in the local evidence outbox until it is set); the alert channel is
+    the run profile, for the components that declare evidence and configure RUN_PROFILE_URL (P12.7)."""
     instance = values.string("IMPLEMENTATION_INSTANCE") if d.streams else d.id
     w = evidence.Writer(shared.db, d.id, instance, log)  # type: ignore[arg-type]
     if addr := values.string("AUDIT_GRPC_URL"):
         w.store = transfer.GRPCStore(outbound.grpc("infra/audit", host_port(addr)))
+    if d.evidence:
+        w.alert = runprofile.RunProfile.from_values(values, d.id, instance, tls, log)
     return w
 
 

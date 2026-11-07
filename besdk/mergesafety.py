@@ -58,8 +58,9 @@ _METRICS = {"Counter", "Gauge", "Histogram", "Summary", "Info", "Enum"}
 # serves, the HTTP layer builds each member's application, the configuration source reads the environment for the
 # launcher, the database package opens the pools and the migrate entry's connection, the call layer owns each member's
 # clients, the system surface its server, the identity keys their fetching client, the transport adapters the
-# process's bus connection, the claim check its storage, and the test deployment (besdk.testing, never imported by
-# component code) its fake members and the provisioning of test databases.
+# process's bus connection, the claim check and the run profile their storage (each member's own), and the test
+# deployment (besdk.testing, never imported by component code) its fake members and the provisioning of test
+# databases.
 SDK_ALLOW: dict[str, set[str]] = {
     "besdk/config.py": {"os.environ"},
     "besdk/__init__.py": {"os.environ"},
@@ -72,6 +73,7 @@ SDK_ALLOW: dict[str, set[str]] = {
     "besdk/events/jetstream.py": {"nats.connect"},
     "besdk/events/pgqueue.py": {"asyncpg.create_pool", "asyncpg.connect"},
     "besdk/events/objectstore.py": {"aiohttp.ClientSession"},
+    "besdk/runprofile/store.py": {"aiohttp.ClientSession"},
     "besdk/host.py": {"fastapi.FastAPI", "uvicorn.Server", "uvicorn.Config"},
     "besdk/http.py": {"fastapi.FastAPI"},
     "besdk/launcher.py": {"asyncio.run", "sys.exit"},

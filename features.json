@@ -527,8 +527,7 @@
         "test_evidence_integration::test_the_grpc_store_talks_to_the_evidence_store",
         "test_recovery_phases_integration::test_the_recovery_phases",
         "test_sdkjobs::test_every_sdk_job_says_what_it_does_in_a_recovery"
-      ],
-      "note": "告警渠道（运行档案）随 run-profile 接上；没有告警渠道时，证据存储收不下的意图记为双通道失效"
+      ]
     },
     "evidence-replay": {
       "status": "verified",
@@ -539,9 +538,18 @@
       ]
     },
     "run-profile": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T8 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_runprofile_vectors::test_the_run_profile_vectors",
+        "test_runprofile_vectors::test_the_trust_history_vectors",
+        "test_runprofile_trust::test_a_rotation_needs_both_signatures",
+        "test_runprofile_trust::test_a_revocation_counts_only_from_a_trusted_signer",
+        "test_runprofile_integration::test_a_record_is_signed_locked_and_read_back",
+        "test_runprofile_integration::test_a_tampered_or_foreign_record_is_not_used",
+        "test_runprofile_integration::test_a_generation_advances_only_through_the_run_profile",
+        "test_runprofile_integration::test_an_alert_is_written_and_a_double_failure_is_logged",
+        "test_runprofile_integration::test_the_trust_history_in_the_store"
+      ]
     },
     "external-commands": {
       "status": "not_implemented",

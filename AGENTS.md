@@ -19,6 +19,8 @@
 | `db/` | 进入数据库的唯一方式：连接池与事务入口（`pool.py`：角色、`search_path`、超时都是事务级；数据库错误到原因的映射 `map_error`）、拒绝把状态留在连接上的语句（`session.py`）、迁移与迁移检查（`migrate.py`、`lint.py`）、单号（`docno.py`）、统计（`statistics.py`）、按月分区的维护（`partitions.py`） | 第 05 章 |
 | `events/` | 发件表、转发与清理（`outbox.py`）、订阅与收件表（`consumer.py`，收件表记来源位置）、信封与流（`core.py`）、运输的选择（`bus.py`）与两个适配器（`jetstream.py`、`pgqueue.py`）、大载荷的凭证检查（`objectstore.py`，SigV4 在 `sigv4.py`）、订阅的进度（`progress.py`）、生产者的补发 `ResendService`（`resend.py`）、消费者库回退后的补发（`redelivery.py`）；水位来源的补取 `WatermarkService`（`watermark.py`）与记录读取 `RecordService`（`records.py`），流在 `Stream.watermark`、`Stream.records` 里声明（`sources.py`），只有来源一侧（A164） | 第 06、09 章 |
 | `work/` | 后台工作项：作业的声明与失败的分类（`job.py`）、一次认领与带核对的提交（`run.py`）、成员的轮询、工作者、调度与定时（`runner.py`）、cron 的时间槽（`cron.py`）、运维操作与清理（`operator.py`） | 第 07 章 |
+| `evidence/` | 证据：记录者一侧（`writer.py`：意图、结论、一般记录、变更历史与提交序号、双通道失效）、转运到证据存储（`transfer.py`，SDK 自带作业 `be.evidence.transfer`，恢复阶段里是宿主的循环）、属主的重放（`replay.py`，`be.evidence.v1.ReplayService`） | P12.9–P12.23 |
+| `runprofile/` | 运行档案与告警渠道（`store.py`：开了对象锁的桶里签名的记录、恢复代次、告警）；信任材料历史（`trust.py`：沿双签的轮换受信的 CA、按接收时刻判吊销） | P12.1–P12.8、P12.24–P12.27 |
 | `idem.py` | 命令的幂等键：认领、命令与结果同一事务，清理作业 | P4.21–P4.25 |
 | `identity/`、`guard.py`、`authz/`、`audit.py`、`records.py`、`canon.py` | 身份核验与服务身份、用户面准入（含令牌陈旧）、授权（定义、视图、求值、列表的计划）、审计、安全记录的封装与规范编码 | 第 08 章 |
 | `lists.py` | 列表的游标与筛选 | 第 09 章 |

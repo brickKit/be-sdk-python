@@ -49,18 +49,23 @@ class Signer:
         to_sign = "\n".join([ALGORITHM, amz, scope, hashlib.sha256(canonical.encode()).hexdigest()])
         return hmac.new(self._key(secret, date), to_sign.encode(), hashlib.sha256).hexdigest(), scope, ";".join(names)
 
+    def request(self, secret: str, method: str, bucket: str, key: str, query: str, extra: dict[str, str],
+                payload_sha256: str, when: datetime | None = None) -> tuple[str, dict[str, str]]:
+        """The URL and headers of a signed request: every extra header (lower-case names) is signed too; query is
+        canonical already (names sorted, each part percent-encoded with escape())."""
+        when = when or datetime.now(timezone.utc)
+        amz = when.strftime("%Y%m%dT%H%M%SZ")
+        path = self.path(bucket, key) if key else f"{self.base}/{quote(bucket, safe='')}"
+        signed = {"host": self.host, "x-amz-content-sha256": payload_sha256, "x-amz-date": amz, **extra}
+        sig, scope, names = self._sign(secret, when, method, path, query, signed, payload_sha256)
+        headers = {n: v for n, v in signed.items() if n != "host"}
+        headers["authorization"] = f"{ALGORITHM} Credential={self.access}/{scope}, SignedHeaders={names}, Signature={sig}"
+        return f"{self.scheme}://{self.host}{path}" + (f"?{query}" if query else ""), headers
+
     def put_headers(self, secret: str, bucket: str, key: str, payload_sha256: str, content_type: str,
                     when: datetime | None = None) -> tuple[str, dict[str, str]]:
         """The URL and headers of a signed PUT of an object whose body has the given SHA-256."""
-        when = when or datetime.now(timezone.utc)
-        amz = when.strftime("%Y%m%dT%H%M%SZ")
-        path = self.path(bucket, key)
-        signed = {"host": self.host, "x-amz-content-sha256": payload_sha256, "x-amz-date": amz,
-                  "content-type": content_type}
-        sig, scope, names = self._sign(secret, when, "PUT", path, "", signed, payload_sha256)
-        headers = {"x-amz-content-sha256": payload_sha256, "x-amz-date": amz, "content-type": content_type,
-                   "authorization": f"{ALGORITHM} Credential={self.access}/{scope}, SignedHeaders={names}, Signature={sig}"}
-        return f"{self.scheme}://{self.host}{path}", headers
+        return self.request(secret, "PUT", bucket, key, "", {"content-type": content_type}, payload_sha256, when)
 
     def presign_get(self, secret: str, bucket: str, key: str, expires: int, when: datetime | None = None) -> str:
         """A read-only GET of the object, valid for expires seconds, that needs no credentials to use."""
@@ -72,3 +77,9 @@ class Signer:
         query = "&".join(f"{quote(k, safe='-_.~')}={quote(v, safe='-_.~')}" for k, v in sorted(params.items()))
         sig, _, _ = self._sign(secret, when, "GET", path, query, {"host": self.host}, UNSIGNED)
         return f"{self.scheme}://{self.host}{path}?{query}&X-Amz-Signature={sig}"
+
+
+def escape(v: str) -> str:
+    """A query part as SigV4 canonicalizes it: unreserved characters stay, everything else (`/` included) is
+    percent-encoded."""
+    return quote(v, safe="-_.~")
