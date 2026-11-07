@@ -47,13 +47,12 @@ async def late_proxy(target_host, target_port, delay):
 
 
 async def serve(d, env, stop, out):
-    for args in (["migrate"], []):
-        if args:
-            env = {**env, "COMPONENT_ID": d.id, "PORT": str(free_port())}
-            return env, asyncio.create_task(launcher.run(d, launcher.Options(env=EnvSource(lookup_env=env.get), stdout=out,
-                                                                             stderr=out, host="127.0.0.1"), stop))
-        assert await launcher.run(d, launcher.Options(args=args, env=EnvSource(lookup_env=env.get), stdout=out, stderr=out),
-                                  asyncio.Event()) == 0, out.getvalue()
+    """Migrates the member, then runs it until stop (the migrate entry first: the SDK's tables, the member's own)."""
+    assert await launcher.run(d, launcher.Options(args=["migrate"], env=EnvSource(lookup_env=env.get), stdout=out,
+                                                  stderr=out), asyncio.Event()) == 0, out.getvalue()
+    env = {**env, "COMPONENT_ID": d.id, "PORT": str(free_port())}
+    return env, asyncio.create_task(launcher.run(d, launcher.Options(env=EnvSource(lookup_env=env.get), stdout=out,
+                                                                     stderr=out, host="127.0.0.1"), stop))
 
 
 async def test_a_late_bus_is_waited_for_and_refused_credentials_exit_78():

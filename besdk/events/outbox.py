@@ -330,3 +330,14 @@ async def purge(db: DB, retention: float = REDELIVERY_RETENTION) -> int:
     return await delete_in_batches(db, """DELETE FROM be_outbox WHERE ord IN (SELECT ord FROM be_outbox
         WHERE published_at IS NOT NULL AND published_at < now() - make_interval(secs => $1)
         LIMIT $2 FOR UPDATE SKIP LOCKED)""", retention)
+
+
+def purge_job(db: DB):
+    """The hourly purge every member with streams runs (P6.12): a besdk.work singleton."""
+    from besdk.work.job import LOCAL, SINGLETON, UNLIMITED, Job
+
+    async def handle(run) -> None:
+        await purge(db)
+        await run.complete()
+
+    return Job("be.outbox.purge", SINGLETON, handle, LOCAL, interval=3600.0, max_attempts=UNLIMITED)

@@ -2,8 +2,8 @@
 RECOVERY_PHASE is recovery_ready (its readiness answers 200 with the phase, its self-description and ready line say the
 phase); frozen runs no forwarding and no subscription and answers MAINTENANCE on the user surface; redelivering,
 replaying and verifying run forwarding and subscriptions and still answer MAINTENANCE; read_only serves reads and the
-writes a route declares open; without the phase everything runs again. A phase it does not know is a configuration
-error. Background jobs join this walk with chapter 07 (foundations item 6, T4)."""
+writes a route declares open; no phase runs a job (the SDK's own included); without the phase everything runs again.
+A phase it does not know is a configuration error."""
 import asyncio
 import io
 import uuid
@@ -18,6 +18,7 @@ from besdk.config import EnvSource
 from besdk.events.consumer import Sub
 from besdk.events.core import Event, Projection, Stream
 from besdk.http import Route
+from besdk.work import EVERY, Job
 from tests import pgtest
 from tests.test_events_interop import bus, free_port, member_env
 
@@ -46,6 +47,12 @@ class Producer:
         r.add(Route("POST", "/api/r", create, public=True))
         r.add(Route("GET", "/api/ticks", ticks, public=True))
         r.add(Route("POST", "/api/code", code, public=True, read_only_open=True))
+
+    def jobs(self, j):
+        async def tick(run):
+            await self.rt.db.background_tx(lambda tx: tx.execute("INSERT INTO ticks DEFAULT VALUES"))
+
+        j.add(Job("demo.tick", EVERY, tick, interval=0.1))
 
 
 class Consumer:
@@ -105,7 +112,9 @@ async def test_the_recovery_phases():
         prod_env = await member_env("py_rc_prod", {"BUS_URL": url, "IMPLEMENTATION_INSTANCE": str(uuid.uuid4())})
         cons_env = await member_env("py_rc_cons", {"BUS_URL": url})
         prod = Definition("demo/rcprod" + sfx, "3.0.0", Producer, streams=[RC],
-                          migrations={"0001_m.up.sql": "CREATE TABLE IF NOT EXISTS marker (id int);"})
+                          migrations={"0001_m.up.sql": "CREATE TABLE IF NOT EXISTS marker (id int);",
+                                      "0002_ticks.up.sql": "CREATE TABLE IF NOT EXISTS ticks "
+                                                           "(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY);"})
         cons = Definition("demo/rccons" + sfx, "3.0.0", Consumer, subscribes=True,
                           migrations={"0001_rseen.up.sql": "CREATE TABLE IF NOT EXISTS rseen (event_id uuid PRIMARY KEY);"})
         a = await pgtest.admin()
@@ -115,6 +124,9 @@ async def test_the_recovery_phases():
 
         async def seen():
             return await count("SELECT count(*) FROM py_rc_cons.rseen")
+
+        async def ticks():
+            return await count("SELECT count(*) FROM py_rc_prod.ticks")
 
         async def unforwarded():
             return await count("SELECT count(*) FROM py_rc_prod.be_outbox WHERE seq IS NULL")
@@ -135,6 +147,11 @@ async def test_the_recovery_phases():
                 for _ in range(2):
                     assert (await c.post(purl + "/api/r")).status_code == 201
             await eventually(seen, 2, 10, "two events received while running")
+            for _ in range(200):
+                if await ticks() > 0:
+                    break
+                await asyncio.sleep(0.05)
+            assert await ticks() > 0, "the job ticks while running"
             # one more on the bus while the consumer is away: a frozen consumer must leave it there
             await finish(cstop, ctask, cout)
             async with httpx.AsyncClient() as c:
@@ -144,6 +161,7 @@ async def test_the_recovery_phases():
 
             # frozen: recovery_ready with the phase; MAINTENANCE on the user surface; nothing forwarded or received
             await copy_outbox_row()
+            before = await ticks()
             purl, pstop, ptask, pout = await start(prod, prod_env, "frozen")
             curl, cstop, ctask, cout = await start(cons, cons_env, "frozen")
             async with httpx.AsyncClient() as c:
@@ -159,6 +177,7 @@ async def test_the_recovery_phases():
             await asyncio.sleep(11)
             assert await unforwarded() == 1, "not forwarded while frozen"
             assert await seen() == 2, "not received while frozen"
+            assert await ticks() == before, "no job while frozen"
             await finish(cstop, ctask, cout)
             await finish(pstop, ptask, pout)
 
@@ -177,6 +196,7 @@ async def test_the_recovery_phases():
                     assert r.status_code == 503 and r.json()["metadata"]["phase"] == phase, r.text
                     assert (await c.get(purl + "/api/ticks")).status_code == 503, f"no reads while {phase}"
                     assert (await c.post(purl + "/api/code")).status_code == 503
+                    assert await ticks() == before, f"no job while {phase}"
                 want += 1
                 await finish(cstop, ctask, cout)
                 await finish(pstop, ptask, pout)
@@ -188,6 +208,8 @@ async def test_the_recovery_phases():
                 assert (await c.post(purl + "/api/code")).status_code == 200, "a write declared read_only_open"
                 r = await c.post(purl + "/api/r")
                 assert r.status_code == 503 and r.json()["metadata"]["phase"] == "read_only", r.text
+            await asyncio.sleep(0.5)
+            assert await ticks() == before, "no job while open read-only"
             await finish(pstop, ptask, pout)
 
             # running again: everything, and no recovery_phase in the self-description
@@ -197,6 +219,11 @@ async def test_the_recovery_phases():
                 assert r.status_code == 200 and r.text == "ok"
                 assert "recovery_phase" not in (await c.get(purl + "/.well-known/be-component")).json()
                 assert (await c.post(purl + "/api/r")).status_code == 201
+            for _ in range(200):
+                if await ticks() > before:
+                    break
+                await asyncio.sleep(0.05)
+            assert await ticks() > before, "the job runs again"
             await finish(pstop, ptask, pout)
 
             # a phase this version does not know: a configuration error before any port opens (P1.9, P2.6)

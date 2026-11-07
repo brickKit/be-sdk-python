@@ -117,11 +117,17 @@ ANY_COMPONENT = "*"
 DEFAULT_CONNECTION_AGE, CONNECTION_AGE_GRACE = 30.0, 10.0
 
 _caller: contextvars.ContextVar[str] = contextvars.ContextVar("be_caller", default="")
+_method: contextvars.ContextVar[str] = contextvars.ContextVar("be_method", default="")
 
 
 def caller() -> str:
     """The component the current system call came from, as its verified certificate says (P8.5, P8.6)."""
     return _caller.get()
+
+
+def method() -> str:
+    """The full method of the current system call, /<service>/<method> (an idempotency key's target, P4.22)."""
+    return _method.get()
 
 
 def build_server(d: Deps, s: Services) -> grpc.aio.Server:
@@ -192,11 +198,12 @@ def _wrap(d: Deps, full: str, decl: Method, behavior: Callable[[Any, Any], Await
                             log.warn("a system call from a component not allowed to call this method", method=full,
                                      caller=who)
                             raise errs.new("PERMISSION_DENIED", "this component may not call this method")
-                        token = _caller.set(who)
+                        token, mtoken = _caller.set(who), _method.set(full if full.startswith("/") else "/" + full)
                         try:
                             return await behavior(request, context)
                         finally:
                             _caller.reset(token)
+                            _method.reset(mtoken)
             except BaseException as exc:  # noqa: BLE001 - every failure becomes the error object, never a crash
                 if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
                     raise  # an external cancellation stays one; the handler's own deadline arrives as TimeoutError

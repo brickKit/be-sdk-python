@@ -121,9 +121,15 @@
       ]
     },
     "idempotency": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T4 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_idem::test_keys",
+        "test_idem::test_fingerprints",
+        "test_idem_integration::test_a_replay_returns_the_stored_outcome",
+        "test_idem_integration::test_concurrent_first_uses_run_the_command_once",
+        "test_idem_integration::test_a_failed_command_keeps_nothing",
+        "test_idem_integration::test_an_expired_record_is_claimed_afresh_and_the_cleanup_removes_only_expired"
+      ]
     },
     "database": {
       "status": "verified",
@@ -157,9 +163,10 @@
       ]
     },
     "partitions": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T4 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_partitions_integration::test_the_job_keeps_the_months_ahead"
+      ]
     },
     "money": {
       "status": "not_implemented",
@@ -234,14 +241,43 @@
       ]
     },
     "work": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T4 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_work_integration::test_identities_and_the_rollback",
+        "test_work_integration::test_a_taken_over_holder_commits_nothing",
+        "test_work_integration::test_stop_gives_the_lease_and_the_attempt_back",
+        "test_work_integration::test_a_local_effect_happens_once_after_a_crash",
+        "test_work_integration::test_a_non_idempotent_call_is_never_sent_twice",
+        "test_work_integration::test_retries_then_dead_with_its_dead_letter",
+        "test_work_integration::test_a_business_wait_spends_no_attempt_and_ends_past_its_limit",
+        "test_work_integration::test_a_singleton_continues_from_its_committed_progress",
+        "test_work_integration::test_a_run_past_its_deadline_is_retried",
+        "test_work_integration::test_a_commit_wakes_a_worker_and_a_later_item_waits",
+        "test_work_integration::test_every_jobs_run_on_their_timer",
+        "test_work_integration::test_an_expired_lease_is_claimed_before_due_items",
+        "test_work_integration::test_an_idle_member_claims_once_a_poll",
+        "test_work_integration::test_an_idempotent_takeover_keeps_its_keys_and_recorded_calls",
+        "test_work_member_integration::test_a_member_runs_its_jobs_and_the_sdks",
+        "test_sdkjobs::test_the_host_registers_every_job_maker",
+        "test_sdkjobs::test_every_sdk_job_says_what_it_does_in_a_recovery"
+      ],
+      "pending": [
+        {
+          "rule": "P7.20",
+          "reason": "每个作业的运行次数与结果、耗时、队列深度、最老等待与 dead、paused 的数量还没有指标（与 be-sdk-go 相同，随观测补）"
+        }
+      ]
     },
     "cron": {
-      "status": "not_implemented",
-      "reason": "第 6 项 T4 补（A164）",
-      "evidence": []
+      "status": "verified",
+      "evidence": [
+        "test_work_cron::test_slots",
+        "test_work_cron::test_materialize",
+        "test_work_cron::test_none_skips_a_missed_slot_older_than_a_minute",
+        "test_work_cron_integration::test_two_replicas_run_a_slot_once",
+        "test_work_cron_integration::test_a_new_job_starts_at_now_and_a_backlog_beyond_its_limit_pauses",
+        "test_work_cron_integration::test_the_scheduler_waits_for_the_next_slot"
+      ]
     },
     "user-credentials": {
       "status": "verified",
@@ -427,12 +463,13 @@
         "test_recovery_phases_integration::test_the_recovery_phases",
         "test_recovery_phases_integration::test_every_phase_is_a_value_of_the_key",
         "test_shell::test_a_shell_in_recovery",
-        "test_shell::test_a_member_without_a_phase_runs_in_the_shells_phase"
+        "test_shell::test_a_member_without_a_phase_runs_in_the_shells_phase",
+        "test_work_member_integration::test_a_member_runs_its_jobs_and_the_sdks"
       ],
       "pending": [
         {
           "rule": "P1.23",
-          "reason": "后台工作（含 SDK 自带的作业）按阶段停或运行随第 6 项 T4（第 07 章），证据转运与对外命令只查询随 T8；用户面、转发、订阅、审计转运与就绪已验证"
+          "reason": "证据转运与对外命令只查询随第 6 项 T8；用户面、转发、订阅、审计转运、作业（含 SDK 自带的）与就绪已验证"
         }
       ]
     },

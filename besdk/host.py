@@ -17,20 +17,23 @@ import uvicorn
 from fastapi import FastAPI
 
 import besdk
-from besdk import config, obs, protocol, reqctx, system
+from besdk import config, idem, obs, protocol, reqctx, sdkjobs, system
 from besdk.audit import Auditor, GRPCSender
 from besdk.authz import GRPCSource, Holder
 from besdk.calls import client as calls
 from besdk.component import Definition, Starter, Stopper
 from besdk.config import Key, Problem, Type, Values
+from besdk.db import partitions
 from besdk.db.statistics import keep_statistics
 from besdk.guard import UserGuard
 from besdk.http import Deps, Platform, Routes, build_app
 from besdk.identity import KeySet, ServiceTLS, Verifier
 from besdk.events.consumer import CONCURRENCY_KEY, Consumer, Subscriptions, consumer_keys
 from besdk.events.objectstore import HTTPClaims, S3Store
+from besdk.events import outbox
 from besdk.events.outbox import Forwarder, Producer
 from besdk.runtime import Runtime
+from besdk.work import Jobs, Runner, operator
 
 # Exit codes (protocol chapter 01).
 EXIT_OK, EXIT_FAILURE, EXIT_USAGE, EXIT_STARTUP_CHECK, EXIT_CONFIGURATION = 0, 1, 64, 69, 78
@@ -130,6 +133,7 @@ class Member:
     # readiness does not wait for it (P8.24); until it, the view holder does not run, so protected requests answer
     # AUTHORIZATION_VIEW_EXPIRED
     defs_accepted: bool = False
+    runner: object = None  # the member's background work (besdk.work.Runner), with a database
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
 
@@ -162,6 +166,8 @@ class Member:
         self._tasks.append(asyncio.create_task(self._reread_secrets(read)))
         if self.tls is not None:
             self._tasks.append(asyncio.create_task(self._reread_certificate()))
+        if self.runner is not None and not self.phase:  # jobs, the SDK's included, run only in normal running (P1.23)
+            await self.runner.start()  # type: ignore[attr-defined]
         if self.auditor is not None and moving:  # the audit store never goes back: it runs outside the jobs (P1.23)
             self._tasks.append(asyncio.create_task(self.auditor.run(self.audit_sender, self.logger)))  # type: ignore[attr-defined]
         if self.runtime.db is not None:  # the SDK's tables keep fresh statistics (P5.33)
@@ -237,6 +243,8 @@ class Member:
         try:
             # the events in hand finish; the rest stay with the transport
             await asyncio.gather(*(s.stop() for s in self._subs), return_exceptions=True)
+            if self.runner is not None:  # handlers cancelled, their leases and attempts given back (P7.8)
+                await self.runner.stop()  # type: ignore[attr-defined]
             if self.forwarder is not None:
                 await self.forwarder.stop()  # type: ignore[attr-defined]
                 if (store := self.forwarder.producer.claims) is not None:  # type: ignore[attr-defined]
@@ -289,8 +297,15 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         forwarder = Forwarder(shared.db, producer, shared.transport, d.id, values.string("IMPLEMENTATION_INSTANCE"),
                               log)  # type: ignore[arg-type]
     auditor = Auditor(shared.db) if shared.db is not None else None  # type: ignore[arg-type]
+    runner = None
+    if shared.db is not None:  # the SDK's own jobs, each saying what it does in a recovery (besdk/sdkjobs.py)
+        runner = Runner(shared.db, d.id, log)  # type: ignore[arg-type]
+        for job in (partitions.maintain_job(log), idem.cleanup_job(shared.db), outbox.purge_job(shared.db),
+                    operator.cleanup_job(shared.db)):  # type: ignore[arg-type]
+            sdkjobs.add(runner, job)
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
-                 addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor)
+                 addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor,
+                 work=runner)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
@@ -300,11 +315,18 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         services = system.Services()
         if hasattr(module, "services"):
             module.services(services)
+        if hasattr(module, "jobs"):  # the module's background work (chapter 07)
+            if runner is None:
+                raise ValueError("a module with jobs has a database (migrations)")
+            jobs = Jobs()
+            module.jobs(jobs)
+            runner.add_all(jobs)
     except Exception as e:  # noqa: BLE001 - a module's wiring failure is reported, never a crash
         log.error("the module could not be built", error=repr(e), stack="".join(traceback.format_exception(e)))
         raise BuildError(str(e)) from e
     member = Member(d, values, log, registry, tracers, rt, module, FastAPI(), ready=ready)
     member.forwarder, member.transport, member.tls, member.auditor = forwarder, shared.transport, tls, auditor
+    member.runner = runner
     if d.subscribes:
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]

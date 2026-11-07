@@ -39,6 +39,9 @@ class Runtime:
     outbound: Any = None  # the member's call clients (besdk.calls.client.Member)
     events: Any = None  # writes the member's events into its outbox inside a transaction (besdk.events.outbox.Producer)
     audit: Any = None  # the member's audit records (besdk.audit.Auditor), with a database
+    # the member's background work (besdk.work.Runner), with a database: enqueue(tx, job, args, at) puts a queue job's
+    # item into the business transaction (chapter 07)
+    work: Any = None
 
     def http(self, component_id: str) -> Any:
         """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter
