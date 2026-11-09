@@ -29,6 +29,9 @@ Compute = Callable[..., Awaitable[Any]]
 
 
 async def in_thread(fn, *args):
+    """The default compute: a thread (the assembly project's T2c, measured with 20,000 rows: a shell's request waits
+    at most about 10 ms, the GIL's switch interval twice, while a worker process costs 18-20% more time and CPU to
+    pickle the rows over and stalls no less; a Parquet read turns the file into values a batch at a time for that)."""
     return await asyncio.to_thread(fn, *args)
 
 

@@ -20,6 +20,8 @@ from besdk.tiering.classes import Table
 from besdk.tiering.rows import (BOOL, BYTEA, DATE, INT2, INT4, INT8, JSONB, NUMERIC, TEXT, TEXT_ARRAY, TIMESTAMPTZ,
                                 UUID)
 
+READ_BATCH = 1024  # the rows a read turns into Python values per call into pyarrow (see read)
+
 
 def _pa():
     try:
@@ -79,9 +81,14 @@ def write(t: Table, rows: list[dict[str, Any]]) -> bytes:
 def read(t: Table, raw: bytes) -> list[dict[str, Any]]:
     """One table's rows back; the file's columns must be the table's (names and order). Raises ValueError."""
     _, pq = _pa()
-    table = pq.read_table(io.BytesIO(raw))
+    f = pq.ParquetFile(io.BytesIO(raw))
     names = sorted(t.columns)
-    if table.column_names != names:
-        raise ValueError(f"tiering: {t.name}'s columns are {names}, the file's {table.column_names}")
-    cols = {n: [_back(t.columns[n], v) for v in table.column(n).to_pylist()] for n in names}
-    return [{n: cols[n][i] for n in names} for i in range(table.num_rows)]
+    if f.schema_arrow.names != names:
+        raise ValueError(f"tiering: {t.name}'s columns are {names}, the file's {f.schema_arrow.names}")
+    out: list[dict[str, Any]] = []
+    # a batch at a time: turning a whole column into Python values holds the GIL for the whole call, and a shell's
+    # other members wait (T2c: p99 stall 34 ms for 20,000 rows in a thread; 11 ms a batch at a time, the time the same)
+    for b in f.iter_batches(batch_size=READ_BATCH):
+        cols = {n: [_back(t.columns[n], v) for v in b.column(n).to_pylist()] for n in names}
+        out += [{n: cols[n][i] for n in names} for i in range(b.num_rows)]
+    return out

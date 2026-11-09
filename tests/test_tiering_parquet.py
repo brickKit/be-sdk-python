@@ -66,3 +66,10 @@ def test_a_text_array_is_nfc():
 def test_the_driver_gives_numeric_as_text():
     with pytest.raises(canon.Refused):
         parquet.write(Table("x", {"id": UUID, "n": NUMERIC}, pk="id"), [{"id": u(1), "n": Decimal("1.5")}])
+
+
+def test_a_read_of_several_batches_keeps_every_row_in_order():  # parquet.READ_BATCH rows per call (T2c, a61)
+    many = [{**ROWS[i % len(ROWS)], "id": uuid.UUID(int=i)} for i in range(parquet.READ_BATCH * 2 + 7)]
+    back = parquet.read(ALL, parquet.write(ALL, many))
+    assert [r["id"] for r in back] == [r["id"] for r in many]
+    assert [rows.row(ALL.columns, r) for r in back] == [rows.row(ALL.columns, r) for r in many]
