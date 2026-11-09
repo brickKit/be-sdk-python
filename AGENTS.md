@@ -51,7 +51,8 @@
 
 - `make test`（`uv run pytest -q`）：单元测试与协议向量。
 - `make test-integration`（`uv run pytest -q -m integration`）：要 `BE_SDK_TEST_PG_ADMIN`、`BE_SDK_TEST_NATS_URL` 与 `BE_SDK_TEST_S3_*`（装配项目的 `itenv.sh` 设置）；缺环境就失败，不跳过。互通测试会构建 `tests/interop/` 下的 Go 小程序。
-- `make simulation`（`tests/sim`）：长时间推演：两个成员的几个副本（其中一个是承载两者的外壳）轮流在每个崩溃点结束自己、不时被杀掉，之后核对终态（每条事件进了收件表或死信、作业都有结局）；要 `make test-integration` 的环境，`SIM_MINUTES` 是注入崩溃的时长（默认 30），按长任务放后台。
+- `make simulation`（`tests/sim/test_simulation.py`）：长时间推演：两个成员的几个副本（其中一个是承载两者的外壳）轮流在每个崩溃点结束自己、不时被杀掉，之后核对终态（每条事件进了收件表或死信、作业都有结局）；要 `make test-integration` 的环境，`SIM_MINUTES` 是注入崩溃的时长（默认 30），按长任务放后台。
+- `make simulation-tiering`（`tests/sim/test_tiering_simulation.py`，副本是 `tests/sim/tierchild.py`）：转层的长时间推演，照 be-sdk-go 的 `tiering/sim_test.go`：两个成员一个走对象存储、一个走温层，中途互换路线；四个副本（两个承载两个成员）在每个转层崩溃点结束自己、不时被杀掉；父进程写、改、关闭、擦除（请求与排队的重做）、保全、记备份、按键读并对照；之后核对每份文档、每个发布的副本、恢复核对与工作项。另要 `BE_SDK_TEST_S3_*`；`SIM_MINUTES` 同上，按长任务放后台。
 - `make protocol-check`：协议副本与它记下的标签逐字节相同。
 - 运行 Python 时设 `PYTHONDONTWRITEBYTECODE=1`，不在仓库里留字节码。
 
