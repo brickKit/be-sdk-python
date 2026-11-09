@@ -28,6 +28,25 @@ IN_RECOVERY = {
                                             "(P13.10): nothing is sent while the external reconciliation decides"),
     "be.idempotency.cleanup": RecoveryRule(False, "not run: housekeeping of the member's own database, which goes "
                                                   "back; once open"),
+    "be.tiering.candidates": RecoveryRule(False, "not run: sealing reads and writes the member's own database, which "
+                                                 "goes back; the next window once open"),
+    "be.tiering.transfer": RecoveryRule(False, "not run: a publish changes the member's catalog, which goes back; the "
+                                               "sealed units wait for the opening"),
+    "be.tiering.release": RecoveryRule(False, "not run: deleting online rows of the member's own database, which goes "
+                                              "back; once open"),
+    "be.tiering.export": RecoveryRule(False, "not run: an export reads the member's own database, which goes back, and "
+                                             "the authorization being recovered; the queued exports run once open"),
+    "be.tiering.destroy": RecoveryRule(False, "not run: a destruction decides on the member's own database, which goes "
+                                              "back; the destructions after the recovery's point are replayed from "
+                                              "their evidence, the rest run once open"),
+    "be.tiering.erase": RecoveryRule(False, "not run: an erasure writes the member's own database and its archive "
+                                            "copies; the erasures replayed during the recovery are queued and run "
+                                            "once open"),
+    "be.tiering.export.cleanup": RecoveryRule(False, "not run: housekeeping of the member's own database, which goes "
+                                                     "back; once open"),
+    "be.tiering.cleanup": RecoveryRule(False, "not run: what the catalog going back no longer names (units published "
+                                              "after the recovery's point) is the recovery check's difference, not an "
+                                              "orphan yet; daily once open, past the window"),
 }
 
 

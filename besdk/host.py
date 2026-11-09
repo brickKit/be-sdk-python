@@ -9,7 +9,7 @@ import socket
 import time
 import traceback
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import IO, Callable
 from urllib.parse import urlsplit
 
@@ -90,6 +90,12 @@ def keys(d: Definition) -> list[Key]:
         out += runprofile.keys()
     if d.external_commands:
         out += extcmd_commands.keys()
+    if d.tiering:
+        from besdk.tiering import member as tiering_member
+
+        out += tiering_member.keys(d.tiering)
+        if not d.evidence:  # the release reads the backup records (P15.21)
+            out += runprofile.keys()
     return out
 
 
@@ -153,6 +159,8 @@ class Member:
     runner: object = None  # the member's background work (besdk.work.Runner), with a database
     evidence: object = None  # the member's evidence writer (besdk.evidence.Writer), with a database
     external: object = None  # the member's external commands (besdk.extcmd.Commands)
+    tiering: object = None  # the member's catalog (besdk.tiering.Catalog), with Definition.tiering
+    backups: object = None  # the run profile the catalog reads the latest backup from
     redelivery: object = None  # with subscriptions: the redelivery after the database went back (P6.39)
     _subs: list = field(default_factory=list)
     _tasks: list[asyncio.Task] = field(default_factory=list)
@@ -282,6 +290,10 @@ class Member:
             if isinstance(self.module, Stopper):
                 await self.module.stop()
         finally:
+            if self.tiering is not None and self.tiering.store is not None:  # type: ignore[attr-defined]
+                await self.tiering.store.close()  # type: ignore[attr-defined]
+            if self.backups is not None:
+                await self.backups.close()  # type: ignore[attr-defined]
             await self.runtime.outbound.close()  # type: ignore[union-attr]
             if self.claims is not None:
                 await self.claims.close()  # type: ignore[attr-defined]
@@ -342,15 +354,34 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
             raise BuildError("the definition says external_commands but the component has no database (migrations)")
         external = extcmd_commands.Commands(shared.db, d.id, log, evidence=writer,  # type: ignore[arg-type]
                                             query_only=values.bool(extcmd_commands.QUERY_ONLY_KEY))
+    catalog = backups = None
+    if d.tiering:  # the data classes (be-protocol chapter 15): checked at start (P15.1-P15.5)
+        try:
+            if shared.db is None:
+                raise ValueError("the definition declares tiering classes but the component has no database "
+                                 "(migrations)")
+            catalog, backups = await _tiering(d, values, shared, runner, writer, tls, log)
+        except ValueError as e:
+            log.error("the member could not be built", error=str(e))
+            raise BuildError(str(e)) from e
     rt = Runtime(member=m, config=values, logger=log, metrics=registry, tracer=tracers.get_tracer(d.id),
                  addresses=shared.addresses, db=shared.db, outbound=outbound, events=producer, audit=auditor,
-                 work=runner, evidence=writer, external=external)
+                 work=runner, evidence=writer, external=external, tiering=catalog)
     try:
         module = d.new(rt)
         if inspect.isawaitable(module):
             module = await module
         routes = Routes()
         module.routes(routes)
+        if catalog is not None:  # holds, approvals and export status of the classes (P15.40)
+            from besdk.tiering import routes as tiering_routes
+
+            tiering_routes.routes(catalog, routes)
+        if hasattr(module, "tiering"):  # the module's blockers (P15.12)
+            if catalog is None:
+                raise ValueError("the module takes part in the tiering but the definition declares no classes "
+                                 "(Definition.tiering)")
+            module.tiering(catalog.registry)
         services = system.Services()
         if hasattr(module, "services"):
             module.services(services)
@@ -371,14 +402,20 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
                 services.register(records_pb2_grpc.add_RecordServiceServicer_to_server,
                                   stream_records.RecordSource(shared.db, producer, impl, deployment, log),  # type: ignore[arg-type]
                                   {"Read": read, "Snapshot": read})
-        if hasattr(module, "replays"):  # the owner's replay of its evidence (P12.19)
+        from besdk.tiering import destroy as tiering_destroy
+
+        destroys = catalog is not None and tiering_destroy.replaying(catalog)
+        if hasattr(module, "replays") or destroys:  # the owner's replay of its evidence (P12.19), the tiering's with it
             if writer is None:
                 raise ValueError("a module that replays its evidence has a database (migrations)")
             if not d.replay:
                 raise ValueError("a module that replays its evidence declares the operation of the replay "
                                  "(Definition.replay, P12.19)")
             replays = evidence.Replays()
-            module.replays(replays)
+            if hasattr(module, "replays"):
+                module.replays(replays)
+            if destroys:
+                tiering_destroy.replays(catalog, replays)
             services.register(replay_pb2_grpc.add_ReplayServiceServicer_to_server,
                               evidence.ReplayServer(shared.db, d.id, replays, log),  # type: ignore[arg-type]
                               {"Replay": system.Method(d.replay, [evidence.replay.RECOVERY_TOOL])})
@@ -401,6 +438,10 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
                 raise ValueError("a component with a database declares the operation of a full recovery's checks "
                                  "(Definition.recovery, P14.1)")
             reg = Checks()
+            if catalog is not None:  # the SDK's tiering check, before the component's own (P15.36)
+                from besdk.tiering import check as tiering_check
+
+                reg.add(tiering_check.recovery_check(catalog))
             if hasattr(module, "recovery_checks"):
                 module.recovery_checks(reg)
             method = system.Method(d.recovery, [evidence.replay.RECOVERY_TOOL], timeout=600.0)
@@ -419,6 +460,16 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
     member = Member(d, values, log, registry, tracers, rt, module, FastAPI(), ready=ready)
     member.forwarder, member.transport, member.tls, member.auditor = forwarder, shared.transport, tls, auditor
     member.runner, member.evidence, member.external = runner, writer, external
+    member.tiering, member.backups = catalog, backups
+    if catalog is not None:  # the exports run under the requester's authorization then (P15.38)
+        from besdk.authz import Subject
+
+        def subject_of(principal: str) -> Subject | None:
+            if member.holder is None:
+                return None
+            return Subject(principal, d.authz, member.holder, datetime.now(timezone.utc))  # type: ignore[arg-type]
+
+        catalog.subject = subject_of
     if d.subscribes:
         subs = Subscriptions()
         module.subscriptions(subs)  # type: ignore[attr-defined]
@@ -434,6 +485,44 @@ async def build(d: Definition, values: Values, shared: Shared, ready: Callable[[
         log.error("the member could not be built", error=str(e))
         raise BuildError(str(e)) from e
     return member
+
+
+async def _tiering(d: Definition, values: Values, shared: Shared, runner: Runner, writer: evidence.Writer,
+                   tls: ServiceTLS | None, log: obs.Logger):
+    """The member's catalog of its data classes and the SDK's tiering jobs (be-protocol chapter 15); the run profile
+    it reads the latest backup from, or None. Raises ValueError."""
+    from besdk.tiering import destroy, erase, history, member, release, transfer
+
+    _tiering_operations(d)
+    catalog = await member.new_catalog(shared.db, d.tiering, values, d.id.replace("/", "-"), log)  # type: ignore[arg-type]
+    for name in member.pending_retentions(catalog):  # never destroyed until the customer sets it (P15.4, TR24)
+        log.warn("a data class has no retention: never destroyed; set it at go-live", event="tiering_retention_pending",
+                 **{"class": name}, key=member.retention_key(name))
+    backups = runprofile.RunProfile.from_values(values, d.id, d.id, tls, log)  # when the latest backup finished
+    if backups is not None:  # (P15.21); without a run profile no unit is ever released
+        catalog.backups = release.backups_from(backups)
+    catalog.evidence = writer  # the destructions' and erasures' evidence (P15.29, P15.31)
+    catalog.enqueue = runner.enqueue  # the history exports (P15.38) and the replayed erasures
+    for job in (member.candidates_job(catalog, values.string(member.WINDOW), log), transfer.transfer_job(catalog, log),
+                release.release_job(catalog, log), history.export_job(catalog, log),
+                history.export_cleanup_job(catalog, log), destroy.destroy_job(catalog, log),
+                erase.erase_job(catalog, log), transfer.cleanup_job(catalog, log)):
+        sdkjobs.add(runner, job)
+    return catalog, backups
+
+
+def _tiering_operations(d: Definition) -> None:
+    """A class's hold and approval operations are the component's (P15.1, P15.28, P15.29)."""
+    for cl in d.tiering:
+        for op in (cl.hold_operation, cl.approve_operation):
+            if not op:
+                continue
+            if d.authz is None:
+                raise ValueError(f"{cl.name}: the operation {op} needs the component's authorization definitions "
+                                 "(Definition.authz)")
+            if not any(o.key == op for o in d.authz.operations):  # the index is built later (validate)
+                raise ValueError(f"{cl.name}: the operation {op} is not declared in the component's authorization "
+                                 "definitions")
 
 
 def _surfaces(member: Member, shared: Shared, outbound: calls.Member, routes: Routes, services: system.Services) -> None:

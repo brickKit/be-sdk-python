@@ -26,13 +26,22 @@ def makers() -> list[tuple[str, str]]:
 
 
 def job_names() -> set[str]:
-    """The names of the jobs the SDK declares: Job(...) calls whose first argument is a "be." literal."""
+    """The names of the jobs the SDK declares: Job(...) calls whose first argument is a "be." literal, or a module-level
+    constant holding one (erase.JOB)."""
     out = set()
     for p in sources():
-        for node in ast.walk(ast.parse(p.read_text())):
-            if isinstance(node, ast.Call) and getattr(node.func, "id", getattr(node.func, "attr", "")) == "Job" \
-                    and node.args and isinstance(node.args[0], ast.Constant) and str(node.args[0].value).startswith("be."):
-                out.add(node.args[0].value)
+        tree = ast.parse(p.read_text())
+        consts = {t.id: n.value.value for n in tree.body if isinstance(n, ast.Assign)
+                  and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str)
+                  for t in n.targets if isinstance(t, ast.Name)}
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and getattr(node.func, "id", getattr(node.func, "attr", "")) == "Job"
+                    and node.args):
+                continue
+            a = node.args[0]
+            name = a.value if isinstance(a, ast.Constant) else consts.get(a.id) if isinstance(a, ast.Name) else None
+            if isinstance(name, str) and name.startswith("be."):
+                out.add(name)
     return out
 
 

@@ -66,6 +66,10 @@ class Definition:
     # external_commands, of the external reconciliation (be.external.v1.ReconcileService, P13.11), declared in the
     # component's resource definition.
     recovery: str = ""
+    # The component's data classes (besdk.tiering.classes.Class, be-protocol P15.1): their catalog, write barrier,
+    # jobs, reads and administration routes come from the SDK (rt.tiering); a module with blockers implements
+    # tiering(registry: besdk.tiering.catalog.Registry). Needs migrations.
+    tiering: list = field(default_factory=list)
     # The module implements subscriptions(s: besdk.events.consumer.Subscriptions); needs migrations (the inbox).
     subscribes: bool = False
     # The resources and operations the component declares (besdk.authz.Definitions); required with protected routes or

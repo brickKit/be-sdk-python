@@ -84,3 +84,20 @@ def test_what_a_declaration_may_say():
                    approve_operation="").check(90) == [], "never destroyed nor erased: no hold or approval operation"
     assert replace(orders(), category=k.LONG_TERM_EVIDENCE, residence_days=0, routes=()).check(90) == [], \
         "a never-tiered kind with a retention only"
+
+
+def test_a_tiering_class_names_declared_operations():  # P15.1: hold and approval operations are the component's
+    from besdk.authz import Definitions, Operation
+    from besdk.component import Definition
+    from besdk.host import _tiering_operations
+
+    authz = Definitions("demo/notes", [], [Operation("demo.hold", "demo.note", "manage", "low"),
+                                           Operation("demo.approve", "demo.note", "manage", "low")])
+    cl = k.Class("demo.notes", k.COMPLETED, k.Table("notes", {"id": UUID}, pk="id"), "", "", "", 365,
+                 k.Retention(), "1", hold_operation="demo.hold", approve_operation="demo.approve")
+    _tiering_operations(Definition("demo/notes", "3.0.0", None, authz=authz, tiering=[cl]))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="demo.destroy"):
+        _tiering_operations(Definition("demo/notes", "3.0.0", None, authz=authz,  # type: ignore[arg-type]
+                                       tiering=[replace(cl, approve_operation="demo.destroy")]))
+    with pytest.raises(ValueError, match="Definition.authz"):  # no definitions at all
+        _tiering_operations(Definition("demo/notes", "3.0.0", None, tiering=[cl]))  # type: ignore[arg-type]

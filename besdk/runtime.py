@@ -48,6 +48,9 @@ class Runtime:
     # the member's external commands (besdk.extcmd.Commands), with Definition.external_commands: request(tx, ...)
     # writes a command in the business transaction (chapter 13)
     external: Any = None
+    # the member's catalog of archive units (besdk.tiering.Catalog, be-protocol chapter 15), with
+    # Definition.tiering: reads of archived aggregates, history, holds, erasure
+    tiering: Any = None
 
     def http(self, component_id: str) -> Any:
         """The client for a dependency's user surface (deadline, retries, breaker and limit per dependency, chapter

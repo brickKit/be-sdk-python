@@ -241,5 +241,13 @@ async def _migrate(d: Definition, o: Options) -> int:
     except (migrate.MigrateError, OSError, asyncpg.PostgresError) as e:
         log.error("migrate failed", error=str(e))  # the last line names the failed migration (P1.2)
         return EXIT_FAILURE
+    if d.tiering:  # the write barrier's triggers, derived from the classes (be-protocol P15.13)
+        from besdk.tiering import barrier
+
+        try:
+            await migrate.execute(cfg, barrier.statements(d.tiering))
+        except (ValueError, migrate.MigrateError, OSError, asyncpg.PostgresError) as e:
+            log.error("migrate failed: the tiering write barrier", error=str(e))
+            return EXIT_FAILURE
     log.info("migrate done")
     return EXIT_OK

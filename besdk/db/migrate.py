@@ -76,6 +76,22 @@ async def migrate(c: MigrateConfig, *sets: MigrationSet) -> None:
         await _migrate_set(c, s)
 
 
+async def execute(c: MigrateConfig, stmts: list[str]) -> None:
+    """Runs statements as the owner role in the member's schema, in one transaction, after the migrations: what the
+    SDK derives from the component's definition rather than from files (the tiering write barrier's triggers,
+    be-protocol P15.13). Each statement must be idempotent: the entry runs on every deployment."""
+    conn = await _connect(c, c.member + " migrate")
+    try:
+        async with conn.transaction():
+            for s in stmts:
+                try:
+                    await conn.execute(s)
+                except asyncpg.PostgresError as e:
+                    raise MigrateError(f"{e}: {s.strip().splitlines()[0]}") from e
+    finally:
+        await conn.close()
+
+
 async def _migrate_set(c: MigrateConfig, s: MigrationSet) -> None:
     attempt = 0
     while True:
